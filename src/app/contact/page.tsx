@@ -45,10 +45,10 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center p-5">
-      <div className="grid grid-cols-2 gap-12 max-w-4xl w-full items-center">
-        {/* Left */}
-        <div className="text-white">
+    <main className="min-h-screen bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center p-5 md:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-4xl w-full items-center">
+        {/* Left — info (hidden on mobile, shown on md+) */}
+        <div className="text-white hidden md:block">
           <Link href="/" className="flex items-center gap-2 text-white/70 text-sm mb-8 hover:text-white transition-colors">← กลับหน้าแรก</Link>
           <h1 className="font-display text-5xl leading-tight mb-4">ปรึกษาสุขภาพ<br/><em className="text-leaf">ฟรี ไม่ตัดสิน</em></h1>
           <p className="text-white/70 leading-relaxed mb-8">กรอกข้อมูลสั้นๆ ทีมผู้เชี่ยวชาญจะติดต่อกลับภายใน 30 นาที</p>
@@ -62,7 +62,10 @@ export default function ContactPage() {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-3xl p-10 shadow-2xl">
+        <div className="bg-white rounded-3xl p-7 md:p-10 shadow-2xl w-full">
+          {/* Mobile back link */}
+          <Link href="/" className="flex items-center gap-2 text-muted text-sm mb-4 hover:text-forest transition-colors md:hidden">← กลับหน้าแรก</Link>
+
           {success ? (
             <div className="text-center py-8">
               <div className="text-6xl mb-4">✅</div>
@@ -75,8 +78,8 @@ export default function ContactPage() {
           ) : (
             <>
               <div className="inline-flex items-center gap-2 bg-mint/10 border border-mint/20 text-sage px-3 py-1.5 rounded-full text-xs font-semibold mb-4">🌿 ปรึกษาฟรี</div>
-              <h2 className="font-display text-2xl text-forest mb-1">กรอกข้อมูลรับคำปรึกษา</h2>
-              <p className="text-muted text-sm mb-6">ทีมผู้เชี่ยวชาญพร้อมตอบทุกวัน ไม่มีวันหยุด</p>
+              <h2 className="font-display text-xl md:text-2xl text-forest mb-1">กรอกข้อมูลรับคำปรึกษา</h2>
+              <p className="text-muted text-sm mb-5 md:mb-6">ทีมผู้เชี่ยวชาญพร้อมตอบทุกวัน ไม่มีวันหยุด</p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -101,7 +104,7 @@ export default function ContactPage() {
                   <label className="text-xs font-semibold text-rtext block mb-2">บริการที่สนใจ *</label>
                   <div className="grid grid-cols-2 gap-2">
                     {SERVICES.map(s => (
-                      <label key={s.value} className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-sm cursor-pointer transition-all ${form.service === s.value ? 'border-sage bg-mint/8 text-forest font-semibold' : 'border-gray-200 hover:border-mint'}`}>
+                      <label key={s.value} className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-xs md:text-sm cursor-pointer transition-all ${form.service === s.value ? 'border-sage bg-mint/8 text-forest font-semibold' : 'border-gray-200 hover:border-mint'}`}>
                         <input type="radio" name="service" value={s.value} className="hidden" onChange={() => setForm({...form, service: s.value})} />
                         {s.label}
                       </label>
