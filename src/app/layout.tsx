@@ -1,0 +1,24 @@
+import type { Metadata } from 'next'
+import './globals.css'
+
+export const metadata: Metadata = {
+  title: 'รู้ก่อนดี — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
+  description: 'ปรึกษาผู้เชี่ยวชาญด้านสุขภาพฟรี STD & PrEP HIV, GLP-1 ลดน้ำหนัก, CKD Clinic, ตรวจสุขภาพแรงงานต่างด้าว สมุทรสาคร',
+  keywords: 'PrEP HIV, STD, GLP-1, CKD, แรงงานต่างด้าว, สมุทรสาคร',
+  openGraph: {
+    title: 'รู้ก่อนดี — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
+    description: 'ปรึกษาฟรี ไม่ตัดสิน ครอบคลุมทุกเรื่องสุขภาพ',
+    url: 'https://roogondee.com',
+    siteName: 'รู้ก่อนดี',
+    locale: 'th_TH',
+    type: 'website',
+  },
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="th">
+      <body>{children}</body>
+    </html>
+  )
+}

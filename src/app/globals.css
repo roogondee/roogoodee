@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --forest: #1B4332;
+  --sage:   #2D6A4F;
+  --mint:   #52B788;
+  --cream:  #F8F4EF;
+  --text:   #2C3E28;
+  --muted:  #6B8C72;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+}
+
+.font-display {
+  font-family: 'Playfair Display', serif;
+}
