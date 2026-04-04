@@ -216,7 +216,10 @@ export default async function Home() {
         </div>
         <div className="flex flex-col md:flex-row justify-between gap-2 text-xs">
           <span>© 2026 บริษัท เจียรักษา จำกัด | รู้ก่อนดี</span>
-          <span className="text-white/25">ข้อมูลทุกอย่างเป็นความลับ</span>
+          <div className="flex gap-4 text-white/40">
+            <Link href="/privacy" className="hover:text-white transition-colors">นโยบายความเป็นส่วนตัว</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">ข้อตกลงการใช้บริการ</Link>
+          </div>
         </div>
       </footer>
     </main>
