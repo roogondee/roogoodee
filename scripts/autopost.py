@@ -1,74 +1,85 @@
 """
 roogondee-autopost: autopost.py
-รู้ก่อนดี (RuGonDee) — Auto-post Python → Claude → WordPress + Supabase
+รู้ก่อนดี (RuGonDee) — Auto-post Python → Claude → Supabase + WordPress
+อ่าน content_plan จาก Supabase (ไม่ต้องใช้ Google Sheets)
 Company: บริษัท เจียรักษา จำกัด | roogondee.com
 """
 
 import os
-import io
 import json
 import base64
 import requests
 from datetime import datetime, date
 import anthropic
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 from supabase import create_client
 from zoneinfo import ZoneInfo
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-WP_URL        = os.environ.get("WP_URL", "").rstrip("/")
-WP_USER       = os.environ.get("WP_USER", "")
-WP_APP_PASS   = os.environ.get("WP_APP_PASS", "")
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 TOGETHER_KEY  = os.environ["TOGETHER_API_KEY"]
 SUPABASE_URL  = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
 SUPABASE_KEY  = os.environ["SUPABASE_SECRET"]
-GSHEET_ID     = os.environ["GSHEET_ID"]
-GSHEET_CREDS  = os.environ["GSHEET_CREDS_JSON"]
+WP_URL        = os.environ.get("WP_URL", "").rstrip("/")
+WP_USER       = os.environ.get("WP_USER", "")
+WP_APP_PASS   = os.environ.get("WP_APP_PASS", "")
 LINE_TOKEN    = os.environ.get("LINE_NOTIFY_TOKEN", "")
 
-SHEET_NAME = "Content"
-BKK_TZ     = ZoneInfo("Asia/Bangkok")
-TODAY_STR  = date.today().strftime("%Y-%m-%d")
+BKK_TZ    = ZoneInfo("Asia/Bangkok")
+TODAY_STR = date.today().strftime("%Y-%m-%d")
 
 WP_AUTH    = base64.b64encode(f"{WP_USER}:{WP_APP_PASS}".encode()).decode()
 WP_HEADERS = {"Authorization": f"Basic {WP_AUTH}", "Content-Type": "application/json"}
 
+SERVICE_LABELS = {
+    "std":     "Sexual Health",
+    "glp1":    "GLP-1 & ฮอร์โมน",
+    "ckd":     "CKD & โรคไต",
+    "foreign": "แรงงานต่างด้าว",
+}
+
 # ─── SUPABASE ──────────────────────────────────────────────────────────────────
 
-def get_supabase():
+def get_sb():
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def save_to_supabase(row_data: dict, html_content: str, image_url: str) -> str | None:
-    """บันทึกบทความลง Supabase posts table — คืน post id"""
-    sb = get_supabase()
-    service_map = {
-        "Sexual Health": "std",
-        "GLP-1 & ฮอร์โมน": "glp1",
-        "CKD & โรคไต": "ckd",
-        "แรงงานต่างด้าว": "foreign",
-    }
-    service = service_map.get(row_data.get("category", ""), "glp1")
+def get_today_plans() -> list[dict]:
+    """ดึง content_plan ที่ status='ready' และ scheduled_date=วันนี้"""
+    sb = get_sb()
+    result = sb.table("content_plan") \
+        .select("*") \
+        .eq("status", "ready") \
+        .eq("scheduled_date", TODAY_STR) \
+        .execute()
+    return result.data or []
 
-    data = {
-        "title":        row_data["title"],
-        "slug":         row_data.get("url_slug", "").strip("/"),
+def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str | None:
+    """บันทึกบทความลง posts table และอัปเดต content_plan"""
+    sb = get_sb()
+
+    post_data = {
+        "title":        plan["title"],
+        "slug":         plan["slug"],
         "content":      html_content,
-        "excerpt":      row_data.get("meta_description", "")[:300],
-        "service":      service,
-        "category":     row_data.get("category", ""),
-        "focus_kw":     row_data.get("focus_keyword", ""),
-        "meta_desc":    row_data.get("meta_description", ""),
+        "excerpt":      plan.get("meta_desc", "")[:300],
+        "service":      plan["service"],
+        "category":     SERVICE_LABELS.get(plan["service"], ""),
+        "focus_kw":     plan.get("focus_kw", ""),
+        "meta_desc":    plan.get("meta_desc", ""),
         "image_url":    image_url or "",
         "status":       "published",
         "published_at": datetime.now(BKK_TZ).isoformat(),
     }
 
-    result = sb.table("posts").upsert(data, on_conflict="slug").execute()
-    if result.data:
-        return result.data[0]["id"]
-    return None
+    result = sb.table("posts").upsert(post_data, on_conflict="slug").execute()
+    post_id = result.data[0]["id"] if result.data else None
+
+    # อัปเดต content_plan → status = posted
+    sb.table("content_plan").update({
+        "status":  "posted",
+        "post_id": post_id,
+    }).eq("id", plan["id"]).execute()
+
+    return post_id
 
 # ─── FLUX.1 IMAGE GENERATION ───────────────────────────────────────────────────
 
@@ -80,24 +91,18 @@ SERVICE_PROMPTS = {
 }
 
 def generate_image(title: str, service: str) -> str | None:
-    """Generate blog cover image with FLUX.1-schnell-Free — คืน URL"""
     base = SERVICE_PROMPTS.get(service, "healthcare, medical, green and white, professional, Thailand")
-    prompt = f"{base}, related to topic: {title[:80]}, high quality photography, 16:9 aspect ratio"
+    prompt = f"{base}, related to: {title[:80]}, high quality photography, 16:9"
 
     try:
         resp = requests.post(
             "https://api.together.xyz/v1/images/generations",
-            headers={
-                "Authorization": f"Bearer {TOGETHER_KEY}",
-                "Content-Type": "application/json",
-            },
+            headers={"Authorization": f"Bearer {TOGETHER_KEY}", "Content-Type": "application/json"},
             json={
                 "model": "black-forest-labs/FLUX.1-schnell-Free",
                 "prompt": prompt,
-                "width": 1200,
-                "height": 630,
-                "steps": 4,
-                "n": 1,
+                "width": 1200, "height": 630,
+                "steps": 4, "n": 1,
                 "response_format": "url",
             },
             timeout=60,
@@ -107,48 +112,12 @@ def generate_image(title: str, service: str) -> str | None:
         print(f"  🎨 รูปสำเร็จ: {url[:60]}...")
         return url
     except Exception as e:
-        print(f"  ⚠️ Generate image ไม่สำเร็จ: {e}")
+        print(f"  ⚠️ Generate image failed: {e}")
         return None
-
-# ─── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
-
-def get_sheet_service():
-    creds_info = json.loads(GSHEET_CREDS)
-    creds = service_account.Credentials.from_service_account_info(
-        creds_info, scopes=["https://www.googleapis.com/auth/spreadsheets"]
-    )
-    return build("sheets", "v4", credentials=creds).spreadsheets()
-
-def get_rows(service):
-    result = service.values().get(
-        spreadsheetId=GSHEET_ID,
-        range=f"{SHEET_NAME}!A1:P200"
-    ).execute()
-    rows = result.get("values", [])
-    if not rows:
-        return [], []
-    return rows[0], rows[1:]
-
-def col_index(headers, col_name):
-    try:
-        return headers.index(col_name)
-    except ValueError:
-        return -1
-
-def update_row(service, row_num, col, value):
-    if col < 0:
-        return
-    col_letter = chr(ord("A") + col)
-    service.values().update(
-        spreadsheetId=GSHEET_ID,
-        range=f"{SHEET_NAME}!{col_letter}{row_num}",
-        valueInputOption="RAW",
-        body={"values": [[value]]}
-    ).execute()
 
 # ─── CLAUDE AI ─────────────────────────────────────────────────────────────────
 
-def generate_content(row_data: dict) -> str:
+def generate_content(plan: dict) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     system_prompt = """คุณเป็นนักเขียนบทความสุขภาพระดับ Medical Grade สำหรับเว็บไซต์ รู้ก่อนดี (roogondee.com)
@@ -165,90 +134,81 @@ def generate_content(row_data: dict) -> str:
 
     user_prompt = f"""เขียนบทความสำหรับหัวข้อ:
 
-ชื่อเรื่อง: {row_data['title']}
-หมวดหมู่: {row_data['category']}
-Focus Keyword: {row_data['focus_keyword']}
-คีย์เวิร์ดรอง: {row_data['post_body_seed']}
-Meta Description: {row_data['meta_description']}
+ชื่อเรื่อง: {plan['title']}
+หมวดหมู่: {SERVICE_LABELS.get(plan['service'], '')}
+Focus Keyword: {plan.get('focus_kw', '')}
+เนื้อหาหลัก: {plan.get('seed', '')}
+Meta Description: {plan.get('meta_desc', '')}
 
 เขียนบทความ HTML ให้ครบ 900-1,200 คำ"""
 
-    message = client.messages.create(
+    msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=4096,
         messages=[{"role": "user", "content": user_prompt}],
         system=system_prompt,
     )
-    return message.content[0].text
+    return msg.content[0].text
 
-# ─── WORDPRESS ─────────────────────────────────────────────────────────────────
+# ─── WORDPRESS (optional) ──────────────────────────────────────────────────────
 
-def upload_image_to_wp(image_url: str, title: str) -> int | None:
-    """Download image from URL แล้ว upload ขึ้น WordPress Media Library"""
+def upload_image_to_wp(image_url: str) -> int | None:
     if not image_url or not WP_URL:
         return None
     try:
-        img_resp = requests.get(image_url, timeout=30)
-        img_resp.raise_for_status()
-        img_data = img_resp.content
-
+        img = requests.get(image_url, timeout=30)
+        img.raise_for_status()
         resp = requests.post(
             f"{WP_URL}/wp-json/wp/v2/media",
             headers={
                 "Authorization": f"Basic {WP_AUTH}",
-                "Content-Disposition": f'attachment; filename="cover.jpg"',
+                "Content-Disposition": 'attachment; filename="cover.jpg"',
                 "Content-Type": "image/jpeg",
             },
-            data=img_data
+            data=img.content,
         )
         if resp.status_code == 201:
             return resp.json()["id"]
     except Exception as e:
-        print(f"  ⚠️ Upload WP image failed: {e}")
+        print(f"  ⚠️ WP image upload failed: {e}")
     return None
 
 def get_or_create_term(endpoint: str, name: str) -> int:
-    resp = requests.get(
-        f"{WP_URL}/wp-json/wp/v2/{endpoint}",
-        params={"search": name}, headers=WP_HEADERS
-    )
+    resp = requests.get(f"{WP_URL}/wp-json/wp/v2/{endpoint}", params={"search": name}, headers=WP_HEADERS)
     items = resp.json()
     if isinstance(items, list) and items:
         return items[0]["id"]
-    resp = requests.post(
-        f"{WP_URL}/wp-json/wp/v2/{endpoint}",
-        json={"name": name}, headers=WP_HEADERS
-    )
-    return resp.json()["id"]
+    return requests.post(f"{WP_URL}/wp-json/wp/v2/{endpoint}", json={"name": name}, headers=WP_HEADERS).json()["id"]
 
-def create_wp_post(row_data: dict, html_content: str, image_url: str) -> dict:
-    if not WP_URL:
-        return {}
+def post_to_wordpress(plan: dict, html_content: str, image_url: str) -> str:
+    if not WP_URL or not WP_USER or not WP_APP_PASS:
+        return ""
+    try:
+        cat_id = get_or_create_term("categories", SERVICE_LABELS.get(plan["service"], "Health"))
+        tags   = [get_or_create_term("tags", kw.strip()) for kw in plan.get("focus_kw", "").split(",") if kw.strip()]
+        media_id = upload_image_to_wp(image_url)
 
-    cat_id = get_or_create_term("categories", row_data["category"])
-    tags = [get_or_create_term("tags", kw.strip())
-            for kw in row_data.get("focus_keyword", "").split(",") if kw.strip()]
-
-    featured_media = upload_image_to_wp(image_url, row_data.get("title", ""))
-
-    payload = {
-        "title":      row_data["title"],
-        "content":    html_content,
-        "status":     "publish",
-        "slug":       row_data.get("url_slug", ""),
-        "categories": [cat_id],
-        "tags":       tags,
-        "meta": {
-            "rank_math_description":   row_data.get("meta_description", ""),
-            "rank_math_focus_keyword": row_data.get("focus_keyword", ""),
+        payload = {
+            "title":      plan["title"],
+            "content":    html_content,
+            "status":     "publish",
+            "slug":       plan["slug"],
+            "categories": [cat_id],
+            "tags":       tags,
+            "meta": {
+                "rank_math_description":   plan.get("meta_desc", ""),
+                "rank_math_focus_keyword": plan.get("focus_kw", ""),
+            },
         }
-    }
-    if featured_media:
-        payload["featured_media"] = featured_media
+        if media_id:
+            payload["featured_media"] = media_id
 
-    resp = requests.post(f"{WP_URL}/wp-json/wp/v2/posts", json=payload, headers=WP_HEADERS)
-    resp.raise_for_status()
-    return resp.json()
+        resp = requests.post(f"{WP_URL}/wp-json/wp/v2/posts", json=payload, headers=WP_HEADERS)
+        resp.raise_for_status()
+        return resp.json().get("link", "")
+    except Exception as e:
+        print(f"  ⚠️ WordPress failed (ข้ามได้): {e}")
+        return ""
 
 # ─── LINE NOTIFY ───────────────────────────────────────────────────────────────
 
@@ -258,98 +218,54 @@ def send_line(message: str):
     requests.post(
         "https://notify-api.line.me/api/notify",
         headers={"Authorization": f"Bearer {LINE_TOKEN}"},
-        data={"message": message}
+        data={"message": message},
     )
 
 # ─── MAIN ──────────────────────────────────────────────────────────────────────
 
 def main():
     print(f"🌿 รู้ก่อนดี AutoPost — {TODAY_STR}")
-    sheet_svc = get_sheet_service()
-    headers, rows = get_rows(sheet_svc)
 
-    required_cols = [
-        "day_number", "scheduled_date", "platform", "title",
-        "meta_description", "url_slug", "focus_keyword",
-        "category", "post_body_seed", "status", "wp_url", "posted_at", "notes"
-    ]
-    ci = {col: col_index(headers, col) for col in required_cols}
+    plans = get_today_plans()
+    if not plans:
+        print("📭 ไม่มีบทความที่ต้องโพสต์วันนี้")
+        return
 
-    service_map = {
-        "Sexual Health": "std",
-        "GLP-1 & ฮอร์โมน": "glp1",
-        "CKD & โรคไต": "ckd",
-        "แรงงานต่างด้าว": "foreign",
-    }
-
+    print(f"📋 พบ {len(plans)} บทความ")
     posted_count = 0
-    for i, row in enumerate(rows):
-        row_num = i + 2
 
-        def get(col):
-            idx = ci.get(col, -1)
-            return row[idx] if 0 <= idx < len(row) else ""
-
-        if get("scheduled_date") != TODAY_STR:
-            continue
-        if get("status") != "Ready":
-            continue
-        if get("platform") != "Blog/SEO":
-            continue
-
-        title = get("title")
+    for plan in plans:
+        title = plan["title"]
         print(f"\n📝 กำลังโพสต์: {title}")
-
-        category = get("category")
-        service  = service_map.get(category, "glp1")
-
-        row_data = {
-            "title":            title,
-            "meta_description": get("meta_description"),
-            "url_slug":         get("url_slug"),
-            "focus_keyword":    get("focus_keyword"),
-            "category":         category,
-            "post_body_seed":   get("post_body_seed"),
-        }
 
         try:
             # 1. Generate image
             print("  🎨 กำลัง generate รูปด้วย FLUX.1...")
-            image_url = generate_image(title, service)
+            image_url = generate_image(title, plan["service"])
 
             # 2. Generate content
             print("  🤖 กำลังสร้างเนื้อหาด้วย Claude...")
-            html_content = generate_content(row_data)
+            html_content = generate_content(plan)
 
             # 3. Save to Supabase
             print("  💾 กำลังบันทึกลง Supabase...")
-            post_id = save_to_supabase(row_data, html_content, image_url or "")
-            print(f"  ✅ Supabase post id: {post_id}")
+            post_id = save_post_to_supabase(plan, html_content, image_url or "")
+            print(f"  ✅ Supabase: {post_id}")
 
-            # 4. Post to WordPress (optional — skip if WP_URL not set)
-            wp_url = ""
-            if WP_URL and WP_USER and WP_APP_PASS:
-                print("  📤 กำลังโพสต์ไปยัง WordPress...")
-                try:
-                    wp_post = create_wp_post(row_data, html_content, image_url or "")
-                    wp_url  = wp_post.get("link", "")
-                    print(f"  ✅ WordPress: {wp_url}")
-                except Exception as wp_err:
-                    print(f"  ⚠️ WordPress error (ข้ามได้): {wp_err}")
+            # 4. Post to WordPress (optional)
+            wp_url = post_to_wordpress(plan, html_content, image_url or "")
+            if wp_url:
+                print(f"  ✅ WordPress: {wp_url}")
 
-            # 5. Update sheet
-            posted_at = datetime.now(BKK_TZ).strftime("%Y-%m-%d %H:%M:%S")
-            update_row(sheet_svc, row_num, ci["status"],    "Posted")
-            update_row(sheet_svc, row_num, ci["wp_url"],    wp_url or f"roogondee.com/blog/{row_data['url_slug']}")
-            update_row(sheet_svc, row_num, ci["posted_at"], posted_at)
-
-            send_line(f"✅ รู้ก่อนดี โพสต์ใหม่: {title}\nroogondee.com/blog/{row_data['url_slug']}")
+            blog_url = f"roogondee.com/blog/{plan['slug']}"
+            send_line(f"✅ รู้ก่อนดี โพสต์ใหม่: {title}\n{blog_url}")
             posted_count += 1
 
         except Exception as e:
             err = str(e)
             print(f"  ❌ Error: {err}")
-            update_row(sheet_svc, row_num, ci["notes"], f"Error: {err[:200]}")
+            # Mark as error in content_plan
+            get_sb().table("content_plan").update({"status": "error"}).eq("id", plan["id"]).execute()
             send_line(f"❌ รู้ก่อนดี Error: {title}\n{err[:200]}")
 
     print(f"\n🎉 เสร็จสิ้น — โพสต์ทั้งหมด {posted_count} บทความ")
