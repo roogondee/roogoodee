@@ -25,11 +25,14 @@ jobs:
 
       - name: 🚀 Run AutoPost
         env:
-          WP_URL:              ${{ secrets.WP_URL }}
-          WP_USER:             ${{ secrets.WP_USER }}
-          WP_APP_PASS:         ${{ secrets.WP_APP_PASS }}
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          GSHEET_CREDS_JSON:   ${{ secrets.GSHEET_CREDS_JSON }}
-          GSHEET_ID:           ${{ secrets.GSHEET_ID }}
-          LINE_NOTIFY_TOKEN:   ${{ secrets.LINE_NOTIFY_TOKEN }}
+          ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
+          TOGETHER_API_KEY:           ${{ secrets.TOGETHER_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:   ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:            ${{ secrets.SUPABASE_SECRET }}
+          GSHEET_CREDS_JSON:          ${{ secrets.GSHEET_CREDS_JSON }}
+          GSHEET_ID:                  ${{ secrets.GSHEET_ID }}
+          WP_URL:                     ${{ secrets.WP_URL }}
+          WP_USER:                    ${{ secrets.WP_USER }}
+          WP_APP_PASS:                ${{ secrets.WP_APP_PASS }}
+          LINE_NOTIFY_TOKEN:          ${{ secrets.LINE_NOTIFY_TOKEN }}
         run: python scripts/autopost.py
