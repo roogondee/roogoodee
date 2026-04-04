@@ -1,0 +1,35 @@
+name: 🌿 RuGonDee AutoPost
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # 02:00 UTC = 09:00 Bangkok ทุกวัน
+  workflow_dispatch:        # รันด้วยมือได้ทุกเมื่อ
+
+jobs:
+  autopost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🚀 Run AutoPost
+        env:
+          WP_URL:              ${{ secrets.WP_URL }}
+          WP_USER:             ${{ secrets.WP_USER }}
+          WP_APP_PASS:         ${{ secrets.WP_APP_PASS }}
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          GSHEET_CREDS_JSON:   ${{ secrets.GSHEET_CREDS_JSON }}
+          GSHEET_ID:           ${{ secrets.GSHEET_ID }}
+          LINE_NOTIFY_TOKEN:   ${{ secrets.LINE_NOTIFY_TOKEN }}
+        run: python scripts/autopost.py
