@@ -99,9 +99,9 @@ def generate_image(title: str, service: str) -> str | None:
             "https://api.together.xyz/v1/images/generations",
             headers={"Authorization": f"Bearer {TOGETHER_KEY}", "Content-Type": "application/json"},
             json={
-                "model": "black-forest-labs/FLUX.1-schnell-Free",
+                "model": "black-forest-labs/FLUX.1-schnell",
                 "prompt": prompt,
-                "width": 1200, "height": 630,
+                "width": 1200, "height": 624,
                 "steps": 4, "n": 1,
                 "response_format": "url",
             },
