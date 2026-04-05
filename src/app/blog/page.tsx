@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 const SERVICE_COLORS: Record<string, string> = {

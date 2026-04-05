@@ -5,13 +5,22 @@ import type { Metadata } from 'next'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
 export const revalidate = 60
 
+export async function generateStaticParams() {
+  const { data } = await supabase
+    .from('posts')
+    .select('slug')
+    .eq('status', 'published')
+  return (data || []).map((p) => ({ slug: p.slug }))
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { data } = await supabase.from('posts').select('title,meta_desc,image_url').eq('slug', params.slug).single()
+  const slug = decodeURIComponent(params.slug)
+  const { data } = await supabase.from('posts').select('title,meta_desc,image_url').eq('slug', slug).single()
   if (!data) return {}
   return {
     title: data.title + ' — รู้ก่อนดี',
@@ -21,10 +30,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+  const slug = decodeURIComponent(params.slug)
   const { data: post } = await supabase
     .from('posts')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('status', 'published')
     .single()
 
