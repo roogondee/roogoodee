@@ -31,7 +31,7 @@ export default function PrivacyPage() {
             </p>
             <p>
               ช่องทางติดต่อ: <strong>privacy@roogondee.com</strong><br />
-              LINE OA: <strong>@034qjajh</strong><br />
+              โทรศัพท์: <strong>081-902-3540 / 091-982-6661</strong><br />
               ที่ตั้ง: จังหวัดสมุทรสาคร
             </p>
           </section>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
             <p>หากมีคำถามเกี่ยวกับนโยบายความเป็นส่วนตัว ติดต่อได้ที่:</p>
             <ul>
               <li>อีเมล: <strong>privacy@roogondee.com</strong></li>
-              <li>LINE OA: <strong>@034qjajh</strong></li>
+              <li>โทรศัพท์: <strong>081-902-3540 / 091-982-6661</strong></li>
             </ul>
           </section>
 

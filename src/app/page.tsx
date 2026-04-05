@@ -71,7 +71,7 @@ export default async function Home() {
             <h3 className="font-display text-xl md:text-2xl text-white mb-2 md:mb-3">ปรึกษาได้ทุกเรื่อง</h3>
             <p className="text-white/70 text-sm leading-relaxed mb-5 md:mb-6">STD, GLP-1, โรคไต หรือสุขภาพแรงงาน เราพร้อมช่วยคุณเสมอ</p>
             <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-white text-sm font-semibold">
-              💬 LINE: @034qjajh
+              📞 โทร: 081-902-3540
             </div>
           </div>
         </div>
@@ -183,11 +183,12 @@ export default async function Home() {
         <div className="bg-gradient-to-br from-forest to-sage rounded-3xl p-8 md:p-12 text-white text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="text-5xl mb-4">💬</div>
-          <h3 className="font-display text-2xl md:text-3xl mb-2">ปรึกษาผ่าน LINE</h3>
+          <h3 className="font-display text-2xl md:text-3xl mb-2">ปรึกษาทางโทรศัพท์</h3>
           <p className="text-white/70 text-sm mb-5 md:mb-6">ทีมผู้เชี่ยวชาญพร้อมตอบทุกวัน</p>
-          <div className="bg-white/15 border border-white/20 rounded-xl px-6 py-4 text-lg md:text-xl font-bold tracking-wide mb-5 md:mb-6">@034qjajh</div>
-          <a href="https://line.me/ti/p/@034qjajh" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-8 py-3.5 rounded-full font-bold hover:bg-[#00B04B] transition-all w-full">
-            เพิ่มเพื่อน LINE OA
+          <div className="bg-white/15 border border-white/20 rounded-xl px-6 py-4 text-lg md:text-xl font-bold tracking-wide mb-3">081-902-3540</div>
+          <div className="bg-white/15 border border-white/20 rounded-xl px-6 py-4 text-lg md:text-xl font-bold tracking-wide mb-5 md:mb-6">091-982-6661</div>
+          <a href="tel:0819023540" className="flex items-center justify-center gap-2 bg-white text-forest px-8 py-3.5 rounded-full font-bold hover:bg-cream transition-all w-full">
+            📞 โทรหาเราเลย
           </a>
         </div>
       </section>
@@ -208,7 +209,8 @@ export default async function Home() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-4 md:mb-5">ติดต่อ</h4>
             <ul className="space-y-2 text-sm text-white/45">
-              <li>LINE: @034qjajh</li>
+              <li>📞 081-902-3540</li>
+              <li>📞 091-982-6661</li>
               <li>roogondee.com</li>
               <li>สมุทรสาคร</li>
             </ul>

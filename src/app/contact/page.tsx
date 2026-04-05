@@ -71,8 +71,11 @@ export default function ContactPage() {
               <div className="text-6xl mb-4">✅</div>
               <h3 className="font-display text-2xl text-forest mb-2">รับข้อมูลแล้วค่ะ!</h3>
               <p className="text-muted text-sm leading-relaxed mb-6">ทีมผู้เชี่ยวชาญจะติดต่อกลับภายใน 30 นาทีค่ะ</p>
-              <a href="https://line.me/ti/p/@034qjajh" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm">
-                💬 ทักเพิ่มผ่าน LINE
+              <a href="tel:0819023540" className="flex items-center justify-center gap-2 bg-forest text-white px-6 py-3 rounded-full font-bold text-sm">
+                📞 โทร 081-902-3540
+              </a>
+              <a href="tel:0919826661" className="flex items-center justify-center gap-2 bg-sage text-white px-6 py-3 rounded-full font-bold text-sm mt-2">
+                📞 โทร 091-982-6661
               </a>
             </div>
           ) : (
