@@ -148,7 +148,17 @@ Meta Description: {plan.get('meta_desc', '')}
         messages=[{"role": "user", "content": user_prompt}],
         system=system_prompt,
     )
-    return msg.content[0].text
+    text = msg.content[0].text.strip()
+    # Strip markdown code fences if Claude wrapped output in ```html ... ```
+    if text.startswith("```"):
+        lines = text.split("\n")
+        # Remove first line (```html or ```) and last line (```)
+        if lines[-1].strip() == "```":
+            lines = lines[1:-1]
+        else:
+            lines = lines[1:]
+        text = "\n".join(lines).strip()
+    return text
 
 # ─── WORDPRESS (optional) ──────────────────────────────────────────────────────
 
