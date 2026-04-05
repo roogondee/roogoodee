@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendLeadNotification } from '@/lib/email'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -56,14 +57,16 @@ export async function POST(req: NextRequest) {
       try {
         const lead = JSON.parse(leadMatch[1])
         const service = lead.service || detectService(messages)
+        const note = `Chat: ${messages.slice(-3).map((m: { role: string; content: string }) => m.content).join(' | ')}`.slice(0, 300)
         await supabaseAdmin.from('leads').insert({
           first_name: lead.name || '',
           phone: lead.phone || '',
           service,
           source: 'chat-widget',
           status: 'new',
-          note: `Chat: ${messages.slice(-3).map((m: { role: string; content: string }) => m.content).join(' | ')}`.slice(0, 300),
+          note,
         })
+        sendLeadNotification({ name: lead.name || '', phone: lead.phone || '', service, source: 'chat-widget', note })
       } catch {}
     }
 

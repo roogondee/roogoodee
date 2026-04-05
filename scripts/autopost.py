@@ -81,6 +81,27 @@ def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str 
 
     return post_id
 
+# ─── SUPABASE STORAGE ─────────────────────────────────────────────────────────
+
+def upload_image_to_storage(image_url: str, slug: str) -> str:
+    """Download image from Together.xyz and upload to Supabase Storage (permanent URL)"""
+    try:
+        img_resp = requests.get(image_url, timeout=30)
+        img_resp.raise_for_status()
+        sb = get_sb()
+        file_path = f"blog/{slug}.jpg"
+        sb.storage.from_("images").upload(
+            file_path,
+            img_resp.content,
+            {"content-type": "image/jpeg", "upsert": "true"},
+        )
+        public_url = sb.storage.from_("images").get_public_url(file_path)
+        print(f"  ☁️  อัปโหลดรูปแล้ว: {file_path}")
+        return public_url
+    except Exception as e:
+        print(f"  ⚠️ Storage upload failed, ใช้ URL เดิม: {e}")
+        return image_url  # Fallback to original URL
+
 # ─── FLUX.1 IMAGE GENERATION ───────────────────────────────────────────────────
 
 SERVICE_PROMPTS = {
@@ -252,6 +273,9 @@ def main():
             # 1. Generate image
             print("  🎨 กำลัง generate รูปด้วย FLUX.1...")
             image_url = generate_image(title, plan["service"])
+            if image_url:
+                print("  ☁️  กำลังอัปโหลดรูปไป Supabase Storage...")
+                image_url = upload_image_to_storage(image_url, plan["slug"])
 
             # 2. Generate content
             print("  🤖 กำลังสร้างเนื้อหาด้วย Claude...")

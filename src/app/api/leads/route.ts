@@ -1,10 +1,6 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/lib/supabase'
+import { sendLeadNotification } from '@/lib/email'
 import { NextRequest, NextResponse } from 'next/server'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SECRET!
-)
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,12 +11,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อและเบอร์โทร' }, { status: 400 })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('leads')
       .insert([{ service, first_name, last_name, phone, age, gender, note, source: 'roogondee.com' }])
       .select()
 
     if (error) throw error
+
+    // Send email notification (non-blocking)
+    sendLeadNotification({
+      name: `${first_name} ${last_name || ''}`.trim(),
+      phone,
+      service: service || 'general',
+      source: 'contact-form',
+      note,
+    })
 
     return NextResponse.json({ success: true, id: data[0].id })
   } catch (err: unknown) {

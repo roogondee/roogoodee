@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import LeadStatusSelect from '@/components/admin/LeadStatusSelect'
 
 const SERVICE_LABELS: Record<string, string> = {
   std: '🔴 STD & PrEP',
@@ -9,12 +10,6 @@ const SERVICE_LABELS: Record<string, string> = {
   'chat-widget': '💬 Chat',
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-blue-100 text-blue-700',
-  contacted: 'bg-yellow-100 text-yellow-700',
-  converted: 'bg-green-100 text-green-700',
-  lost: 'bg-gray-100 text-gray-500',
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('th-TH', {
@@ -86,9 +81,7 @@ export default async function AdminPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{lead.source || 'website'}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[lead.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {lead.status}
-                    </span>
+                    <LeadStatusSelect id={lead.id} initialStatus={lead.status || 'new'} />
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {lead.created_at ? formatDate(lead.created_at) : ''}
