@@ -129,7 +129,7 @@ def generate_content(plan: dict) -> str:
 - ความยาว 900-1,200 คำ
 - Output เป็น HTML (ไม่ใช่ Markdown)
 - ใช้ <h2>, <h3>, <p>, <ul>, <strong>, <em> เท่านั้น
-- ลงท้ายด้วย CTA: ชวนติดต่อโทร 081-902-3540 หรือ 091-982-6661 หรือ roogondee.com
+- ลงท้ายด้วย CTA: ชวนติดต่อ LINE @roogondee หรือ roogondee.com
 - ห้ามใส่ <!DOCTYPE>, <html>, <head>, <body>, <style>"""
 
     user_prompt = f"""เขียนบทความสำหรับหัวข้อ:

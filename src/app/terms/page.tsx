@@ -107,7 +107,7 @@ export default function TermsPage() {
             <p>หากมีคำถามเกี่ยวกับข้อตกลงการใช้บริการ ติดต่อได้ที่:</p>
             <ul>
               <li>อีเมล: <strong>privacy@roogondee.com</strong></li>
-              <li>โทรศัพท์: <strong>081-902-3540 / 091-982-6661</strong></li>
+              <li>LINE OA: <strong>@roogondee</strong></li>
             </ul>
           </section>
 

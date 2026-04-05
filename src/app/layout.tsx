@@ -19,10 +19,24 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://roogondee.com' },
 }
 
+const orgJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'MedicalOrganization',
+  name: 'รู้ก่อนดี',
+  alternateName: 'RuGonDee',
+  url: 'https://roogondee.com',
+  logo: 'https://roogondee.com/favicon.ico',
+  description: 'บริการปรึกษาสุขภาพ STD/PrEP HIV, GLP-1 ลดน้ำหนัก, CKD Clinic, ตรวจสุขภาพแรงงานต่างด้าว สมุทรสาคร',
+  address: { '@type': 'PostalAddress', addressLocality: 'สมุทรสาคร', addressCountry: 'TH' },
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'Thai' },
+  sameAs: ['https://line.me/ti/p/@roogondee'],
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
         {children}
         <ChatWidget />
       </body>

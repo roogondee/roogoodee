@@ -40,8 +40,29 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   if (!post) notFound()
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.meta_desc || post.excerpt || '',
+    image: post.image_url || '',
+    datePublished: post.published_at || '',
+    dateModified: post.published_at || '',
+    author: { '@type': 'Organization', name: 'รู้ก่อนดี', url: 'https://roogondee.com' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'รู้ก่อนดี — บริษัท เจียรักษา จำกัด',
+      url: 'https://roogondee.com',
+      logo: { '@type': 'ImageObject', url: 'https://roogondee.com/favicon.ico' },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://roogondee.com/blog/${post.slug}` },
+    keywords: post.focus_kw || '',
+    inLanguage: 'th',
+  }
+
   return (
     <main className="min-h-screen bg-cream">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 md:py-5 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
         <Link href="/" className="font-display text-xl md:text-2xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></Link>
         <Link href="/contact" className="bg-forest text-white px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-sage transition-all">💬 ปรึกษาฟรี</Link>
