@@ -8,6 +8,7 @@ Company: บริษัท เจียรักษา จำกัด | roogon
 import os
 import json
 import base64
+import uuid
 import requests
 from datetime import datetime, date
 import anthropic
@@ -89,7 +90,8 @@ def upload_image_to_storage(image_url: str, slug: str) -> str:
         img_resp = requests.get(image_url, timeout=30)
         img_resp.raise_for_status()
         sb = get_sb()
-        file_path = f"blog/{slug}.jpg"
+        safe_name = str(uuid.uuid4())  # Use UUID to avoid Thai chars in filename
+        file_path = f"blog/{safe_name}.jpg"
         sb.storage.from_("images").upload(
             file_path,
             img_resp.content,
