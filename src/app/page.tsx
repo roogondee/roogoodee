@@ -168,6 +168,51 @@ export default async function Home() {
         )}
       </section>
 
+      {/* FAQ */}
+      <section className="py-16 md:py-24 px-6 md:px-20 bg-cream">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              { '@type': 'Question', name: 'ปรึกษาฟรีหรือเปล่า?', acceptedAnswer: { '@type': 'Answer', text: 'ฟรีทุกขั้นตอนครับ ตั้งแต่กรอกฟอร์ม พูดคุยกับทีม ไปจนถึงรับคำแนะนำเบื้องต้น ไม่มีค่าใช้จ่ายใดๆ' } },
+              { '@type': 'Question', name: 'ตรวจ STD ต้องเตรียมตัวอย่างไร?', acceptedAnswer: { '@type': 'Answer', text: 'ไม่ต้องเตรียมอะไรพิเศษครับ แค่มาในชุดสบายๆ ผลตรวจเป็นความลับ 100% ไม่มีการระบุชื่อบนผลตรวจ ทีมไม่ตัดสิน' } },
+              { '@type': 'Question', name: 'PrEP คืออะไร กินแล้วป้องกัน HIV ได้จริงไหม?', acceptedAnswer: { '@type': 'Answer', text: 'PrEP คือยาป้องกัน HIV สำหรับผู้ที่มีความเสี่ยง กินสม่ำเสมอสามารถลดความเสี่ยงติด HIV ได้มากกว่า 99% ต้องได้รับการประเมินและสั่งยาโดยแพทย์เท่านั้น' } },
+              { '@type': 'Question', name: 'GLP-1 คืออะไร ใครเหมาะกับยานี้?', acceptedAnswer: { '@type': 'Answer', text: 'GLP-1 คือฮอร์โมนที่ช่วยควบคุมน้ำตาลและลดความหิว ยาในกลุ่มนี้เช่น Ozempic, Saxenda เหมาะสำหรับผู้ที่มี BMI เกิน 27 หรือมีโรคร่วม เช่น เบาหวาน ความดัน' } },
+              { '@type': 'Question', name: 'โรคไตเรื้อรัง (CKD) สังเกตได้จากอาการอะไร?', acceptedAnswer: { '@type': 'Answer', text: 'อาการที่ควรระวัง เช่น บวมที่เท้าและข้อเท้า ปัสสาวะเป็นฟอง อ่อนเพลียผิดปกติ ความดันสูง หรือค่า Creatinine ในเลือดสูงกว่าปกติ ควรพบแพทย์โรคไตโดยเร็ว' } },
+              { '@type': 'Question', name: 'ตรวจสุขภาพแรงงานต่างด้าวต้องใช้เอกสารอะไร?', acceptedAnswer: { '@type': 'Answer', text: 'ใช้บัตรประจำตัวหรือ Passport ของแรงงาน ตรวจได้ทั้งกลุ่มและรายบุคคล สามารถออกใบรับรองแพทย์ได้ทันที รองรับทุกสัญชาติ' } },
+              { '@type': 'Question', name: 'อยู่ต่างจังหวัดสามารถใช้บริการได้ไหม?', acceptedAnswer: { '@type': 'Answer', text: 'ปรึกษาเบื้องต้นผ่าน LINE @roogondee ได้ทุกที่ทั่วประเทศ สำหรับการตรวจจริงมาที่ W Medical Hospital สมุทรสาคร' } },
+            ]
+          })}}
+        />
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">FAQ</p>
+          <h2 className="font-display text-3xl md:text-4xl text-forest mb-10 md:mb-14">คำถามที่พบบ่อย</h2>
+          <div className="space-y-3">
+            {[
+              { q: 'ปรึกษาฟรีหรือเปล่า?', a: 'ฟรีทุกขั้นตอนครับ ตั้งแต่กรอกฟอร์ม พูดคุยกับทีม ไปจนถึงรับคำแนะนำเบื้องต้น ไม่มีค่าใช้จ่ายใดๆ' },
+              { q: 'ตรวจ STD ต้องเตรียมตัวอย่างไร?', a: 'ไม่ต้องเตรียมอะไรพิเศษครับ แค่มาในชุดสบายๆ ผลตรวจเป็นความลับ 100% ไม่มีการระบุชื่อบนผลตรวจ ทีมไม่ตัดสิน' },
+              { q: 'PrEP คืออะไร กินแล้วป้องกัน HIV ได้จริงไหม?', a: 'PrEP คือยาป้องกัน HIV สำหรับผู้ที่มีความเสี่ยง กินสม่ำเสมอสามารถลดความเสี่ยงติด HIV ได้มากกว่า 99% ต้องได้รับการประเมินและสั่งยาโดยแพทย์เท่านั้น' },
+              { q: 'GLP-1 คืออะไร ใครเหมาะกับยานี้?', a: 'GLP-1 คือฮอร์โมนที่ช่วยควบคุมน้ำตาลและลดความหิว ยาในกลุ่มนี้เช่น Ozempic, Saxenda เหมาะสำหรับผู้ที่มี BMI เกิน 27 หรือมีโรคร่วม เช่น เบาหวาน ความดัน' },
+              { q: 'โรคไตเรื้อรัง (CKD) สังเกตได้จากอาการอะไร?', a: 'อาการที่ควรระวัง เช่น บวมที่เท้าและข้อเท้า ปัสสาวะเป็นฟอง อ่อนเพลียผิดปกติ ความดันสูง หรือค่า Creatinine ในเลือดสูงกว่าปกติ ควรพบแพทย์โรคไตโดยเร็ว' },
+              { q: 'ตรวจสุขภาพแรงงานต่างด้าวต้องใช้เอกสารอะไร?', a: 'ใช้บัตรประจำตัวหรือ Passport ของแรงงาน ตรวจได้ทั้งกลุ่มและรายบุคคล สามารถออกใบรับรองแพทย์ได้ทันที รองรับทุกสัญชาติ' },
+              { q: 'อยู่ต่างจังหวัดสามารถใช้บริการได้ไหม?', a: 'ปรึกษาเบื้องต้นผ่าน LINE @roogondee ได้ทุกที่ทั่วประเทศ สำหรับการตรวจจริงมาที่ W Medical Hospital สมุทรสาคร' },
+            ].map((item, i) => (
+              <details key={i} className="group bg-white border border-mint/15 rounded-2xl overflow-hidden">
+                <summary className="flex items-center justify-between px-6 py-5 cursor-pointer list-none font-semibold text-forest text-sm md:text-base hover:bg-mint/5 transition-colors">
+                  {item.q}
+                  <span className="ml-4 flex-shrink-0 w-6 h-6 rounded-full bg-mint/15 flex items-center justify-center text-mint text-xs transition-transform group-open:rotate-45">＋</span>
+                </summary>
+                <div className="px-6 pb-5 text-muted text-sm md:text-base leading-relaxed border-t border-mint/10 pt-4">
+                  {item.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-20 items-center">
         <div>
