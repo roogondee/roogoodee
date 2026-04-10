@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import ChatWidget from '@/components/ui/ChatWidget'
+import MobileNav from '@/components/ui/MobileNav'
+import PDPABanner from '@/components/ui/PDPABanner'
+import LINEFloat from '@/components/ui/LINEFloat'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
@@ -32,13 +36,37 @@ const orgJsonLd = {
   sameAs: ['https://line.me/ti/p/@roogondee'],
 }
 
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+
+        {/* Google Analytics 4 */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+              `}
+            </Script>
+          </>
+        )}
+
         {children}
+        <MobileNav />
         <ChatWidget />
+        <LINEFloat />
+        <PDPABanner />
       </body>
     </html>
   )

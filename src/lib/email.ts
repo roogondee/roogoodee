@@ -29,7 +29,7 @@ export async function sendLeadNotification(lead: {
 
   try {
     await resend.emails.send({
-      from: 'รู้ก่อนดี <noreply@roogondee.com>',
+      from: 'รู้ก่อนดี <onboarding@resend.dev>',
       to: [NOTIFY_TO],
       subject: `🌿 Lead ใหม่: ${lead.name} — ${serviceLabel}`,
       html: `

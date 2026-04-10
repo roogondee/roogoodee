@@ -1,6 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 
+// ─── TRUST STATS ────────────────────────────────────────────────────────────────
+const TRUST_STATS = [
+  { num: '500+', label: 'ผู้รับบริการ' },
+  { num: '30 นาที', label: 'เวลาตอบกลับ' },
+  { num: '4 บริการ', label: 'ครอบคลุม' },
+  { num: '100%', label: 'เป็นความลับ' },
+]
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -28,6 +36,11 @@ export default async function Home() {
       {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 md:py-5 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
         <div className="font-display text-xl md:text-2xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></div>
+        <div className="hidden md:flex items-center gap-5 text-sm text-muted">
+          <Link href="/tools" className="hover:text-forest transition-colors">เครื่องคำนวณ</Link>
+          <Link href="/ask" className="hover:text-forest transition-colors">ถามผู้เชี่ยวชาญ</Link>
+          <Link href="/blog" className="hover:text-forest transition-colors">บทความ</Link>
+        </div>
         <Link href="/contact" className="bg-forest text-white px-4 md:px-6 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-sage transition-all hover:-translate-y-0.5 hover:shadow-lg">
           💬 ปรึกษาฟรี
         </Link>
@@ -77,6 +90,29 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* TRUST STATS */}
+      <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          {TRUST_STATS.map(s => (
+            <div key={s.label} className="text-center">
+              <p className="font-display text-3xl md:text-4xl text-forest font-bold">{s.num}</p>
+              <p className="text-xs text-muted mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TRUST — W Medical Hospital */}
+      <section className="py-8 px-6 md:px-20 bg-mint/5 border-b border-mint/10">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
+          <div className="w-12 h-12 bg-forest rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0">🏥</div>
+          <div>
+            <p className="font-semibold text-forest text-sm">พันธมิตรโรงพยาบาล</p>
+            <p className="text-muted text-xs leading-relaxed">รู้ก่อนดี ร่วมกับ <strong>W Medical Hospital สมุทรสาคร</strong> — มาตรฐานการแพทย์ระดับโรงพยาบาล ทุกการตรวจโดยแพทย์ผู้เชี่ยวชาญ</p>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white" id="services">
         <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3 md:mb-4">บริการของเรา</p>
@@ -84,12 +120,12 @@ export default async function Home() {
         <p className="text-muted text-base md:text-lg mb-10 md:mb-16 max-w-lg">ปรึกษาฟรี ส่งต่อผู้เชี่ยวชาญ ดูแลทุกขั้นตอน</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {[
-            { emoji:'🔴', tag:'Sexual Health', color:'from-pink-50 to-rose-100 border-rose-200', name:'ตรวจ STD\n& PrEP HIV', desc:'ปรึกษาเรื่องสุขภาพทางเพศอย่างปลอดภัย ไม่ตัดสิน', features:['ตรวจ STD ครบ 10 โรค','PrEP/PEP HIV ป้องกัน','ปรึกษาลับ ไม่มีการบันทึก'] },
-            { emoji:'💉', tag:'Weight Management', color:'from-green-50 to-emerald-100 border-emerald-200', name:'GLP-1\nลดน้ำหนักถาวร', desc:'ยา GLP-1 ช่วยลดน้ำหนักได้จริง ภายใต้การดูแลแพทย์', features:['ประเมินความเหมาะสมฟรี','ติดตามผลโดยแพทย์','ปรับยาตามร่างกาย'] },
-            { emoji:'🫘', tag:'Kidney Health', color:'from-blue-50 to-indigo-100 border-indigo-200', name:'CKD Clinic\nโรคไตเรื้อรัง', desc:'ดูแลผู้ป่วย CKD ทุกระยะ ชะลอการเสื่อมของไต', features:['ประเมิน CKD Stage','แผนอาหารเฉพาะบุคคล','ติดตามค่าไตสม่ำเสมอ'] },
-            { emoji:'🧪', tag:'Corporate Health', color:'from-yellow-50 to-amber-100 border-amber-200', name:'ตรวจสุขภาพ\nแรงงานต่างด้าว', desc:'บริการ B2B สำหรับ HR และนายจ้างในสมุทรสาคร', features:['ราคาพิเศษหมู่คณะ','4 สัญชาติ: พม่า กัมพูชา ลาว เวียดนาม','ใบรับรองแพทย์ภายในวันเดียว'] },
+            { emoji:'🔴', tag:'Sexual Health', color:'from-pink-50 to-rose-100 border-rose-200', name:'ตรวจ STD\n& PrEP HIV', desc:'ปรึกษาเรื่องสุขภาพทางเพศอย่างปลอดภัย ไม่ตัดสิน', features:['ตรวจ STD ครบ 10 โรค','PrEP/PEP HIV ป้องกัน','ปรึกษาลับ ไม่มีการบันทึก'], href:'/std' },
+            { emoji:'💉', tag:'Weight Management', color:'from-green-50 to-emerald-100 border-emerald-200', name:'GLP-1\nลดน้ำหนักถาวร', desc:'ยา GLP-1 ช่วยลดน้ำหนักได้จริง ภายใต้การดูแลแพทย์', features:['ประเมินความเหมาะสมฟรี','ติดตามผลโดยแพทย์','ปรับยาตามร่างกาย'], href:'/glp1' },
+            { emoji:'🫘', tag:'Kidney Health', color:'from-blue-50 to-indigo-100 border-indigo-200', name:'CKD Clinic\nโรคไตเรื้อรัง', desc:'ดูแลผู้ป่วย CKD ทุกระยะ ชะลอการเสื่อมของไต', features:['ประเมิน CKD Stage','แผนอาหารเฉพาะบุคคล','ติดตามค่าไตสม่ำเสมอ'], href:'/ckd' },
+            { emoji:'🧪', tag:'Corporate Health', color:'from-yellow-50 to-amber-100 border-amber-200', name:'ตรวจสุขภาพ\nแรงงานต่างด้าว', desc:'บริการ B2B สำหรับ HR และนายจ้างในสมุทรสาคร', features:['ราคาพิเศษหมู่คณะ','4 สัญชาติ: พม่า กัมพูชา ลาว เวียดนาม','ใบรับรองแพทย์ภายในวันเดียว'], href:'/foreign' },
           ].map((s) => (
-            <Link href="/contact" key={s.tag} className={`bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl p-7 md:p-10 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
+            <Link href={s.href} key={s.tag} className={`bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl p-7 md:p-10 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
               <span className="text-4xl md:text-5xl mb-4 md:mb-5 block">{s.emoji}</span>
               <span className="text-xs font-bold tracking-widest uppercase opacity-60 bg-black/5 px-3 py-1 rounded-full">{s.tag}</span>
               <h3 className="font-display text-2xl md:text-3xl text-forest mt-3 mb-2 md:mb-3 whitespace-pre-line">{s.name}</h3>
@@ -130,6 +166,36 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ABOUT / TEAM */}
+      <section className="py-16 md:py-24 px-6 md:px-20 bg-cream">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">เกี่ยวกับเรา</p>
+          <h2 className="font-display text-3xl md:text-4xl text-forest mb-4">ทีมผู้เชี่ยวชาญ</h2>
+          <p className="text-muted text-base md:text-lg mb-10 md:mb-14 max-w-xl">รู้ก่อนดี ดำเนินงานโดย บริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร ทีมแพทย์และผู้เชี่ยวชาญพร้อมดูแลคุณ</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { emoji: '🏥', title: 'W Medical Hospital', subtitle: 'พันธมิตรโรงพยาบาล', desc: 'โรงพยาบาลมาตรฐานสมุทรสาคร รองรับการตรวจและรักษาทุกบริการของรู้ก่อนดี' },
+              { emoji: '👨‍⚕️', title: 'อายุรแพทย์โรคไต', subtitle: 'CKD & Nephrology', desc: 'แพทย์เฉพาะทางโรคไต ดูแลผู้ป่วย CKD ทุกระยะ วางแผนการรักษาระยะยาว' },
+              { emoji: '👩‍⚕️', title: 'ทีมสุขภาพทางเพศ', subtitle: 'STD & PrEP Specialist', desc: 'ทีมผู้เชี่ยวชาญด้าน Sexual Health ให้คำปรึกษา STD และ PrEP/PEP อย่างเป็นความลับ' },
+            ].map(m => (
+              <div key={m.title} className="bg-white border border-mint/15 rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition-all">
+                <div className="w-14 h-14 bg-forest/5 rounded-2xl flex items-center justify-center text-3xl mb-4">{m.emoji}</div>
+                <p className="text-xs font-bold tracking-wider uppercase text-mint mb-1">{m.subtitle}</p>
+                <h3 className="font-display text-lg text-forest mb-2">{m.title}</h3>
+                <p className="text-muted text-sm leading-relaxed">{m.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 bg-white border border-mint/15 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-5">
+            <div className="text-4xl flex-shrink-0">🏢</div>
+            <div>
+              <p className="font-semibold text-forest mb-1">บริษัท เจียรักษา จำกัด</p>
+              <p className="text-muted text-sm leading-relaxed">ผู้ให้บริการปรึกษาสุขภาพผ่านแพลตฟอร์ม รู้ก่อนดี เชื่อมต่อผู้ที่ต้องการปรึกษากับผู้เชี่ยวชาญและโรงพยาบาลคู่ค้า ครอบคลุมพื้นที่สมุทรสาครและปริมณฑล</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* BLOG */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-warm">
         <div className="flex justify-between items-end mb-8 md:mb-12">
@@ -166,6 +232,85 @@ export default async function Home() {
             <p>บทความกำลังจะมาเร็วๆ นี้ค่ะ</p>
           </div>
         )}
+      </section>
+
+      {/* TOOLS PROMO */}
+      <section className="py-16 md:py-20 px-6 md:px-20 bg-white border-t border-mint/10">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">Health Tools</p>
+            <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">เครื่องคำนวณสุขภาพ</h2>
+            <p className="text-muted text-base max-w-md mx-auto">ประเมินสุขภาพเบื้องต้นด้วยตัวเอง ก่อนพบแพทย์ ฟรี ไม่ต้องลงทะเบียน</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { emoji: '💉', title: 'BMI & GLP-1', desc: 'ประเมินว่าคุณเหมาะสมกับยาลดน้ำหนัก GLP-1 ไหม', href: '/tools#bmi', color: 'from-emerald-50 to-green-100 border-emerald-200' },
+              { emoji: '🫘', title: 'eGFR Calculator', desc: 'คำนวณค่าไตจากครีอะตินีน ประเมินระยะ CKD', href: '/tools#egfr', color: 'from-blue-50 to-indigo-100 border-blue-200' },
+              { emoji: '🔴', title: 'PrEP Risk Quiz', desc: 'ประเมินความเสี่ยงและความเหมาะสมสำหรับ PrEP', href: '/tools#prep', color: 'from-rose-50 to-pink-100 border-rose-200' },
+            ].map(t => (
+              <Link key={t.title} href={t.href} className={`bg-gradient-to-br ${t.color} border rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition-all`}>
+                <span className="text-3xl mb-3 block">{t.emoji}</span>
+                <h3 className="font-display text-lg text-forest mb-2">{t.title}</h3>
+                <p className="text-muted text-sm leading-relaxed mb-4">{t.desc}</p>
+                <span className="text-sm font-bold text-forest flex items-center gap-1 group">ลองใช้ฟรี <span className="group-hover:translate-x-1 transition-transform">→</span></span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="py-14 md:py-20 px-6 md:px-20 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold tracking-widest uppercase text-mint mb-2">รีวิวจากลูกค้าจริง</p>
+            <h2 className="font-display text-2xl md:text-3xl text-forest">ทุกคนพูดถึงรู้ก่อนดี</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { name: 'คุณปาล์ม', service: 'STD & PrEP', text: 'กังวลมากกว่า 2 เดือนไม่กล้าถามหมอ แต่ที่นี่ตอบทุกคำถามโดยไม่ตัดสิน ตรวจเสร็จ รับยา PrEP ได้เลยวันเดียว', rating: 5 },
+              { name: 'คุณนุ่น', service: 'GLP-1 ลดน้ำหนัก', text: 'ลองมาหลายที่แล้ว ที่นี่อธิบายชัดที่สุด ไม่ขายของ แนะนำแผนที่เหมาะกับร่างกายเราจริงๆ น้ำหนักลง 8 กก. ใน 3 เดือน', rating: 5 },
+              { name: 'คุณต้น (HR Manager)', service: 'แรงงานต่างด้าว', text: 'บริษัทมีพนักงานกว่า 200 คน ที่นี่จัดการตรวจสุขภาพให้ครบทีมเดียว เร็ว มีใบรับรองแพทย์ให้ทันที ประทับใจมาก', rating: 5 },
+              { name: 'คุณเอ', service: 'CKD Clinic', text: 'คุณแม่เป็น CKD stage 3 ไม่รู้จะดูแลยังไง ที่นี่อธิบายเรื่องอาหาร ยา และการตรวจติดตามอย่างละเอียด อุ่นใจมากขึ้น', rating: 5 },
+              { name: 'คุณเจน', service: 'STD & PrEP', text: 'Chat กับทีมตอนดึกก็ตอบ ไม่รู้สึกอายเลย เหมือนคุยกับเพื่อนที่เป็นหมอ แนะนำให้ทุกคนที่กังวลเรื่องสุขภาพมาเลย', rating: 5 },
+              { name: 'คุณพีท', service: 'GLP-1 ลดน้ำหนัก', text: 'ราคาโปร่งใส ไม่มีค่าใช้จ่ายซ่อนเร้น หมอโทรมาคุยกับเราเองก่อนสั่งยา รู้สึกปลอดภัยมาก ใช้บริการมา 6 เดือนแล้ว', rating: 5 },
+            ].map((r, i) => (
+              <div key={i} className="bg-cream rounded-2xl p-5 border border-mint/10">
+                <div className="flex items-center gap-0.5 mb-3">
+                  {Array.from({ length: r.rating }).map((_, j) => (
+                    <span key={j} className="text-amber-400 text-sm">★</span>
+                  ))}
+                </div>
+                <p className="text-sm text-forest/80 leading-relaxed mb-4">&ldquo;{r.text}&rdquo;</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-mint/20 flex items-center justify-center text-xs font-bold text-forest">
+                    {r.name.replace('คุณ', '').charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-forest">{r.name}</p>
+                    <p className="text-xs text-muted">{r.service}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Q&A PROMO */}
+      <section className="py-12 md:py-16 px-6 md:px-20 bg-cream">
+        <div className="max-w-3xl mx-auto bg-gradient-to-br from-forest to-sage rounded-3xl p-8 md:p-12 text-white">
+          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+            <div className="text-5xl flex-shrink-0">💬</div>
+            <div className="text-center md:text-left">
+              <h2 className="font-display text-2xl md:text-3xl mb-2">ถามคำถามสุขภาพ ตอบทันที</h2>
+              <p className="text-white/70 text-sm leading-relaxed mb-5">รับคำตอบจาก AI ที่ผ่านการตรวจสอบโดยทีมแพทย์ ไม่ต้องรอ ไม่ตัดสิน ไม่บันทึกชื่อ</p>
+              <Link href="/ask" className="inline-block bg-white text-forest font-bold px-8 py-3 rounded-full text-sm hover:bg-cream transition-colors">
+                🔍 ถามคำถามฟรี →
+              </Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}
@@ -247,7 +392,21 @@ export default async function Home() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-4 md:mb-5">บริการ</h4>
             <ul className="space-y-2 text-sm text-white/45">
-              {['ตรวจ STD & PrEP HIV','GLP-1 ลดน้ำหนัก','CKD Clinic โรคไต','ตรวจสุขภาพแรงงานต่างด้าว'].map(s => <li key={s}>{s}</li>)}
+              <li><Link href="/std" className="hover:text-white transition-colors">ตรวจ STD & PrEP HIV</Link></li>
+              <li><Link href="/glp1" className="hover:text-white transition-colors">GLP-1 ลดน้ำหนัก</Link></li>
+              <li><Link href="/ckd" className="hover:text-white transition-colors">CKD Clinic โรคไต</Link></li>
+              <li><Link href="/foreign" className="hover:text-white transition-colors">ตรวจสุขภาพแรงงานต่างด้าว</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-4 md:mb-5">เครื่องมือ</h4>
+            <ul className="space-y-2 text-sm text-white/45">
+              <li><Link href="/tools" className="hover:text-white transition-colors">เครื่องคำนวณสุขภาพ</Link></li>
+              <li><Link href="/ask" className="hover:text-white transition-colors">ถามผู้เชี่ยวชาญ</Link></li>
+              <li><Link href="/blog" className="hover:text-white transition-colors">บทความสุขภาพ</Link></li>
+              <li><Link href="/faq" className="hover:text-white transition-colors">คำถามที่พบบ่อย</Link></li>
+              <li><Link href="/about" className="hover:text-white transition-colors">เกี่ยวกับเรา</Link></li>
+              <li><Link href="/en" className="hover:text-white transition-colors">English</Link></li>
             </ul>
           </div>
           <div>

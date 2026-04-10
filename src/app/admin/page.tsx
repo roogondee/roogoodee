@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import LeadStatusSelect from '@/components/admin/LeadStatusSelect'
+import LeadChart from '@/components/admin/LeadChart'
+import ExportCSV from '@/components/admin/ExportCSV'
 
 const SERVICE_LABELS: Record<string, string> = {
   std: '🔴 STD & PrEP',
@@ -20,16 +22,28 @@ function formatDate(iso: string) {
 export const revalidate = 30
 
 export default async function AdminPage() {
-  const [{ data: leads }, { data: posts }, { data: todayLeads }] = await Promise.all([
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+  const [{ data: leads }, { data: posts }, { data: todayLeads }, { data: chartLeads }] = await Promise.all([
     supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100),
     supabaseAdmin.from('posts').select('id,title,slug,service,status,published_at,image_url').order('published_at', { ascending: false }).limit(50),
     supabaseAdmin.from('leads').select('id').gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+    supabaseAdmin.from('leads').select('created_at').gte('created_at', thirtyDaysAgo),
   ])
 
   const totalLeads = leads?.length || 0
   const newLeads = leads?.filter(l => l.status === 'new').length || 0
   const todayCount = todayLeads?.length || 0
   const totalPosts = posts?.length || 0
+
+  // Build 30-day chart data
+  const chartData = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000)
+    const dateStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
+    const isoDate = d.toISOString().slice(0, 10)
+    const count = (chartLeads || []).filter(l => l.created_at.slice(0, 10) === isoDate).length
+    return { date: dateStr, count }
+  })
 
   return (
     <div className="space-y-8">
@@ -48,11 +62,17 @@ export default async function AdminPage() {
         ))}
       </div>
 
+      {/* Chart */}
+      <LeadChart data={chartData} />
+
       {/* Leads Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Lead ทั้งหมด</h2>
-          <span className="text-xs text-gray-400">{totalLeads} รายการ</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400">{totalLeads} รายการ</span>
+            <ExportCSV />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
