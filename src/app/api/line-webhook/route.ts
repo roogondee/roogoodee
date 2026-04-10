@@ -51,7 +51,7 @@ async function askClaude(question: string): Promise<string> {
 }
 
 async function replyToLine(replyToken: string, message: string) {
-  await fetch('https://api.line.me/v2/bot/message/reply', {
+  const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -62,6 +62,10 @@ async function replyToLine(replyToken: string, message: string) {
       messages: [{ type: 'text', text: message }],
     }),
   })
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('LINE reply error:', res.status, err)
+  }
 }
 
 export async function POST(req: NextRequest) {
