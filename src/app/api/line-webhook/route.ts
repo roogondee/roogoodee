@@ -83,8 +83,9 @@ export async function POST(req: NextRequest) {
       const userId: string = event.source?.userId || ''
       const service = detectService(text)
 
-      // Get AI response
-      const aiReply = await askClaude(text)
+      // Get AI response (temp: hardcode to test LINE reply API)
+      const aiReply = `[TEST] รับข้อความ: "${text.slice(0, 30)}" ✅`
+      // const aiReply = await askClaude(text)
 
       // Save as lead (non-blocking)
       void supabaseAdmin.from('leads').insert([{
