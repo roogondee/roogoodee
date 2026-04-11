@@ -99,6 +99,53 @@ export function BlogRelatedTitle() {
   return <h2 className="font-display text-xl text-forest mb-5">{t.blog.relatedArticles}</h2>
 }
 
+export function BlogBreadcrumb({ service }: { service: string }) {
+  const { t } = useTranslation()
+  const SERVICE_PAGES: Record<string, string> = { std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign' }
+  const SERVICE_LABELS: Record<string, string> = { std: 'STD & PrEP HIV', glp1: 'GLP-1', ckd: 'CKD Clinic', foreign: 'Foreign Worker' }
+  const SERVICE_COLORS: Record<string, string> = { std: 'bg-rose-100 text-rose-700', glp1: 'bg-emerald-100 text-emerald-700', ckd: 'bg-blue-100 text-blue-700', foreign: 'bg-amber-100 text-amber-700' }
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted mb-6 flex-wrap">
+      <Link href="/" className="hover:text-forest transition-colors">{t.common.home}</Link>
+      <span>›</span>
+      <Link href="/blog" className="hover:text-forest transition-colors">{t.blog.label}</Link>
+      {service && SERVICE_PAGES[service] && (
+        <>
+          <span>›</span>
+          <Link href={SERVICE_PAGES[service]} className={`font-semibold hover:opacity-80 transition-opacity px-2 py-0.5 rounded-full text-xs ${SERVICE_COLORS[service] || ''}`}>
+            {SERVICE_LABELS[service]}
+          </Link>
+        </>
+      )}
+    </div>
+  )
+}
+
+export function BlogServiceCTA({ service }: { service: string }) {
+  const { t } = useTranslation()
+  const SERVICE_PAGES: Record<string, string> = { std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign' }
+  const SERVICE_LABELS: Record<string, string> = { std: 'STD & PrEP HIV', glp1: 'GLP-1', ckd: 'CKD Clinic', foreign: 'Foreign Worker' }
+
+  if (!service || !SERVICE_PAGES[service]) return null
+
+  return (
+    <div className="mt-10 bg-gradient-to-br from-forest/5 to-mint/10 border border-mint/20 rounded-2xl p-6">
+      <p className="text-xs font-bold tracking-widest uppercase text-mint mb-2">{t.blog.relatedService}</p>
+      <h3 className="font-display text-xl text-forest mb-2">{SERVICE_LABELS[service]}</h3>
+      <p className="text-muted text-sm mb-4">{t.blog.viewService}</p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Link href={SERVICE_PAGES[service]} className="flex-1 text-center border-2 border-forest text-forest font-semibold text-sm py-2.5 rounded-full hover:bg-forest hover:text-white transition-all">
+          {t.blog.viewService} {SERVICE_LABELS[service]} →
+        </Link>
+        <Link href={`/contact?service=${service}`} className="flex-1 text-center bg-forest text-white font-semibold text-sm py-2.5 rounded-full hover:bg-sage transition-all">
+          📝 {t.common.consultFree}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export function BlogAssessBefore({ href, icon, label }: { href: string; icon: string; label: string }) {
   const { t } = useTranslation()
   return (

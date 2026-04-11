@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
-import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore } from '@/components/ui/BlogLabels'
+import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -107,20 +107,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       <NavBar ctaHref={`/contact?service=${post.service}`} />
 
       <article className="pt-24 md:pt-28 pb-16 md:pb-24 max-w-3xl mx-auto px-6">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-muted mb-6 flex-wrap">
-          <Link href="/" className="hover:text-forest transition-colors">หน้าแรก</Link>
-          <span>›</span>
-          <Link href="/blog" className="hover:text-forest transition-colors">บทความ</Link>
-          {post.service && SERVICE_PAGES[post.service] && (
-            <>
-              <span>›</span>
-              <Link href={SERVICE_PAGES[post.service]} className={`font-semibold hover:opacity-80 transition-opacity px-2 py-0.5 rounded-full text-xs ${SERVICE_COLORS[post.service] || ''}`}>
-                {SERVICE_LABELS[post.service]}
-              </Link>
-            </>
-          )}
-        </div>
+        <BlogBreadcrumb service={post.service} />
 
         {/* Cover image */}
         {post.image_url && (
@@ -147,22 +134,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         {/* Article content */}
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
 
-        {/* Service page CTA */}
-        {post.service && SERVICE_PAGES[post.service] && (
-          <div className="mt-10 bg-gradient-to-br from-forest/5 to-mint/10 border border-mint/20 rounded-2xl p-6">
-            <p className="text-xs font-bold tracking-widest uppercase text-mint mb-2">บริการที่เกี่ยวข้อง</p>
-            <h3 className="font-display text-xl text-forest mb-2">{SERVICE_LABELS[post.service]}</h3>
-            <p className="text-muted text-sm mb-4">ดูรายละเอียดบริการ ราคา และขั้นตอนทั้งหมด</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Link href={SERVICE_PAGES[post.service]} className="flex-1 text-center border-2 border-forest text-forest font-semibold text-sm py-2.5 rounded-full hover:bg-forest hover:text-white transition-all">
-                ดูบริการ {SERVICE_LABELS[post.service]} →
-              </Link>
-              <Link href={`/contact?service=${post.service}`} className="flex-1 text-center bg-forest text-white font-semibold text-sm py-2.5 rounded-full hover:bg-sage transition-all">
-                📝 ปรึกษาฟรี
-              </Link>
-            </div>
-          </div>
-        )}
+        <BlogServiceCTA service={post.service} />
 
         {/* Main CTA */}
         <BlogPostCTA service={post.service} />
