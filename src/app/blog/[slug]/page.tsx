@@ -27,11 +27,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const { data } = await supabase.from('posts').select('title,meta_desc,image_url,focus_kw,service').eq('slug', slug).single()
   if (!data) return {}
   return {
-    title: data.title + ' — รู้ก่อนดี',
+    title: data.title + ' — รู้ก่อนดี(รู้งี้)',
     description: data.meta_desc,
     keywords: data.focus_kw,
     openGraph: {
-      title: data.title + ' — รู้ก่อนดี',
+      title: data.title + ' — รู้ก่อนดี(รู้งี้)',
       description: data.meta_desc,
       images: data.image_url ? [data.image_url] : [],
       type: 'article',
@@ -86,10 +86,10 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     image: post.image_url || '',
     datePublished: post.published_at || '',
     dateModified: post.published_at || '',
-    author: { '@type': 'Organization', name: 'รู้ก่อนดี', url: 'https://roogondee.com' },
+    author: { '@type': 'Organization', name: 'รู้ก่อนดี(รู้งี้)', url: 'https://roogondee.com' },
     publisher: {
       '@type': 'Organization',
-      name: 'รู้ก่อนดี — บริษัท เจียรักษา จำกัด',
+      name: 'รู้ก่อนดี(รู้งี้) — บริษัท เจียรักษา จำกัด',
       url: 'https://roogondee.com',
       logo: { '@type': 'ImageObject', url: 'https://roogondee.com/favicon.ico' },
     },

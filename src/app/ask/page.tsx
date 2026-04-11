@@ -4,12 +4,12 @@ import AskForm from '@/components/ui/AskForm'
 import NavBar from '@/components/ui/NavBar'
 
 export const metadata: Metadata = {
-  title: 'ถามผู้เชี่ยวชาญ — Q&A สุขภาพฟรี | รู้ก่อนดี',
+  title: 'ถามผู้เชี่ยวชาญ — Q&A สุขภาพฟรี | รู้ก่อนดี(รู้งี้)',
   description: 'ถามคำถามสุขภาพ รับคำตอบจากผู้เชี่ยวชาญทันที ฟรี ไม่ตัดสิน ครอบคลุม STD, GLP-1, CKD, แรงงานต่างด้าว',
   alternates: { canonical: 'https://roogondee.com/ask' },
   openGraph: {
     title: 'ถามผู้เชี่ยวชาญด้านสุขภาพ ฟรี',
-    description: 'รับคำตอบทันทีจาก AI ที่ผ่านการตรวจสอบโดยทีมแพทย์ รู้ก่อนดี',
+    description: 'รับคำตอบทันทีจาก AI ที่ผ่านการตรวจสอบโดยทีมแพทย์ รู้ก่อนดี(รู้งี้)',
     url: 'https://roogondee.com/ask',
   },
 }

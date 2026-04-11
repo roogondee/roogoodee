@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: 'Admin — รู้ก่อนดี' }
+export const metadata = { title: 'Admin — รู้ก่อนดี(รู้งี้)' }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (

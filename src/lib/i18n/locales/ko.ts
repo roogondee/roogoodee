@@ -158,7 +158,7 @@ const ko = {
     teamSexualDesc:
       'STD 검사·치료, HIV 예방(PrEP/PEP)을 전문으로 하며, 프라이버시를 중시하는 진료를 합니다.',
 
-    companyName: 'RooGonDee (รู้ก่อนดี)',
+    companyName: 'RooGonDee (รู้ก่อนดี(รู้งี้))',
     companyDesc:
       '사뭇사콘을 기반으로 모든 분에게 안심할 수 있고 이용하기 편한 건강 서비스를 제공하는 헬스케어 플랫폼입니다.',
 

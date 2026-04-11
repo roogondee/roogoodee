@@ -6,7 +6,7 @@ import NavBar from '@/components/ui/NavBar'
 import { BlogHeader, BlogEmpty, BlogAllLabel, BlogLatestBadge, BlogReadMore, BlogToolsCTA } from '@/components/ui/BlogLabels'
 
 export const metadata: Metadata = {
-  title: 'บทความสุขภาพ — STD, GLP-1, CKD, แรงงานต่างด้าว | รู้ก่อนดี',
+  title: 'บทความสุขภาพ — STD, GLP-1, CKD, แรงงานต่างด้าว | รู้ก่อนดี(รู้งี้)',
   description: 'บทความสุขภาพ Evidence-based อ่านง่าย ครอบคลุม STD & PrEP HIV, ยา GLP-1 ลดน้ำหนัก, CKD โรคไต และสุขภาพแรงงานต่างด้าว',
   alternates: { canonical: 'https://roogondee.com/blog' },
 }

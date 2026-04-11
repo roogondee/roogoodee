@@ -5,7 +5,7 @@ import { sendLeadNotification } from '@/lib/email'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `คุณคือผู้ช่วยให้คำปรึกษาสุขภาพเบื้องต้นของ รู้ก่อนดี (roogondee.com)
+const SYSTEM_PROMPT = `คุณคือผู้ช่วยให้คำปรึกษาสุขภาพเบื้องต้นของ รู้ก่อนดี(รู้งี้) (roogondee.com)
 บริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 
 บริการที่มี:

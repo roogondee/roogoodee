@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM = `คุณเป็นผู้เชี่ยวชาญด้านสุขภาพระดับ Medical Grade สำหรับ รู้ก่อนดี (roogondee.com)
+const SYSTEM = `คุณเป็นผู้เชี่ยวชาญด้านสุขภาพระดับ Medical Grade สำหรับ รู้ก่อนดี(รู้งี้) (roogondee.com)
 โดย บริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 
 กฎการตอบ:

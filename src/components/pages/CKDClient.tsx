@@ -4,7 +4,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 
-const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"CKD Clinic โรคไตเรื้อรัง — รู้ก่อนดี",url:"https://roogondee.com/ckd",about:{"@type":"MedicalCondition",name:"Chronic Kidney Disease"},specialty:"Nephrology"}
+const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"CKD Clinic โรคไตเรื้อรัง — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/ckd",about:{"@type":"MedicalCondition",name:"Chronic Kidney Disease"},specialty:"Nephrology"}
 
 const FAQS = [
   { q: 'CKD Stage ต่างๆ หมายถึงอะไร?', a: 'CKD แบ่งเป็น 5 ระยะตาม eGFR: G1 (≥90) ปกติ, G2 (60-89) ลดลงเล็กน้อย, G3a/b (30-59) ปานกลาง, G4 (15-29) มาก, G5 (<15) ไตวาย' },

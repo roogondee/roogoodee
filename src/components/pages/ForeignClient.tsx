@@ -4,7 +4,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 
-const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
+const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
 
 const FAQS = [
   { q: 'ตรวจสุขภาพแรงงานต่างด้าวต้องใช้เอกสารอะไร?', a: 'ใช้หนังสือเดินทาง (Passport) หรือบัตรประจำตัวแรงงานที่ออกโดยราชการ รองรับทุกสัญชาติ' },

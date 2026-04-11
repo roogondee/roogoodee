@@ -6,9 +6,9 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'MedicalWebPage',
-  name: 'ยา GLP-1 ลดน้ำหนักถาวร — รู้ก่อนดี',
+  name: 'ยา GLP-1 ลดน้ำหนักถาวร — รู้ก่อนดี(รู้งี้)',
   url: 'https://roogondee.com/glp1',
-  description: 'บริการยา GLP-1 ลดน้ำหนักภายใต้การดูแลแพทย์ โดย รู้ก่อนดี ร่วมกับ W Medical Hospital สมุทรสาคร',
+  description: 'บริการยา GLP-1 ลดน้ำหนักภายใต้การดูแลแพทย์ โดย รู้ก่อนดี(รู้งี้) ร่วมกับ W Medical Hospital สมุทรสาคร',
   about: { '@type': 'MedicalCondition', name: 'Obesity' },
   specialty: 'Endocrinology',
 }

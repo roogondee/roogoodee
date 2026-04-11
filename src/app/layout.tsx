@@ -10,14 +10,14 @@ import HrefLangTags from '@/components/ui/HrefLangTags'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
-  title: 'รู้ก่อนดี — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
+  title: 'รู้ก่อนดี(รู้งี้) — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
   description: 'ปรึกษาผู้เชี่ยวชาญด้านสุขภาพฟรี STD & PrEP HIV, GLP-1 ลดน้ำหนัก, CKD Clinic, ตรวจสุขภาพแรงงานต่างด้าว สมุทรสาคร',
   keywords: 'PrEP HIV, STD, GLP-1, CKD, แรงงานต่างด้าว, สมุทรสาคร',
   openGraph: {
-    title: 'รู้ก่อนดี — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
+    title: 'รู้ก่อนดี(รู้งี้) — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน',
     description: 'ปรึกษาฟรี ไม่ตัดสิน ครอบคลุมทุกเรื่องสุขภาพ',
     url: 'https://roogondee.com',
-    siteName: 'รู้ก่อนดี',
+    siteName: 'รู้ก่อนดี(รู้งี้)',
     locale: 'th_TH',
     type: 'website',
   },
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const orgJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'MedicalOrganization',
-  name: 'รู้ก่อนดี',
+  name: 'รู้ก่อนดี(รู้งี้)',
   alternateName: 'RuGonDee',
   url: 'https://roogondee.com',
   logo: 'https://roogondee.com/favicon.ico',

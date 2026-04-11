@@ -3,8 +3,8 @@ import { BMICalc, EGFRCalc, PrEPQuiz } from '@/components/ui/HealthCalcs'
 import NavBar from '@/components/ui/NavBar'
 
 export const metadata: Metadata = {
-  title: 'เครื่องคำนวณสุขภาพ — BMI, eGFR, PrEP | รู้ก่อนดี',
-  description: 'คำนวณ BMI ประเมินความเหมาะสม GLP-1, คำนวณ eGFR ประเมินระยะ CKD, และ PrEP Risk Assessment ฟรี โดย รู้ก่อนดี',
+  title: 'เครื่องคำนวณสุขภาพ — BMI, eGFR, PrEP | รู้ก่อนดี(รู้งี้)',
+  description: 'คำนวณ BMI ประเมินความเหมาะสม GLP-1, คำนวณ eGFR ประเมินระยะ CKD, และ PrEP Risk Assessment ฟรี โดย รู้ก่อนดี(รู้งี้)',
   alternates: { canonical: 'https://roogondee.com/tools' },
   openGraph: {
     title: 'เครื่องคำนวณสุขภาพ — BMI, eGFR, PrEP',

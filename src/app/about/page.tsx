@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import AboutClient from '@/components/pages/AboutClient'
 
 export const metadata: Metadata = {
-  title: 'เกี่ยวกับเรา — รู้ก่อนดี | บริษัท เจียรักษา จำกัด',
-  description: 'รู้ก่อนดีดำเนินงานโดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร',
+  title: 'เกี่ยวกับเรา — รู้ก่อนดี(รู้งี้) | บริษัท เจียรักษา จำกัด',
+  description: 'รู้ก่อนดี(รู้งี้)ดำเนินงานโดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร',
   alternates: { canonical: 'https://roogondee.com/about' },
   openGraph: {
-    title: 'เกี่ยวกับรู้ก่อนดี',
+    title: 'เกี่ยวกับรู้ก่อนดี(รู้งี้)',
     description: 'ทีมผู้เชี่ยวชาญด้านสุขภาพ ปรึกษาฟรี ไม่ตัดสิน สมุทรสาคร',
     url: 'https://roogondee.com/about',
   },

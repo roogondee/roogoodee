@@ -158,7 +158,7 @@ const ja = {
     teamSexualDesc:
       'STD検査・治療、HIV予防（PrEP/PEP）を専門とし、プライバシーを重視した診療を行います。',
 
-    companyName: 'RooGonDee（รู้ก่อนดี）',
+    companyName: 'RooGonDee（รู้ก่อนดี(รู้งี้)）',
     companyDesc:
       'サムットサーコーン県を拠点に、すべての方に安心で利用しやすい健康サービスを提供するヘルスケアプラットフォームです。',
 

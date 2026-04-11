@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'รู้ก่อนดี — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน'
+export const alt = 'รู้ก่อนดี(รู้งี้) — ปรึกษาสุขภาพ ส่วนตัว ไม่ตัดสิน'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -23,7 +23,7 @@ export default function Image() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
           <span style={{ fontSize: 64 }}>🌿</span>
           <span style={{ fontSize: 80, color: 'white', fontWeight: 900, letterSpacing: '-2px' }}>
-            รู้ก่อนดี
+            รู้ก่อนดี(รู้งี้)
           </span>
         </div>
         <div style={{ fontSize: 34, color: 'rgba(255,255,255,0.85)', marginBottom: 32, fontWeight: 400 }}>

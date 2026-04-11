@@ -15,7 +15,7 @@ export default function NavBar({ ctaHref = '/contact', ctaLabel }: NavBarProps) 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 md:py-5 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
       <Link href="/" className="font-display text-xl md:text-2xl text-forest">
-        {locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span></> : <>RooGon<span className="text-mint italic">Dee</span></>}
+        {locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span><span className="text-sm text-muted ml-1">(รู้งี้)</span></> : <>RooGon<span className="text-mint italic">Dee</span></>}
       </Link>
       <div className="hidden md:flex items-center gap-5 text-sm text-muted">
         <Link href="/tools" className="hover:text-forest transition-colors">{t.common.calculator}</Link>

@@ -3,11 +3,11 @@ import type { Metadata } from 'next'
 import ContactForm from '@/components/ui/ContactForm'
 
 export const metadata: Metadata = {
-  title: 'ปรึกษาสุขภาพฟรี — STD, GLP-1, CKD, แรงงานต่างด้าว | รู้ก่อนดี',
+  title: 'ปรึกษาสุขภาพฟรี — STD, GLP-1, CKD, แรงงานต่างด้าว | รู้ก่อนดี(รู้งี้)',
   description: 'กรอกฟอร์มรับคำปรึกษาสุขภาพฟรี ไม่ตัดสิน ทีมผู้เชี่ยวชาญตอบกลับภายใน 30 นาที ครอบคลุม STD & PrEP HIV, GLP-1 ลดน้ำหนัก, CKD โรคไต, ตรวจแรงงานต่างด้าว',
   alternates: { canonical: 'https://roogondee.com/contact' },
   openGraph: {
-    title: 'ปรึกษาสุขภาพฟรี — รู้ก่อนดี',
+    title: 'ปรึกษาสุขภาพฟรี — รู้ก่อนดี(รู้งี้)',
     description: 'ปรึกษาผู้เชี่ยวชาญฟรี ไม่ตัดสิน ตอบกลับภายใน 30 นาที',
     url: 'https://roogondee.com/contact',
   },

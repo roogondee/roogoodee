@@ -6,9 +6,9 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'MedicalWebPage',
-  name: 'ตรวจ STD & PrEP HIV — รู้ก่อนดี',
+  name: 'ตรวจ STD & PrEP HIV — รู้ก่อนดี(รู้งี้)',
   url: 'https://roogondee.com/std',
-  description: 'บริการตรวจโรคติดต่อทางเพศสัมพันธ์ครบ 10 โรค และ PrEP/PEP ป้องกัน HIV โดย รู้ก่อนดี ร่วมกับ W Medical Hospital สมุทรสาคร',
+  description: 'บริการตรวจโรคติดต่อทางเพศสัมพันธ์ครบ 10 โรค และ PrEP/PEP ป้องกัน HIV โดย รู้ก่อนดี(รู้งี้) ร่วมกับ W Medical Hospital สมุทรสาคร',
   about: { '@type': 'MedicalCondition', name: 'Sexually Transmitted Infections' },
   specialty: 'Sexual Health',
 }

@@ -10,7 +10,7 @@ export default function FooterFull() {
       <div className="flex flex-col md:flex-row justify-between gap-8 mb-8 md:mb-12 pb-8 md:pb-12 border-b border-white/10">
         <div>
           <div className="font-display text-2xl md:text-3xl text-white mb-2 md:mb-3">
-            {locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span></> : <>RooGon<span className="text-mint italic">Dee</span></>}
+            {locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span><span className="text-sm text-white/40 ml-1">(รู้งี้)</span></> : <>RooGon<span className="text-mint italic">Dee</span></>}
           </div>
           <p className="text-sm text-white/40 max-w-xs leading-relaxed">{t.common.brandTagline}</p>
         </div>
