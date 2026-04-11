@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import NavBar from '@/components/ui/NavBar'
 
 export const metadata: Metadata = {
   title: 'บทความสุขภาพ — STD, GLP-1, CKD, แรงงานต่างด้าว | รู้ก่อนดี',
@@ -49,15 +50,7 @@ export default async function BlogPage() {
 
   return (
     <main className="min-h-screen bg-cream">
-      {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
-        <Link href="/" className="font-display text-xl md:text-2xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></Link>
-        <div className="hidden md:flex items-center gap-5 text-sm text-muted">
-          <Link href="/tools" className="hover:text-forest transition-colors">เครื่องคำนวณ</Link>
-          <Link href="/ask" className="hover:text-forest transition-colors">ถามผู้เชี่ยวชาญ</Link>
-        </div>
-        <Link href="/contact" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">💬 ปรึกษาฟรี</Link>
-      </nav>
+      <NavBar />
 
       <div className="pt-24 md:pt-28 pb-16 md:pb-24 px-6 md:px-20">
         {/* Header */}
