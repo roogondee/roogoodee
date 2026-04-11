@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
+import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -141,14 +142,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         </div>
 
         {/* Tool inline CTA (before article) */}
-        {tool && (
-          <div className="mb-8 bg-mint/5 border border-mint/20 rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
-            <p className="text-sm text-forest font-medium">ประเมินสุขภาพเบื้องต้นก่อนอ่านบทความ</p>
-            <Link href={tool.href} className="flex-shrink-0 text-xs font-bold bg-forest text-white px-4 py-2 rounded-full hover:bg-sage transition-colors">
-              {tool.icon} {tool.label}
-            </Link>
-          </div>
-        )}
+        {tool && <BlogAssessBefore href={tool.href} icon={tool.icon} label={tool.label} />}
 
         {/* Article content */}
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
@@ -171,45 +165,23 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         )}
 
         {/* Main CTA */}
-        <div className="mt-8 bg-gradient-to-br from-forest to-sage rounded-2xl p-7 md:p-8 text-white text-center">
-          <h3 className="font-display text-xl md:text-2xl mb-2">ต้องการปรึกษาเพิ่มเติม?</h3>
-          <p className="text-white/70 text-sm mb-5">ทีมผู้เชี่ยวชาญพร้อมตอบทุกคำถามค่ะ ฟรี ไม่ตัดสิน ตอบภายใน 30 นาที</p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Link href={`/contact?service=${post.service}`} className="bg-white text-forest px-7 py-3 rounded-full font-bold text-sm hover:bg-cream transition-all">
-              📝 ปรึกษาฟรีเลย
-            </Link>
-            {tool && (
-              <Link href={tool.href} className="bg-white/15 border border-white/30 text-white px-7 py-3 rounded-full font-semibold text-sm hover:bg-white/25 transition-all">
-                {tool.icon} {tool.label}
-              </Link>
-            )}
-          </div>
-        </div>
+        <BlogPostCTA service={post.service} />
 
         {/* Share bottom */}
         <div className="mt-8 bg-white border border-mint/15 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <p className="text-sm font-semibold text-forest">บทความนี้มีประโยชน์? แชร์ให้เพื่อน</p>
+          <BlogShareLabel />
           <div className="sm:ml-auto">
             <ShareButtons url={`https://roogondee.com/blog/${post.slug}`} title={post.title} />
           </div>
         </div>
 
         {/* Ask a question */}
-        <div className="mt-4 flex items-center gap-4 bg-white border border-mint/20 rounded-2xl px-5 py-4">
-          <span className="text-2xl">💬</span>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-forest">มีคำถามเพิ่มเติม?</p>
-            <p className="text-xs text-muted">ถามผู้เชี่ยวชาญได้ทันที ฟรี ไม่ต้องสมัครสมาชิก</p>
-          </div>
-          <Link href="/ask" className="flex-shrink-0 text-xs font-bold text-forest border border-forest px-4 py-2 rounded-full hover:bg-forest hover:text-white transition-all">
-            ถามเลย →
-          </Link>
-        </div>
+        <BlogAskMore />
 
         {/* Related posts */}
         {related && related.length > 0 && (
           <div className="mt-12">
-            <h2 className="font-display text-xl text-forest mb-5">บทความที่เกี่ยวข้อง</h2>
+            <BlogRelatedTitle />
             <div className="space-y-3">
               {related.map(r => (
                 <Link key={r.id} href={`/blog/${r.slug}`} className="flex items-center gap-4 bg-white border border-mint/15 rounded-xl p-4 hover:border-mint hover:shadow-sm transition-all">
