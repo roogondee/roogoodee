@@ -35,7 +35,7 @@ const km = {
   nav: {
     std: 'ពិនិត្យ STD',
     glp1: 'GLP-1 សម្រកទម្ងន់',
-    about: {
+  about: {
     heroLabel: 'About Us', heroTitle: 'Your Health\nIs Our Mission',
     heroDesc: 'RooGonDee was founded to provide quality health consultation without judgment.',
     storyLabel: 'Our Story', storyTitle: 'Why RooGonDee',
@@ -359,7 +359,32 @@ const km = {
     shareArticle: 'Share', moreQuestion: 'More Questions?', moreQuestionDesc: 'Ask free.', askNow: 'Ask →',
     assessBefore: 'Assess health first',
   },
-  notFound: {
+  faqPage: {
+  title: 'FAQ', askExpertLink: 'Cannot find your answer?',
+  ctaTitle: 'Still Have Questions?', ctaDesc: 'Free, no judgment, 30 min response.',
+  catGeneral: 'General', catStd: 'STD & PrEP HIV', catGlp1: 'GLP-1 Weight Loss', catCkd: 'CKD Kidney', catForeign: 'Foreign Workers',
+  gQ1: 'Who is RooGonDee?', gA1: 'Online health platform by Jia Raksa Co., Ltd. with W Medical Hospital.',
+  gQ2: 'Is it really free?', gA2: 'Initial consultation is 100% free.',
+  gQ3: 'Is my data safe?', gA3: 'PDPA standards, SSL encryption.',
+  gQ4: 'How fast?', gA4: 'Within 30 minutes, 09-20 every day.',
+  sQ1: 'What is PrEP?', sA1: 'HIV prevention medication, 99% effective.',
+  sQ2: 'What is PEP?', sA2: 'Emergency HIV medication, start within 72 hours.',
+  sQ3: 'STD tests?', sA3: 'HIV, Syphilis, Gonorrhea, Chlamydia, Herpes, Hepatitis B/C.',
+  sQ4: 'Positive result?', sA4: 'Doctor contacts immediately. Confidential.',
+  glQ1: 'What is GLP-1?', glA1: 'FDA-approved weight loss medication.',
+  glQ2: 'BMI requirement?', glA2: 'BMI ≥ 27.5 + comorbidities or ≥ 30.',
+  glQ3: 'Side effects?', glA3: 'Nausea, usually improves in 2-4 weeks.',
+  glQ4: 'How long?', glA4: 'Results in 3-6 months.',
+  cQ1: 'What is CKD?', cA1: 'Chronic Kidney Disease, 5 stages by eGFR.',
+  cQ2: 'Normal Creatinine?', cA2: 'Male 0.7-1.3, Female 0.5-1.1 mg/dL.',
+  cQ3: 'When dialysis?', cA3: 'eGFR < 10-15 with symptoms.',
+  cQ4: 'Foods to avoid?', cA4: 'High potassium, phosphorus, sodium.',
+  fQ1: 'Required tests?', fA1: 'X-ray, blood, urine, physical exam.',
+  fQ2: 'Nationalities?', fA2: 'Myanmar, Cambodia, Laos, Vietnam.',
+  fQ3: 'How long?', fA3: 'Walk-in 1-2 hours. Group same day.',
+  fQ4: 'B2B service?', fA4: 'From 5 workers. Onsite available.',
+  },
+    notFound: {
     title: 'រកមិនឃើញទំព័រ',
     desc: 'ទំព័រដែលអ្នកកំពុងស្វែងរកមិនមាន ឬត្រូវបានផ្លាស់ប្តូរហើយ',
     backHome: 'ត្រឡប់ទៅទំព័រដើម',

@@ -6,6 +6,7 @@ import MobileNav from '@/components/ui/MobileNav'
 import PDPABanner from '@/components/ui/PDPABanner'
 import LINEFloat from '@/components/ui/LINEFloat'
 import { I18nProvider } from '@/lib/i18n/context'
+import HrefLangTags from '@/components/ui/HrefLangTags'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
@@ -41,7 +42,7 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th">
+    <html lang="th" suppressHydrationWarning>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
 
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
 
         <I18nProvider>
+          <HrefLangTags />
           {children}
           <MobileNav />
           <ChatWidget />
