@@ -7,6 +7,7 @@ export const maxDuration = 60
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
+const LINE_NOTIFY_GROUP_ID = process.env.LINE_NOTIFY_GROUP_ID || ''
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 function verifySignature(body: string, signature: string): boolean {
@@ -63,6 +64,31 @@ async function askClaude(question: string): Promise<string> {
   return block.type === 'text' ? block.text : ''
 }
 
+const SERVICE_LABELS: Record<string, string> = {
+  std: 'STD & PrEP',
+  glp1: 'GLP-1 ลดน้ำหนัก',
+  ckd: 'CKD โรคไต',
+  foreign: 'แรงงานต่างด้าว',
+  general: 'ทั่วไป',
+}
+
+async function notifyGroup(text: string, service: string) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+  const label = SERVICE_LABELS[service] || service
+  const msg = `🔔 Lead ใหม่จาก LINE Bot\n📋 บริการ: ${label}\n💬 "${text.slice(0, 100)}"\n\n👉 ดูทั้งหมด: https://www.roogondee.com/admin`
+  await fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({
+      to: LINE_NOTIFY_GROUP_ID,
+      messages: [{ type: 'text', text: msg }],
+    }),
+  })
+}
+
 async function replyToLine(replyToken: string, message: string) {
   const res = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
@@ -95,7 +121,15 @@ export async function POST(req: NextRequest) {
     const events = body.events || []
 
     for (const event of events) {
+      // Log group ID when bot is added to a group or receives group message
+      if (event.source?.type === 'group') {
+        console.log('GROUP_ID:', event.source.groupId)
+      }
+
       if (event.type !== 'message' || event.message?.type !== 'text') continue
+
+      // Only reply to 1:1 chat (not group messages)
+      if (event.source?.type !== 'user') continue
 
       const text: string = event.message.text || ''
       const replyToken: string = event.replyToken
@@ -118,6 +152,9 @@ export async function POST(req: NextRequest) {
       if (replyToken && aiReply) {
         await replyToLine(replyToken, aiReply)
       }
+
+      // Notify staff group (non-blocking)
+      void notifyGroup(text, service)
     }
 
     return NextResponse.json({ ok: true })
