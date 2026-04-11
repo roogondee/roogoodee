@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendLeadNotification } from '@/lib/email'
+import { notifyLineGroup } from '@/lib/line-notify'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
       phone,
       service: service || 'general',
       source: 'contact-form',
+      note,
+    })
+
+    // Send LINE group notification (non-blocking)
+    void notifyLineGroup({
+      name: `${first_name} ${last_name || ''}`.trim(),
+      phone,
+      service: service || 'general',
+      source: 'เว็บไซต์',
       note,
     })
 

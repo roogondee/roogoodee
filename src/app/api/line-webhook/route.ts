@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { notifyLineGroup } from '@/lib/line-notify'
 import Anthropic from '@anthropic-ai/sdk'
 import crypto from 'crypto'
 
@@ -7,7 +8,6 @@ export const maxDuration = 60
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
-const LINE_NOTIFY_GROUP_ID = process.env.LINE_NOTIFY_GROUP_ID || ''
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 function verifySignature(body: string, signature: string): boolean {
@@ -62,31 +62,6 @@ async function askClaude(question: string): Promise<string> {
   })
   const block = msg.content[0]
   return block.type === 'text' ? block.text : ''
-}
-
-const SERVICE_LABELS: Record<string, string> = {
-  std: 'STD & PrEP',
-  glp1: 'GLP-1 ลดน้ำหนัก',
-  ckd: 'CKD โรคไต',
-  foreign: 'แรงงานต่างด้าว',
-  general: 'ทั่วไป',
-}
-
-async function notifyGroup(text: string, service: string) {
-  if (!LINE_NOTIFY_GROUP_ID) return
-  const label = SERVICE_LABELS[service] || service
-  const msg = `🔔 Lead ใหม่จาก LINE Bot\n📋 บริการ: ${label}\n💬 "${text.slice(0, 100)}"\n\n👉 ดูทั้งหมด: https://www.roogondee.com/admin`
-  await fetch('https://api.line.me/v2/bot/message/push', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-    },
-    body: JSON.stringify({
-      to: LINE_NOTIFY_GROUP_ID,
-      messages: [{ type: 'text', text: msg }],
-    }),
-  })
 }
 
 async function replyToLine(replyToken: string, message: string) {
@@ -154,7 +129,11 @@ export async function POST(req: NextRequest) {
       }
 
       // Notify staff group (non-blocking)
-      void notifyGroup(text, service)
+      void notifyLineGroup({
+        service,
+        source: 'LINE Bot',
+        note: text,
+      })
     }
 
     return NextResponse.json({ ok: true })
