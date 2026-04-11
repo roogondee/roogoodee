@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import Anthropic from '@anthropic-ai/sdk'
+import crypto from 'crypto'
 
 export const maxDuration = 60
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
+const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+function verifySignature(body: string, signature: string): boolean {
+  if (!LINE_CHANNEL_SECRET) return true // skip if not configured
+  const hash = crypto
+    .createHmac('SHA256', LINE_CHANNEL_SECRET)
+    .update(body)
+    .digest('base64')
+  return hash === signature
+}
 
 const SYSTEM_PROMPT = `คุณคือผู้ช่วยสุขภาพของ "รู้ก่อนดี" (roogondee.com) บริการของบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 
@@ -72,7 +83,15 @@ async function replyToLine(replyToken: string, message: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const rawBody = await req.text()
+    const signature = req.headers.get('x-line-signature') || ''
+
+    if (!verifySignature(rawBody, signature)) {
+      console.error('Invalid LINE signature')
+      return NextResponse.json({ error: 'invalid signature' }, { status: 403 })
+    }
+
+    const body = JSON.parse(rawBody)
     const events = body.events || []
 
     for (const event of events) {
