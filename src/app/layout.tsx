@@ -5,6 +5,7 @@ import ChatWidget from '@/components/ui/ChatWidget'
 import MobileNav from '@/components/ui/MobileNav'
 import PDPABanner from '@/components/ui/PDPABanner'
 import LINEFloat from '@/components/ui/LINEFloat'
+import { I18nProvider } from '@/lib/i18n/context'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
@@ -32,7 +33,7 @@ const orgJsonLd = {
   logo: 'https://roogondee.com/favicon.ico',
   description: 'บริการปรึกษาสุขภาพ STD/PrEP HIV, GLP-1 ลดน้ำหนัก, CKD Clinic, ตรวจสุขภาพแรงงานต่างด้าว สมุทรสาคร',
   address: { '@type': 'PostalAddress', addressLocality: 'สมุทรสาคร', addressCountry: 'TH' },
-  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: 'Thai' },
+  contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: ['Thai', 'English', 'Burmese', 'Lao', 'Khmer', 'Chinese', 'Vietnamese', 'Hindi', 'Japanese', 'Korean'] },
   sameAs: ['https://line.me/ti/p/@roogondee'],
 }
 
@@ -44,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
 
-        {/* Google Analytics 4 */}
         {GA_ID && (
           <>
             <Script
@@ -62,11 +62,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
 
-        {children}
-        <MobileNav />
-        <ChatWidget />
-        <LINEFloat />
-        <PDPABanner />
+        <I18nProvider>
+          {children}
+          <MobileNav />
+          <ChatWidget />
+          <LINEFloat />
+          <PDPABanner />
+        </I18nProvider>
       </body>
     </html>
   )

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import NavBar from '@/components/ui/NavBar'
 
 export const metadata: Metadata = {
   title: 'นโยบายความเป็นส่วนตัว (PDPA) — รู้ก่อนดี',
@@ -10,10 +11,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-cream">
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
-        <Link href="/" className="font-display text-xl md:text-2xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></Link>
-        <Link href="/contact" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">💬 ปรึกษาฟรี</Link>
-      </nav>
+      <NavBar />
 
       <div className="pt-28 pb-20 max-w-3xl mx-auto px-6">
         <h1 className="font-display text-3xl md:text-4xl text-forest mb-2">นโยบายความเป็นส่วนตัว</h1>

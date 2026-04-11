@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import NavBar from '@/components/ui/NavBar'
+import FooterMinimal from '@/components/ui/FooterMinimal'
 
 export const metadata: Metadata = {
   title: 'CKD Clinic โรคไตเรื้อรัง — ชะลอการเสื่อมของไต | รู้ก่อนดี สมุทรสาคร',
@@ -62,18 +64,7 @@ export default function CKDPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
-      {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
-        <Link href="/" className="font-display text-xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></Link>
-        <div className="hidden md:flex items-center gap-5 text-sm text-muted">
-          <Link href="/tools" className="hover:text-forest transition-colors">เครื่องคำนวณ</Link>
-          <Link href="/ask" className="hover:text-forest transition-colors">ถามผู้เชี่ยวชาญ</Link>
-          <Link href="/blog" className="hover:text-forest transition-colors">บทความ</Link>
-        </div>
-        <Link href="/contact?service=ckd" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">
-          💬 ปรึกษาฟรี
-        </Link>
-      </nav>
+      <NavBar ctaHref="/contact?service=ckd" />
 
       {/* HERO */}
       <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-blue-50 via-cream to-cream">
@@ -176,14 +167,7 @@ export default function CKDPage() {
         </div>
       </section>
 
-      <footer className="bg-dark py-8 px-6 md:px-20 text-white/40 text-xs flex flex-col md:flex-row justify-between gap-2">
-        <span>© 2026 บริษัท เจียรักษา จำกัด | รู้ก่อนดี</span>
-        <div className="flex gap-4">
-          <Link href="/privacy" className="hover:text-white transition-colors">นโยบายความเป็นส่วนตัว</Link>
-          <Link href="/terms" className="hover:text-white transition-colors">ข้อตกลง</Link>
-          <Link href="/" className="hover:text-white transition-colors">หน้าแรก</Link>
-        </div>
-      </footer>
+      <FooterMinimal />
     </main>
   )
 }

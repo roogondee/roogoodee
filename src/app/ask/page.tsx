@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { supabaseAdmin } from '@/lib/supabase'
 import AskForm from '@/components/ui/AskForm'
+import NavBar from '@/components/ui/NavBar'
 
 export const metadata: Metadata = {
   title: 'ถามผู้เชี่ยวชาญ — Q&A สุขภาพฟรี | รู้ก่อนดี',
@@ -50,13 +51,7 @@ export default async function AskPage() {
 
   return (
     <main className="min-h-screen bg-cream">
-      {/* NAV */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 md:px-10 py-4 flex justify-between items-center bg-cream/90 backdrop-blur-md border-b border-mint/15">
-        <a href="/" className="font-display text-xl text-forest">รู้ก่อน<span className="text-mint italic">ดี</span></a>
-        <a href="/contact" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">
-          💬 ปรึกษาฟรี
-        </a>
-      </nav>
+      <NavBar />
 
       <div className="pt-24 pb-16 px-6 md:px-20 max-w-4xl mx-auto">
         {/* Header */}
