@@ -7,7 +7,7 @@ const homepageImages = {
   std: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/std-67979b90.jpg',
   glp1: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/glp1-be2541f8.jpg',
   ckd: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/ckd-045c02fd.jpg',
-  foreign: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/foreign-739af64c.jpg',
+  foreign: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/foreign-a19cdb7e.jpg',
 }
 
 export default homepageImages
