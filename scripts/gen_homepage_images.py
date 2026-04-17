@@ -21,32 +21,38 @@ SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 
 CONFIG_PATH = Path(__file__).parent.parent / "src" / "config" / "homepage-images.ts"
 
+# Shared framing hints so FLUX doesn't crop heads / tops of faces
+FRAMING = (
+    "full body or medium shot, heads fully visible with space above, "
+    "well-framed centered composition, no cropped faces, eye-level camera"
+)
+
 IMAGES = {
     "hero": (
-        "modern private Thai medical clinic interior, warm natural lighting, "
-        "friendly Thai female doctor in white coat smiling at patient, "
-        "clean minimal design, soft green and cream tones, professional, "
-        "no text, 16:9"
+        f"modern private Thai medical clinic interior, warm natural lighting, "
+        f"friendly Thai female doctor in white coat smiling at patient, "
+        f"clean minimal design, soft green and cream tones, professional, "
+        f"{FRAMING}, no text, 16:9"
     ),
     "std": (
-        "young Thai woman in private medical consultation, safe comfortable clinic room, "
-        "soft pink and white tones, doctor listening attentively, non-judgmental atmosphere, "
-        "professional healthcare, no text, 16:9"
+        f"young Thai woman in private medical consultation, safe comfortable clinic room, "
+        f"soft pink and white tones, doctor listening attentively, non-judgmental atmosphere, "
+        f"professional healthcare, {FRAMING}, no text, 16:9"
     ),
     "glp1": (
-        "healthy Thai woman mid-30s smiling, vibrant fresh vegetables and healthy food, "
-        "fitness lifestyle, soft emerald green tones, weight management success, "
-        "professional medical photo, no text, 16:9"
+        f"healthy Thai woman mid-30s smiling, vibrant fresh vegetables and healthy food, "
+        f"fitness lifestyle, soft emerald green tones, weight management success, "
+        f"professional medical photo, {FRAMING}, no text, 16:9"
     ),
     "ckd": (
-        "Thai elderly patient consulting with nephrologist doctor, hospital kidney clinic, "
-        "calm blue and white medical environment, caring professional atmosphere, "
-        "trust and expertise, no text, 16:9"
+        f"Thai elderly patient consulting with nephrologist doctor, hospital kidney clinic, "
+        f"calm blue and white medical environment, caring professional atmosphere, "
+        f"trust and expertise, {FRAMING}, no text, 16:9"
     ),
     "foreign": (
-        "diverse Myanmar and Cambodian workers in clean medical clinic, "
-        "health certificate checkup, professional clinic Samut Sakhon Thailand, "
-        "warm amber tones, organized efficient service, no text, 16:9"
+        f"diverse Myanmar and Cambodian workers in clean medical clinic, "
+        f"health certificate checkup, professional clinic Samut Sakhon Thailand, "
+        f"warm amber tones, organized efficient service, {FRAMING}, no text, 16:9"
     ),
 }
 
@@ -114,30 +120,58 @@ export default homepageImages
     print(f"\n✅ Config เขียนแล้ว: {CONFIG_PATH}")
 
 
+def load_existing_urls() -> dict[str, str]:
+    """Read current URLs from homepage-images.ts so we can keep the ones we're not regenerating."""
+    if not CONFIG_PATH.exists():
+        return {}
+    text = CONFIG_PATH.read_text(encoding="utf-8")
+    urls: dict[str, str] = {}
+    for key in IMAGES:
+        match = re.search(rf"{key}:\s*'([^']*)'", text)
+        if match:
+            urls[key] = match.group(1)
+    return urls
+
+
 def main():
     print("🌿 รู้ก่อนดี — Gen Homepage Images")
-    urls: dict[str, str] = {}
 
-    for key, prompt in IMAGES.items():
-        data = generate_image(key, prompt)
+    # ENV ONLY: comma-separated keys to regenerate (e.g. "foreign" or "foreign,hero")
+    only_env = os.environ.get("GEN_ONLY", "").strip()
+    if only_env:
+        targets = [k.strip() for k in only_env.split(",") if k.strip() in IMAGES]
+        if not targets:
+            print(f"❌ GEN_ONLY='{only_env}' ไม่มี key ที่ถูกต้อง (เลือกจาก: {', '.join(IMAGES)})")
+            sys.exit(1)
+        print(f"🎯 Regenerate เฉพาะ: {', '.join(targets)}")
+    else:
+        targets = list(IMAGES.keys())
+        print("🎯 Regenerate ทั้งหมด")
+
+    urls = load_existing_urls()
+
+    for key in targets:
+        data = generate_image(key, IMAGES[key])
         if data:
             url = upload_to_storage(key, data)
             if url:
                 urls[key] = url
+            else:
+                urls[key] = urls.get(key, "")
+        else:
+            urls[key] = urls.get(key, "")
 
-    if not urls:
-        print("❌ ไม่มีรูปที่สร้างสำเร็จ")
-        sys.exit(1)
-
-    # Fill missing keys with empty string
+    # Fill any missing keys with empty string
     for key in IMAGES:
         urls.setdefault(key, "")
 
     write_config(urls)
-    success = len([u for u in urls.values() if u])
-    print(f"\n🎉 เสร็จสิ้น สร้างได้ {success} / {len(IMAGES)} รูป")
-    if success < len(IMAGES):
-        print("⚠️  มีบางรูปสร้างไม่สำเร็จ — ดู log ด้านบน")
+
+    generated_ok = [k for k in targets if urls.get(k)]
+    print(f"\n🎉 สร้างใหม่สำเร็จ {len(generated_ok)} / {len(targets)} รูป ({', '.join(generated_ok) or 'none'})")
+    if len(generated_ok) < len(targets):
+        failed = [k for k in targets if k not in generated_ok]
+        print(f"⚠️  ล้มเหลว: {', '.join(failed)}")
         sys.exit(1)
     print("▶️  ขั้นตอนต่อไป: git add src/config/homepage-images.ts && git commit && git push")
 

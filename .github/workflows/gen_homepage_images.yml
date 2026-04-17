@@ -1,7 +1,13 @@
 name: 🖼️ Generate Homepage Images
 
 on:
-  workflow_dispatch:  # trigger ด้วยมือผ่านหน้า Actions
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Keys to regenerate (comma-separated). Leave blank for all. e.g. "foreign" or "foreign,hero"'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   gen-images:
@@ -33,6 +39,7 @@ jobs:
           TOGETHER_API_KEY:         ${{ secrets.TOGETHER_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          GEN_ONLY:                 ${{ inputs.only }}
         run: python scripts/gen_homepage_images.py
 
       - name: 💾 Commit updated config
