@@ -3,11 +3,11 @@
 // then commit + push the updated URLs below
 
 const homepageImages = {
-  hero: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/hero-18ed4b8b.jpg',
-  std: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/std-c38687f8.jpg',
-  glp1: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/glp1-b0b8b54d.jpg',
-  ckd: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/ckd-4eadd640.jpg',
-  foreign: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/foreign-a0a23c0b.jpg',
+  hero: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/hero-047db27f.jpg',
+  std: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/std-67979b90.jpg',
+  glp1: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/glp1-be2541f8.jpg',
+  ckd: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/ckd-045c02fd.jpg',
+  foreign: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/foreign-739af64c.jpg',
 }
 
 export default homepageImages
