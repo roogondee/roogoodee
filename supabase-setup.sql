@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS posts (
   focus_kw     text,
   meta_desc    text,
   image_url    text,
+  video_url    text,
   status       text DEFAULT 'draft',
   created_at   timestamptz DEFAULT now(),
   published_at timestamptz
