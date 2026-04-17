@@ -9,6 +9,7 @@ Run:
 
 import os
 import re
+import sys
 import uuid
 import requests
 from pathlib import Path
@@ -63,7 +64,7 @@ def generate_image(key: str, prompt: str) -> bytes | None:
                 "model": "black-forest-labs/FLUX.1-schnell",
                 "prompt": prompt,
                 "width": 1200,
-                "height": 675,
+                "height": 672,
                 "steps": 4,
                 "n": 1,
                 "response_format": "url",
@@ -126,14 +127,18 @@ def main():
 
     if not urls:
         print("❌ ไม่มีรูปที่สร้างสำเร็จ")
-        return
+        sys.exit(1)
 
     # Fill missing keys with empty string
     for key in IMAGES:
         urls.setdefault(key, "")
 
     write_config(urls)
-    print(f"\n🎉 เสร็จสิ้น สร้างได้ {len([u for u in urls.values() if u])} / {len(IMAGES)} รูป")
+    success = len([u for u in urls.values() if u])
+    print(f"\n🎉 เสร็จสิ้น สร้างได้ {success} / {len(IMAGES)} รูป")
+    if success < len(IMAGES):
+        print("⚠️  มีบางรูปสร้างไม่สำเร็จ — ดู log ด้านบน")
+        sys.exit(1)
     print("▶️  ขั้นตอนต่อไป: git add src/config/homepage-images.ts && git commit && git push")
 
 
