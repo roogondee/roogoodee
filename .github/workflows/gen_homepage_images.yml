@@ -1,0 +1,46 @@
+name: 🖼️ Generate Homepage Images
+
+on:
+  workflow_dispatch:  # trigger ด้วยมือผ่านหน้า Actions
+
+jobs:
+  gen-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write  # commit + push กลับ branch
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🎨 Generate + upload images
+        env:
+          TOGETHER_API_KEY:         ${{ secrets.TOGETHER_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+        run: python scripts/gen_homepage_images.py
+
+      - name: 💾 Commit updated config
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet src/config/homepage-images.ts; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git add src/config/homepage-images.ts
+          git commit -m "chore: regenerate homepage images"
+          git push
