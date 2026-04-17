@@ -69,3 +69,29 @@ body {
   font-style: italic;
   margin: 1.5rem 0;
 }
+.article-body img,
+.article-body video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5rem auto;
+  display: block;
+}
+.article-body figure {
+  margin: 1.5rem 0;
+}
+.article-body figcaption {
+  font-size: 0.875rem;
+  color: #6B8C72;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+.article-body iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: 0.75rem;
+  border: 0;
+  margin: 1.5rem 0;
+  display: block;
+}

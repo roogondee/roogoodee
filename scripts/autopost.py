@@ -6,6 +6,7 @@ Company: บริษัท เจียรักษา จำกัด | roogon
 """
 
 import os
+import re
 import json
 import base64
 import uuid
@@ -137,6 +138,96 @@ def generate_image(title: str, service: str) -> str | None:
     except Exception as e:
         print(f"  ⚠️ Generate image failed: {e}")
         return None
+
+# ─── CONTENT VALIDATION ───────────────────────────────────────────────────────
+
+FORBIDDEN_TAGS = ["<!doctype", "<html", "<head", "<body", "<script", "<style", "<iframe"]
+PLACEHOLDER_PATTERNS = ["[todo]", "lorem ipsum", "{placeholder}", "{{", "}}", "[insert", "xxxx"]
+BALANCED_TAGS = ["p", "h2", "h3", "ul", "ol", "li", "strong", "em", "blockquote"]
+
+def clean_content(html: str) -> str:
+    """Strip zero-width chars, normalize whitespace, remove stray code fences."""
+    # Zero-width / BOM
+    html = html.replace("\u200b", "").replace("\ufeff", "").replace("\u00a0", " ")
+    # Strip leading/trailing code fences if Claude wrapped twice
+    html = re.sub(r"^```(?:html)?\s*\n", "", html)
+    html = re.sub(r"\n```\s*$", "", html)
+    # Collapse runs of spaces (preserve newlines)
+    html = "\n".join(re.sub(r" {2,}", " ", ln).rstrip() for ln in html.split("\n"))
+    return html.strip()
+
+def _strip_tags(html: str) -> str:
+    return re.sub(r"<[^>]+>", " ", html)
+
+def validate_content(html: str, plan: dict) -> list[str]:
+    """Return list of human-readable issues; empty list = OK."""
+    issues: list[str] = []
+    lower = html.lower()
+    plain = _strip_tags(html)
+
+    # 1. Word/char count
+    words = len(plain.split())
+    chars = len(plain.strip())
+    if chars < 800:
+        issues.append(f"เนื้อหาสั้นเกินไป ({chars} ตัวอักษร)")
+    elif chars > 15000:
+        issues.append(f"เนื้อหายาวเกินปกติ ({chars} ตัวอักษร)")
+
+    # 2. Required structure
+    if "<h2" not in lower:
+        issues.append("ขาด <h2> (หัวข้อย่อย)")
+    if "<p" not in lower:
+        issues.append("ขาด <p>")
+
+    # 3. Forbidden tags
+    for tag in FORBIDDEN_TAGS:
+        if tag in lower:
+            issues.append(f"พบแท็กต้องห้าม: {tag}")
+
+    # 4. Thai ratio — should be a Thai article
+    thai = sum(1 for c in plain if "\u0e00" <= c <= "\u0e7f")
+    latin = sum(1 for c in plain if c.isascii() and c.isalpha())
+    if thai + latin > 0 and thai / (thai + latin) < 0.5:
+        issues.append(f"อักษรไทยน้อยเกินไป (ไทย {thai} / ลาติน {latin})")
+
+    # 5. Placeholder leftovers
+    for ph in PLACEHOLDER_PATTERNS:
+        if ph in lower:
+            issues.append(f"พบ placeholder: {ph}")
+
+    # 6. Markdown residue
+    if re.search(r"(^|\n)#{1,4}\s", html):
+        issues.append("พบหัวข้อ Markdown (# / ## / ###)")
+    if "**" in html:
+        issues.append("พบตัวหนาแบบ Markdown (**)")
+    if re.search(r"(^|\n)[-*]\s", html):
+        issues.append("พบ bullet แบบ Markdown (- / *)")
+    if re.search(r"(^|\n)---+\s*(\n|$)", html):
+        issues.append("พบเส้นคั่น Markdown (---)")
+
+    # 7. Truncation — last visible char should be punctuation or closing tag
+    tail = html.rstrip()[-1:] if html.rstrip() else ""
+    if tail and tail not in {">", ".", "?", "!", "…", "ๆ", "ฯ", '"', "'", ")", "]"}:
+        issues.append(f"เนื้อหาอาจถูกตัดกลางคัน (จบด้วย '{tail}')")
+
+    # 8. Balanced tag count
+    for tag in BALANCED_TAGS:
+        opens = len(re.findall(rf"<{tag}[\s>]", lower))
+        closes = len(re.findall(rf"</{tag}>", lower))
+        if opens != closes:
+            issues.append(f"แท็ก <{tag}> ไม่สมดุล (เปิด {opens}, ปิด {closes})")
+
+    # 9. CTA presence (system prompt requires LINE/roogondee CTA)
+    if "line" not in lower and "roogondee" not in lower:
+        issues.append("ขาด CTA (ไม่พบ LINE หรือ roogondee)")
+
+    # 10. Focus keyword relevance — at least first keyword appears in body
+    focus = (plan.get("focus_kw") or "").split(",")
+    first_kw = focus[0].strip().lower() if focus else ""
+    if first_kw and first_kw not in plain.lower():
+        issues.append(f"ไม่พบ focus keyword หลัก '{first_kw}' ในเนื้อหา")
+
+    return issues
 
 # ─── CLAUDE AI ─────────────────────────────────────────────────────────────────
 
@@ -282,6 +373,17 @@ def main():
             # 2. Generate content
             print("  🤖 กำลังสร้างเนื้อหาด้วย Claude...")
             html_content = generate_content(plan)
+
+            # 2b. Clean + validate before publishing
+            html_content = clean_content(html_content)
+            issues = validate_content(html_content, plan)
+            if issues:
+                err = "คุณภาพเนื้อหาไม่ผ่าน: " + " | ".join(issues)
+                print(f"  ❌ {err}")
+                get_sb().table("content_plan").update({"status": "error"}).eq("id", plan["id"]).execute()
+                send_line(f"⚠️ รู้ก่อนดี ข้ามโพสต์ (validation): {title}\n{err[:400]}")
+                continue
+            print("  ✓ ตรวจคุณภาพเนื้อหาผ่าน")
 
             # 3. Save to Supabase
             print("  💾 กำลังบันทึกลง Supabase...")

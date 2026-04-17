@@ -11,6 +11,7 @@ export interface Post {
   focus_kw: string
   meta_desc: string
   image_url: string
+  video_url?: string
   status: 'draft' | 'published'
   created_at: string
   published_at: string

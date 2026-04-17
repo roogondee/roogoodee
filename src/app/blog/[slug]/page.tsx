@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
+import MediaBlock from '@/components/ui/MediaBlock'
 import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
@@ -109,10 +110,16 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       <article className="pt-24 md:pt-28 pb-16 md:pb-24 max-w-3xl mx-auto px-6">
         <BlogBreadcrumb service={post.service} />
 
-        {/* Cover image */}
-        {post.image_url && (
-          <div className="rounded-2xl overflow-hidden mb-6 md:mb-8 aspect-video relative">
-            <Image src={post.image_url} alt={post.title} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, 768px" />
+        {/* Cover media (video takes priority over image) */}
+        {(post.video_url || post.image_url) && (
+          <div className="mb-6 md:mb-8">
+            <MediaBlock
+              imageUrl={post.image_url}
+              videoUrl={post.video_url}
+              alt={post.title}
+              priority
+              sizes="(max-width: 768px) 100vw, 768px"
+            />
           </div>
         )}
 
