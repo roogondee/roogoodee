@@ -7,6 +7,7 @@ Run: GitHub Actions ทุกวันอาทิตย์ 08:00 Bangkok (01:00
 """
 
 import os
+import re
 import json
 import urllib.request
 import urllib.parse
@@ -139,10 +140,50 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
         if data.get('slug') in existing_slugs:
             print(f"  ⚠️ slug ซ้ำ: {data['slug']} — ข้าม")
             return None
+        issues = validate_plan_entry(data)
+        if issues:
+            print(f"  ⚠️ plan ไม่ผ่าน validation: {'; '.join(issues)}")
+            return None
         return data
     except Exception as e:
         print(f"  ❌ Parse JSON failed: {e}\n  Raw: {text[:200]}")
         return None
+
+# ─── PLAN VALIDATION ───────────────────────────────────────────────────────────
+
+def validate_plan_entry(data: dict) -> list[str]:
+    """Check title/slug/focus_kw/meta_desc/seed for obvious issues."""
+    issues: list[str] = []
+
+    for field in ("title", "slug", "focus_kw", "meta_desc", "seed"):
+        if not (data.get(field) or "").strip():
+            issues.append(f"ขาดฟิลด์ {field}")
+
+    title = (data.get("title") or "").strip()
+    if title and not (20 <= len(title) <= 100):
+        issues.append(f"title ยาว {len(title)} ตัวอักษร (ควร 20-100)")
+
+    slug = (data.get("slug") or "").strip()
+    if slug and not re.fullmatch(r"[a-z0-9\-]+", slug):
+        issues.append(f"slug มีอักขระไม่อนุญาต: {slug}")
+    if slug and len(slug) > 80:
+        issues.append(f"slug ยาวเกิน ({len(slug)})")
+
+    meta = (data.get("meta_desc") or "").strip()
+    if meta and not (80 <= len(meta) <= 200):
+        issues.append(f"meta_desc ยาว {len(meta)} ตัวอักษร (ควร 80-200)")
+
+    seed = (data.get("seed") or "").strip()
+    if seed and len(seed) < 50:
+        issues.append(f"seed สั้นเกินไป ({len(seed)} ตัวอักษร)")
+
+    # Placeholder detection across all text fields
+    combined = " ".join(str(data.get(f, "")) for f in ("title", "meta_desc", "seed", "focus_kw")).lower()
+    for ph in ("lorem ipsum", "[todo]", "{placeholder}", "xxxx"):
+        if ph in combined:
+            issues.append(f"พบ placeholder: {ph}")
+
+    return issues
 
 # ─── INSERT TO SUPABASE ────────────────────────────────────────────────────────
 
