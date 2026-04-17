@@ -1,8 +1,10 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
+import homepageImages from '@/config/homepage-images'
 
 interface Post {
   id: string
@@ -34,10 +36,10 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
   ]
 
   const SERVICES = [
-    { emoji: '🔴', tag: 'Sexual Health', color: 'from-pink-50 to-rose-100 border-rose-200', name: t.home.stdName, desc: t.home.stdDesc, features: [t.home.stdFeature1, t.home.stdFeature2, t.home.stdFeature3], href: '/std' },
-    { emoji: '💉', tag: 'Weight Management', color: 'from-green-50 to-emerald-100 border-emerald-200', name: t.home.glp1Name, desc: t.home.glp1Desc, features: [t.home.glp1Feature1, t.home.glp1Feature2, t.home.glp1Feature3], href: '/glp1' },
-    { emoji: '🫘', tag: 'Kidney Health', color: 'from-blue-50 to-indigo-100 border-indigo-200', name: t.home.ckdName, desc: t.home.ckdDesc, features: [t.home.ckdFeature1, t.home.ckdFeature2, t.home.ckdFeature3], href: '/ckd' },
-    { emoji: '🧪', tag: 'Corporate Health', color: 'from-yellow-50 to-amber-100 border-amber-200', name: t.home.foreignName, desc: t.home.foreignDesc, features: [t.home.foreignFeature1, t.home.foreignFeature2, t.home.foreignFeature3], href: '/foreign' },
+    { key: 'std',     emoji: '🔴', tag: 'Sexual Health',     color: 'from-pink-50 to-rose-100 border-rose-200',     name: t.home.stdName,     desc: t.home.stdDesc,     features: [t.home.stdFeature1, t.home.stdFeature2, t.home.stdFeature3],         href: '/std' },
+    { key: 'glp1',   emoji: '💉', tag: 'Weight Management', color: 'from-green-50 to-emerald-100 border-emerald-200', name: t.home.glp1Name,   desc: t.home.glp1Desc,   features: [t.home.glp1Feature1, t.home.glp1Feature2, t.home.glp1Feature3],     href: '/glp1' },
+    { key: 'ckd',    emoji: '🫘', tag: 'Kidney Health',     color: 'from-blue-50 to-indigo-100 border-indigo-200',   name: t.home.ckdName,    desc: t.home.ckdDesc,    features: [t.home.ckdFeature1, t.home.ckdFeature2, t.home.ckdFeature3],       href: '/ckd' },
+    { key: 'foreign',emoji: '🧪', tag: 'Corporate Health',  color: 'from-yellow-50 to-amber-100 border-amber-200',  name: t.home.foreignName, desc: t.home.foreignDesc, features: [t.home.foreignFeature1, t.home.foreignFeature2, t.home.foreignFeature3], href: '/foreign' },
   ]
 
   const STEPS = [
@@ -79,7 +81,11 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
           </div>
         </div>
         <div className="relative bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center overflow-hidden py-16 md:py-0 min-h-64 md:min-h-0">
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-10 w-72 md:w-80 z-10">
+          {homepageImages.hero ? (
+            <Image src={homepageImages.hero} alt="W Medical Hospital" fill className="object-cover" priority sizes="50vw" />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-br from-forest/70 via-sage/60 to-mint/50" />
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-10 w-72 md:w-80 z-10 relative">
             <div className="w-12 md:w-14 h-12 md:h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-5">🌿</div>
             <h3 className="font-display text-xl md:text-2xl text-white mb-2 md:mb-3">{t.home.heroCardTitle}</h3>
             <p className="text-white/70 text-sm leading-relaxed mb-5 md:mb-6">{t.home.heroCardDesc}</p>
@@ -117,8 +123,17 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
         <h2 className="font-display text-3xl md:text-5xl text-forest mb-3 md:mb-4">{t.home.servicesTitle}</h2>
         <p className="text-muted text-base md:text-lg mb-10 md:mb-16 max-w-lg">{t.home.servicesDesc}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {SERVICES.map((s) => (
-            <Link href={s.href} key={s.tag} className={`bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl p-7 md:p-10 hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
+          {SERVICES.map((s) => {
+            const imgUrl = homepageImages[s.key as keyof typeof homepageImages]
+            return (
+            <Link href={s.href} key={s.tag} className={`bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
+              {imgUrl ? (
+                <div className="aspect-video relative overflow-hidden">
+                  <Image src={imgUrl} alt={s.name as string} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+                </div>
+              ) : null}
+              <div className="p-7 md:p-10">
               <span className="text-4xl md:text-5xl mb-4 md:mb-5 block">{s.emoji}</span>
               <span className="text-xs font-bold tracking-widest uppercase opacity-60 bg-black/5 px-3 py-1 rounded-full">{s.tag}</span>
               <h3 className="font-display text-2xl md:text-3xl text-forest mt-3 mb-2 md:mb-3 whitespace-pre-line">{s.name}</h3>
@@ -132,8 +147,10 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
                 ))}
               </ul>
               <span className="text-sm font-bold text-forest flex items-center gap-1 group">{t.common.consultFree} <span className="group-hover:translate-x-1 transition-transform">→</span></span>
+              </div>
             </Link>
-          ))}
+            )
+          })}
         </div>
       </section>
 
