@@ -3,11 +3,11 @@
 // then commit + push the updated URLs below
 
 const homepageImages = {
-  hero: '',
-  std: '',
-  glp1: '',
-  ckd: '',
-  foreign: '',
+  hero: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/hero-18ed4b8b.jpg',
+  std: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/std-c38687f8.jpg',
+  glp1: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/glp1-b0b8b54d.jpg',
+  ckd: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/ckd-4eadd640.jpg',
+  foreign: 'https://fbxyrynslijhmvfcrulz.supabase.co/storage/v1/object/public/images/homepage/foreign-a0a23c0b.jpg',
 }
 
 export default homepageImages
