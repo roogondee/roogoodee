@@ -1,0 +1,37 @@
+name: 📘 RuGonDee Facebook Daily Caption
+
+on:
+  schedule:
+    - cron: "30 3 * * *"   # 03:30 UTC = 10:30 Bangkok ทุกวัน (หลัง autopost)
+  workflow_dispatch:
+
+jobs:
+  fb_caption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 📘 Post daily caption to Facebook
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          FB_PAGE_ID:               ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN:     ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          SITE_BASE_URL:            ${{ secrets.SITE_BASE_URL }}
+          LINE_NOTIFY_TOKEN:        ${{ secrets.LINE_NOTIFY_TOKEN }}
+        run: python scripts/fb_caption.py
