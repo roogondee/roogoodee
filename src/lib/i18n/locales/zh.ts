@@ -237,6 +237,8 @@ const zh = {
     errorService: '请选择一项服务',
     errorGeneral: '提交失败，请稍后再试。',
     errorRetry: '重试',
+    errorConsent: '请先同意个人资料保护协议',
+    pdpaConsent: '我同意根据《个人资料保护法》（PDPA）收集和使用我的个人资料，用于联系和健康咨询目的，并遵守',
 
     serviceStd: 'STD 性病检测与治疗',
     serviceGlp1: 'GLP-1 减重方案',

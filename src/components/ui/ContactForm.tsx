@@ -25,6 +25,7 @@ export default function ContactPage() {
   }, [searchParams])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [consent, setConsent] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const validate = () => {
@@ -32,6 +33,7 @@ export default function ContactPage() {
     if (!form.first_name.trim()) e.first_name = t.contact.errorFirstName
     if (!/^0\d{8,9}$/.test(form.phone.replace(/[-\s]/g, ''))) e.phone = t.contact.errorPhone
     if (!form.service) e.service = t.contact.errorService
+    if (!consent) e.consent = t.contact.errorConsent
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -44,7 +46,7 @@ export default function ContactPage() {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, consent_pdpa: true, consent_at: new Date().toISOString() }),
       })
       const data = await res.json()
       if (data.success) setSuccess(true)
@@ -135,9 +137,26 @@ export default function ContactPage() {
                   <textarea placeholder={t.contact.notePlaceholder} value={form.note} onChange={e => setForm({...form, note: e.target.value})}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors resize-none" rows={3} />
                 </div>
+                <div className="bg-mint/5 border border-mint/20 rounded-xl p-3">
+                  <label className="flex items-start gap-2 text-xs text-rtext cursor-pointer leading-relaxed">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={e => setConsent(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-forest shrink-0"
+                    />
+                    <span>
+                      🔒 {t.contact.pdpaConsent}{' '}
+                      <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-forest underline hover:text-sage">
+                        {t.common.privacyPolicy}
+                      </Link>
+                    </span>
+                  </label>
+                  {errors.consent && <p className="text-red-500 text-xs mt-1 ml-6">{errors.consent}</p>}
+                </div>
                 {errors.submit && <p className="text-red-500 text-sm text-center">{errors.submit}</p>}
-                <button type="submit" disabled={loading}
-                  className="w-full bg-forest text-white py-3.5 rounded-full font-bold text-base hover:bg-sage transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:translate-y-0 flex items-center justify-center gap-2">
+                <button type="submit" disabled={loading || !consent}
+                  className="w-full bg-forest text-white py-3.5 rounded-full font-bold text-base hover:bg-sage transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                   {loading ? t.contact.submitting : t.contact.submitButton}
                 </button>
               </form>
