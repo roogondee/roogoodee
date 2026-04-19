@@ -94,6 +94,8 @@ const en = {
     successLine: '💬 Chat via LINE @roogondee', successCall: '📞 Call 081-902-3540',
     errorFirstName: 'Please enter your first name', errorPhone: 'Please enter a valid phone number',
     errorService: 'Please select a service', errorGeneral: 'An error occurred', errorRetry: 'An error occurred. Please try again.',
+    errorConsent: 'Please accept the PDPA consent before submitting',
+    pdpaConsent: 'I consent to the collection and use of my personal data for contact and health consultation purposes, in accordance with the Personal Data Protection Act (PDPA) and the',
     serviceStd: '🔴 STD & PrEP HIV', serviceGlp1: '💉 GLP-1 Weight Loss',
     serviceCkd: '🫘 CKD Kidney Clinic', serviceForeign: '🧪 Foreign Worker Checkup',
   },

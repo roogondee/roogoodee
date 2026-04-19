@@ -248,6 +248,8 @@ const ko = {
     errorService: '서비스를 선택해 주세요.',
     errorGeneral: '전송에 실패했습니다. 다시 시도해 주세요.',
     errorRetry: '다시 전송',
+    errorConsent: '전송 전 PDPA 개인정보 수집 동의가 필요합니다',
+    pdpaConsent: '개인정보 보호법(PDPA)에 따라 연락 및 건강 상담을 위해 개인정보를 수집·이용하는 것에 동의합니다. 그리고',
 
     serviceStd: 'STD 검사·PrEP/PEP',
     serviceGlp1: 'GLP-1 체중 감량 프로그램',

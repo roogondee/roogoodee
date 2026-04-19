@@ -120,6 +120,8 @@ const th = {
     successLine: '💬 ทักผ่าน LINE @roogondee', successCall: '📞 โทร 081-902-3540',
     errorFirstName: 'กรุณากรอกชื่อ', errorPhone: 'กรุณากรอกเบอร์โทรให้ถูกต้อง',
     errorService: 'กรุณาเลือกบริการ', errorGeneral: 'เกิดข้อผิดพลาด', errorRetry: 'เกิดข้อผิดพลาด กรุณาลองใหม่',
+    errorConsent: 'กรุณายินยอมการเก็บข้อมูลส่วนบุคคลก่อนส่งข้อมูล',
+    pdpaConsent: 'ยินยอมให้เก็บและใช้ข้อมูลส่วนบุคคลเพื่อการติดต่อกลับและให้คำปรึกษาด้านสุขภาพ ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA) และ',
     serviceStd: '🔴 STD & PrEP HIV', serviceGlp1: '💉 GLP-1 ลดน้ำหนัก',
     serviceCkd: '🫘 CKD Clinic โรคไต', serviceForeign: '🧪 ตรวจแรงงานต่างด้าว',
   },

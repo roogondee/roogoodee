@@ -248,6 +248,8 @@ const ja = {
     errorService: 'サービスを選択してください。',
     errorGeneral: '送信に失敗しました。もう一度お試しください。',
     errorRetry: '再送信',
+    errorConsent: '送信前に個人情報保護（PDPA）への同意が必要です',
+    pdpaConsent: '個人情報保護法（PDPA）に基づき、ご連絡および健康相談の目的で個人情報を収集・利用することに同意します。また、',
 
     serviceStd: 'STD検査・PrEP/PEP',
     serviceGlp1: 'GLP-1 減量プログラム',

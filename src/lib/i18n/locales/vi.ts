@@ -237,6 +237,8 @@ const vi = {
     errorService: 'Vui lòng chọn một dịch vụ',
     errorGeneral: 'Gửi thất bại, vui lòng thử lại sau.',
     errorRetry: 'Thử lại',
+    errorConsent: 'Vui lòng chấp nhận điều khoản PDPA trước khi gửi',
+    pdpaConsent: 'Tôi đồng ý cho phép thu thập và sử dụng dữ liệu cá nhân của tôi để liên hệ và tư vấn sức khỏe, theo Luật Bảo vệ Dữ liệu Cá nhân (PDPA) và',
 
     serviceStd: 'Xét nghiệm & Điều trị STD',
     serviceGlp1: 'Giảm cân GLP-1',
