@@ -107,23 +107,27 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
 กลุ่มเป้าหมาย: {ctx['target']}
 หัวข้อที่เกี่ยวข้อง: {ctx['topics']}
 
-ต้องการ JSON ดังนี้:
+ต้องการ JSON object เดียว (ไม่ใช่ array) ดังนี้:
 {{
   "title": "หัวข้อบทความภาษาไทย น่าคลิก SEO-friendly 50-70 ตัวอักษร",
-  "slug": "url-slug-english-or-thai-mixed-lowercase-hyphens-max-60-chars",
+  "slug": "english-slug-lowercase-with-hyphens-only",
   "focus_kw": "keyword1,keyword2,keyword3 (3-4 คำ)",
   "meta_desc": "meta description ภาษาไทย 120-155 ตัวอักษร",
-  "seed": "outline เนื้อหาหลัก 3-5 ประเด็น สำหรับเขียนบทความ 900-1200 คำ"
+  "seed": "outline สั้น ๆ 3-5 ประเด็น (ไม่เกิน 250 ตัวอักษร)"
 }}
 
-กฎ:
+กฎสำคัญ:
+- slug ต้องเป็นภาษาอังกฤษตัวพิมพ์เล็ก + ตัวเลข + hyphen เท่านั้น (regex: ^[a-z0-9-]+$) ห้ามมีอักษรไทย อักขระพิเศษ หรือช่องว่าง
+- slug ยาวไม่เกิน 60 ตัวอักษร ให้ transliterate ไทย → อังกฤษ (เช่น "ผู้หญิง" → "women", "ตรวจ" → "check")
+- meta_desc ต้องสั้นระหว่าง 120-155 ตัวอักษร
+- seed ต้องสั้นไม่เกิน 250 ตัวอักษร
 - ห้ามใช้ slug ซ้ำกับที่มีอยู่แล้ว: {', '.join(list(existing_slugs)[:20])}
 - หัวข้อต้องใหม่ ไม่ซ้ำ ตอบคำถามที่คนไทยค้นหาจริง
-- ตอบ JSON เท่านั้น ไม่มีข้อความอื่น"""
+- ตอบ JSON object เดียวเท่านั้น ไม่ต้องห่อด้วย array ไม่มีข้อความอื่น"""
 
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=2000,
+        max_tokens=3000,
         messages=[{"role": "user", "content": prompt}]
     )
     text = msg.content[0].text.strip()
@@ -137,6 +141,12 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
 
     try:
         data = json.loads(text)
+        # Unwrap if Claude returned [{ ... }] instead of { ... }
+        if isinstance(data, list):
+            if not data:
+                print("  ❌ Claude คืน array ว่าง")
+                return None
+            data = data[0]
         if data.get('slug') in existing_slugs:
             print(f"  ⚠️ slug ซ้ำ: {data['slug']} — ข้าม")
             return None
