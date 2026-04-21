@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { track } from '@/lib/analytics/track'
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -169,7 +170,7 @@ export default function STDClient() {
             <Link href="/contact?service=std" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
               {t.common.consultFree}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('ClickLINE', { location: 'std_cta' })} className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
               {t.common.lineConsultFree}
             </a>
           </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from './LanguageSwitcher'
+import { track } from '@/lib/analytics/track'
 
 export default function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -74,6 +75,7 @@ export default function MobileNav() {
               📝 {t.common.consultFree}
             </Link>
             <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer"
+              onClick={() => track('ClickLINE', { location: 'mobile_nav' })}
               className="block text-center bg-[#06C755] text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
               💬 LINE @roogondee
             </a>

@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { track } from '@/lib/analytics/track'
 
 export default function ContactPage() {
   const { t } = useTranslation()
@@ -49,8 +50,10 @@ export default function ContactPage() {
         body: JSON.stringify({ ...form, consent_pdpa: true, consent_at: new Date().toISOString() }),
       })
       const data = await res.json()
-      if (data.success) setSuccess(true)
-      else setErrors({ submit: data.error || t.contact.errorGeneral })
+      if (data.success) {
+        track('Lead', { content_category: form.service, content_name: 'contact_form' })
+        setSuccess(true)
+      } else setErrors({ submit: data.error || t.contact.errorGeneral })
     } catch {
       setErrors({ submit: t.contact.errorRetry })
     } finally {
@@ -88,10 +91,10 @@ export default function ContactPage() {
               <div className="text-6xl mb-4">✅</div>
               <h3 className="font-display text-2xl text-forest mb-2">{t.contact.successTitle}</h3>
               <p className="text-muted text-sm leading-relaxed mb-6">{t.contact.successDesc}</p>
-              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm">
+              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('ClickLINE', { location: 'contact_success' })} className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm">
                 💬 {t.contact.successLine}
               </a>
-              <a href="tel:0819023540" className="flex items-center justify-center gap-2 bg-forest text-white px-6 py-3 rounded-full font-bold text-sm mt-2">
+              <a href="tel:0819023540" onClick={() => track('ClickCall', { location: 'contact_success' })} className="flex items-center justify-center gap-2 bg-forest text-white px-6 py-3 rounded-full font-bold text-sm mt-2">
                 📞 {t.contact.successCall}
               </a>
             </div>

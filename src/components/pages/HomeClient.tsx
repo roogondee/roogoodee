@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
 import homepageImages from '@/config/homepage-images'
+import { track } from '@/lib/analytics/track'
 
 interface Post {
   id: string
@@ -296,7 +297,7 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
           <h3 className="font-display text-2xl md:text-3xl mb-2">{t.home.ctaLineTitle}</h3>
           <p className="text-white/70 text-sm mb-5 md:mb-6">{t.home.ctaLineDesc}</p>
           <div className="bg-white/15 border border-white/20 rounded-xl px-6 py-4 text-2xl font-bold tracking-wide mb-5 md:mb-6">@roogondee</div>
-          <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-8 py-3.5 rounded-full font-bold hover:bg-[#00B04B] transition-all w-full">
+          <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('ClickLINE', { location: 'home_cta' })} className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-8 py-3.5 rounded-full font-bold hover:bg-[#00B04B] transition-all w-full">
             💬 {t.common.addLineFriend}
           </a>
         </div>

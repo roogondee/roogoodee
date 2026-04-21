@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useTranslation } from '@/lib/i18n/context'
+import { track } from '@/lib/analytics/track'
 
 export default function LINEFloat() {
   const [show, setShow] = useState(false)
@@ -16,6 +17,7 @@ export default function LINEFloat() {
       href="https://line.me/ti/p/@roogondee"
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => track('ClickLINE', { location: 'float' })}
       aria-label={t.common.lineConsultFree}
       className={`fixed bottom-24 right-4 z-40 flex items-center gap-2 bg-[#06C755] text-white rounded-full shadow-lg transition-all duration-500 hover:shadow-xl hover:scale-105 active:scale-95 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'} md:bottom-6 md:right-6`}
     >

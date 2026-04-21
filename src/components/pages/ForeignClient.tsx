@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
+import { track } from '@/lib/analytics/track'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
 
@@ -44,7 +45,7 @@ export default function ForeignClient() {
           <p className="text-muted text-base md:text-lg leading-relaxed mb-8 max-w-xl whitespace-pre-line">{f.heroDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link href="/contact?service=foreign" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">{f.ctaQuote}</Link>
-            <a href="tel:0819023540" className="flex items-center justify-center gap-2 border-2 border-amber-300 text-amber-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-amber-50 transition-all">{f.ctaCall}</a>
+            <a href="tel:0819023540" onClick={() => track('ClickCall', { location: 'foreign_hero' })} className="flex items-center justify-center gap-2 border-2 border-amber-300 text-amber-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-amber-50 transition-all">{f.ctaCall}</a>
           </div>
           <div className="flex flex-wrap gap-5 mt-8">
             {[['📄', f.trustCert], ['👥', f.trustGroup], ['🌏', f.trustNations]].map(([icon, text]) => (
@@ -107,7 +108,7 @@ export default function ForeignClient() {
           <p className="text-muted mb-8">{f.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/contact?service=foreign" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">{f.ctaQuoteShort}</Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('ClickLINE', { location: 'foreign_cta' })} className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
           </div>
         </div>
       </section>

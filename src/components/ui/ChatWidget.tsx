@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from '@/lib/i18n/context'
+import { track } from '@/lib/analytics/track'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -53,7 +54,10 @@ export default function ChatWidget() {
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text || t.chat.errorMessage }])
-      if (data.leadCaptured) setLeadCaptured(true)
+      if (data.leadCaptured && !leadCaptured) {
+        track('Lead', { content_name: 'chat_widget' })
+        setLeadCaptured(true)
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: t.chat.errorRetry }])
     } finally {
@@ -64,7 +68,12 @@ export default function ChatWidget() {
   return (
     <>
       <button
-        onClick={() => setIsOpen(o => !o)}
+        onClick={() => {
+          setIsOpen(o => {
+            if (!o) track('InitiateChat', { content_name: 'chat_widget' })
+            return !o
+          })
+        }}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-forest text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-sage transition-all hover:scale-110"
         aria-label={t.chat.openChat}
       >
@@ -92,7 +101,7 @@ export default function ChatWidget() {
           {leadCaptured && (
             <div className="bg-mint/10 border-b border-mint/20 px-4 py-2 text-xs text-forest text-center flex-shrink-0">
               {t.chat.leadCaptured}
-              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="block font-bold mt-0.5 text-sage">💬 LINE @roogondee</a>
+              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('ClickLINE', { location: 'chat_widget' })} className="block font-bold mt-0.5 text-sage">💬 LINE @roogondee</a>
             </div>
           )}
 
