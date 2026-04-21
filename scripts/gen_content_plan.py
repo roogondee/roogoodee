@@ -123,7 +123,7 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
 
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=800,
+        max_tokens=2000,
         messages=[{"role": "user", "content": prompt}]
     )
     text = msg.content[0].text.strip()
