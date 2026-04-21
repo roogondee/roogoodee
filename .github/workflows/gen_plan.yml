@@ -21,14 +21,12 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: roogondee-web/requirements.txt
+          cache-dependency-path: requirements.txt
 
       - name: 📦 Install dependencies
-        working-directory: roogondee-web
-        run: pip install anthropic>=0.34.0 requests>=2.31.0 supabase>=2.3.0
+        run: pip install -r requirements.txt
 
       - name: 📅 Generate Content Plan
-        working-directory: roogondee-web
         env:
           ANTHROPIC_API_KEY:          ${{ secrets.ANTHROPIC_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL:   ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
