@@ -4,7 +4,10 @@ import { sendLeadNotification, sendVoucherToUser } from '@/lib/email'
 import { notifyLeadToSale } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
+import { verifyRecaptcha } from '@/lib/recaptcha'
 import type { QuizSubmission, Service } from '@/types'
+
+type QuizPayload = Partial<QuizSubmission> & { recaptcha_token?: string }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign']
 
@@ -17,7 +20,7 @@ function normalizePhone(p: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Partial<QuizSubmission>
+    const body = (await req.json()) as QuizPayload
 
     if (!body.service || !VALID_SERVICES.includes(body.service)) {
       return NextResponse.json({ error: 'บริการไม่ถูกต้อง' }, { status: 400 })
@@ -31,6 +34,16 @@ export async function POST(req: NextRequest) {
     }
     if (!body.consent_pdpa) {
       return NextResponse.json({ error: 'กรุณายอมรับเงื่อนไข PDPA' }, { status: 400 })
+    }
+
+    // reCAPTCHA v3 — fails open if RECAPTCHA_SECRET_KEY is unset
+    const captcha = await verifyRecaptcha(body.recaptcha_token, `quiz_${body.service}`)
+    if (!captcha.success) {
+      console.warn('quiz: recaptcha rejected', captcha)
+      return NextResponse.json(
+        { error: 'ตรวจพบการใช้งานผิดปกติ กรุณารีเฟรชหน้านี้แล้วลองใหม่' },
+        { status: 400 },
+      )
     }
 
     // Spec §5.2: 1 voucher / service / person — check by phone+service

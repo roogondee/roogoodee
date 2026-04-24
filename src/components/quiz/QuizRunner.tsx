@@ -9,7 +9,25 @@ declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
     fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    grecaptcha?: {
+      ready: (cb: () => void) => void
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>
+    }
   }
+}
+
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
+async function getRecaptchaToken(action: string): Promise<string | undefined> {
+  if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined' || !window.grecaptcha) return undefined
+  return new Promise<string | undefined>(resolve => {
+    window.grecaptcha!.ready(async () => {
+      try {
+        const token = await window.grecaptcha!.execute(RECAPTCHA_SITE_KEY, { action })
+        resolve(token)
+      } catch { resolve(undefined) }
+    })
+  })
 }
 
 // Spec §7.2 — fire both GA4 and Meta Pixel when available
@@ -127,6 +145,7 @@ export default function QuizRunner({ definition }: Props) {
 
     setLoading(true)
     try {
+      const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,6 +164,7 @@ export default function QuizRunner({ definition }: Props) {
           utm_source:   utm.utm_source,
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
+          recaptcha_token: recaptchaToken,
         }),
       })
       const data = await res.json()
