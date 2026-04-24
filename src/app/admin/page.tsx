@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import Link from 'next/link'
 import LeadStatusSelect from '@/components/admin/LeadStatusSelect'
 import LeadChart from '@/components/admin/LeadChart'
 import ExportCSV from '@/components/admin/ExportCSV'
@@ -113,7 +114,9 @@ export default async function AdminPage() {
                 return (
                 <tr key={lead.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">
-                    {lead.first_name} {lead.last_name}
+                    <Link href={`/admin/leads/${lead.id}`} className="hover:text-forest hover:underline">
+                      {lead.first_name} {lead.last_name}
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <a href={`tel:${lead.phone}`} className="text-forest hover:underline font-mono">{lead.phone}</a>
