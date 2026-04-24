@@ -145,7 +145,7 @@ const th = {
     decline: 'ปฏิเสธ', acceptAll: 'ยอมรับทั้งหมด',
   },
   std: {
-    heroTag: '🔴 Sexual Health',
+    heroTag: '🔴 TrustMed',
     heroTitle1: 'ตรวจ STD', heroTitle2: '& PrEP HIV', heroTitle3: 'ปลอดภัย ไม่ตัดสิน',
     heroDesc: 'ตรวจโรคติดต่อทางเพศสัมพันธ์ครบ 10 โรค ผลลับ 100% ไม่ระบุชื่อ\nPrEP/PEP ป้องกัน HIV โดยแพทย์ผู้เชี่ยวชาญ สมุทรสาคร',
     ctaConsult: '📝 ปรึกษาฟรี', ctaQuiz: '🔴 ทำ PrEP Risk Quiz',
