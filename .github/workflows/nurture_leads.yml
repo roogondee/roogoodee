@@ -1,0 +1,35 @@
+name: 💌 RuGonDee Daily Lead Nurture
+
+on:
+  # ทุกวัน 09:30 Bangkok (02:30 UTC) — หลัง Daily Lead Brief (08:00)
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  nurture:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 💌 Draft nurture messages
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          RESEND_API_KEY:           ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL:             ${{ secrets.NOTIFY_EMAIL }}
+        run: python scripts/nurture_leads.py
