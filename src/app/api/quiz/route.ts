@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendLeadNotification } from '@/lib/email'
+import { sendLeadNotification, sendVoucherToUser } from '@/lib/email'
 import { notifyLeadToSale } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
@@ -95,6 +95,16 @@ export async function POST(req: NextRequest) {
       source:  `quiz (${scoring.tier.toUpperCase()} score ${scoring.score})`,
       note:    `Voucher: ${voucher.code}`,
     })
+
+    if (inserted.email) {
+      void sendVoucherToUser({
+        to:         inserted.email,
+        name:       `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
+        service:    body.service,
+        code:       voucher.code,
+        expires_at: voucher.expires_at,
+      })
+    }
 
     return NextResponse.json({
       success: true,

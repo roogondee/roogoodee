@@ -57,7 +57,7 @@ export default function STDClient() {
         </div>
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link href="/contact?service=std" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">
+          <Link href="/quiz/std" className="bg-forest text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-sage transition-all">
             {t.common.consultFree}
           </Link>
         </div>
@@ -77,7 +77,7 @@ export default function STDClient() {
             {t.std.heroDesc}
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/contact?service=std" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">
+            <Link href="/quiz/std" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">
               {t.std.ctaConsult}
             </Link>
             <Link href="/tools#prep" className="flex items-center justify-center gap-2 border-2 border-rose-300 text-rose-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-rose-50 transition-all">
@@ -166,7 +166,7 @@ export default function STDClient() {
           <h2 className="font-display text-3xl md:text-4xl text-forest mb-4">{t.std.ctaTitle}</h2>
           <p className="text-muted mb-8">{t.std.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/contact?service=std" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
+            <Link href="/quiz/std" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
               {t.common.consultFree}
             </Link>
             <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
