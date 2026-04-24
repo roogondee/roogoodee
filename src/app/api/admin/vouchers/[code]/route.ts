@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { logLeadAccess, requestIp } from '@/lib/audit'
 
 function requireAdmin() {
   const session = cookies().get('admin_session')?.value
@@ -64,6 +65,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     .from('leads')
     .update({ status: 'visited' })
     .eq('id', voucher.lead_id)
+
+  logLeadAccess({
+    leadId:  voucher.lead_id,
+    actor:   'admin',
+    action:  'redeem',
+    details: { code, staff_name: staff_name.trim() },
+    ip:      requestIp(req),
+  })
 
   return NextResponse.json({ ok: true, redeemed_at: now })
 }

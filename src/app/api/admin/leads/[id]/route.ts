@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { logLeadAccess, requestIp } from '@/lib/audit'
 
 // Spec §6.1 pipeline + legacy 'converted'
 const VALID_STATUSES = [
@@ -28,6 +29,14 @@ export async function PATCH(
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  logLeadAccess({
+    leadId:  params.id,
+    actor:   'admin',
+    action:  'update',
+    details: { status },
+    ip:      requestIp(req),
+  })
 
   return NextResponse.json({ ok: true })
 }
