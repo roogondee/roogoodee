@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import QuizRunner from '@/components/quiz/QuizRunner'
 import { QUIZZES } from '@/lib/quiz/questions'
 
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 }
 
 export default function STDQuizPage() {
-  return <QuizRunner definition={QUIZZES.std} />
+  return (
+    <Suspense>
+      <QuizRunner definition={QUIZZES.std} />
+    </Suspense>
+  )
 }

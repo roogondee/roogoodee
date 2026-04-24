@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Question, QuizDefinition } from '@/lib/quiz/questions'
 import type { LeadTier } from '@/types'
@@ -46,6 +47,7 @@ const EMPTY_CONTACT: ContactForm = {
 }
 
 export default function QuizRunner({ definition }: Props) {
+  const searchParams = useSearchParams()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, unknown>>({})
   const [contact, setContact] = useState<ContactForm>(EMPTY_CONTACT)
@@ -56,6 +58,12 @@ export default function QuizRunner({ definition }: Props) {
 
   const startedRef = useRef(false)
   const lastProgressRef = useRef(-1)
+
+  const utm = useMemo(() => ({
+    utm_source:   searchParams?.get('utm_source')   || undefined,
+    utm_medium:   searchParams?.get('utm_medium')   || undefined,
+    utm_campaign: searchParams?.get('utm_campaign') || undefined,
+  }), [searchParams])
 
   // Spec §7.2: fire quiz_start on mount
   useEffect(() => {
@@ -134,6 +142,9 @@ export default function QuizRunner({ definition }: Props) {
           gender:     composite?.gender as string | undefined,
           consent_pdpa: true,
           consent_at: new Date().toISOString(),
+          utm_source:   utm.utm_source,
+          utm_medium:   utm.utm_medium,
+          utm_campaign: utm.utm_campaign,
         }),
       })
       const data = await res.json()
