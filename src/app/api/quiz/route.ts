@@ -6,6 +6,7 @@ import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
 import { pickNextAssignee } from '@/lib/quiz/assign'
 import { summarizeAnswers } from '@/lib/quiz/summary'
+import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import type { QuizSubmission, Service } from '@/types'
@@ -162,6 +163,7 @@ export async function POST(req: NextRequest) {
         code: voucher.code,
         expires_at: voucher.expires_at,
       },
+      insight: generateInsight(body.service, answers, scoring.tier),
     })
   } catch (err) {
     console.error('quiz submit error:', err)

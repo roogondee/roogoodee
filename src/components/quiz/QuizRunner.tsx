@@ -54,6 +54,13 @@ interface VoucherResult {
   expires_at: string
   tier: LeadTier
   score: number
+  insight?: {
+    headline: string
+    body: string
+    recommendation: string
+    disclaimer: string
+    urgent?: boolean
+  } | null
 }
 
 const EMPTY_CONTACT: ContactForm = {
@@ -177,6 +184,7 @@ export default function QuizRunner({ definition }: Props) {
         expires_at: data.voucher.expires_at,
         tier: data.tier,
         score: data.score,
+        insight: data.insight,
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
       track('voucher_sent', { service: definition.service, code: data.voucher.code })
@@ -222,6 +230,34 @@ export default function QuizRunner({ definition }: Props) {
               หมดอายุ {expires} (14 วัน)
             </div>
           </div>
+
+          {result.insight && (
+            <div className={`rounded-2xl p-4 mb-5 border ${
+              result.insight.urgent
+                ? (dark ? 'bg-red-900/30 border-red-500/50' : 'bg-red-50 border-red-200')
+                : (dark ? 'bg-neutral-900 border-white/10' : 'bg-amber-50 border-amber-200')
+            }`}>
+              <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${
+                result.insight.urgent
+                  ? 'text-red-500'
+                  : (dark ? 'text-mint' : 'text-amber-700')
+              }`}>
+                💡 ประเมินจากคำตอบของคุณ
+              </p>
+              <h3 className={`font-display text-base md:text-lg mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
+                {result.insight.headline}
+              </h3>
+              <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-white/80' : 'text-rtext'}`}>
+                {result.insight.body}
+              </p>
+              <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-white/70' : 'text-muted'}`}>
+                <span className="font-semibold">แนะนำ: </span>{result.insight.recommendation}
+              </p>
+              <p className={`text-xs italic border-t pt-2 ${dark ? 'text-white/40 border-white/10' : 'text-muted border-amber-200'}`}>
+                ⚕️ {result.insight.disclaimer}
+              </p>
+            </div>
+          )}
 
           <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
             <p className="font-semibold mb-2">📱 เชื่อมบัญชี LINE เพื่อรับการแจ้งเตือน:</p>
