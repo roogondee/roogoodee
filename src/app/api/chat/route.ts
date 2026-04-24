@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 import { AGENT_TOOLS, executeTool, ToolExecutionContext } from '@/lib/agent/tools'
+import {
+  buildSystemPrompt,
+  normalizeServiceContext,
+  serviceContextFromPath,
+  ServiceContext,
+} from '@/lib/agent/prompts'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -9,41 +15,15 @@ const MODEL = 'claude-haiku-4-5-20251001'
 const MAX_TOOL_ITERATIONS = 6
 const MAX_SESSION_TURNS = 40
 
-const SYSTEM_PROMPT = `You are the health consultation assistant for รู้ก่อนดี(รู้งี้) / RooGonDee (roogondee.com),
-operated by Jia Raksa Co., Ltd. with W Medical Hospital, Samut Sakhon, Thailand.
-
-Services we provide:
-- STD & PrEP HIV testing (safe, non-judgmental)
-- GLP-1 weight loss (Ozempic, Wegovy, Saxenda)
-- CKD clinic (chronic kidney disease)
-- Foreign worker health checkup (Samut Sakhon)
-
-LANGUAGE RULE:
-Detect the language of the user's latest message and ALWAYS reply in that same language
-(Thai, English, Burmese, Lao, Khmer, Chinese, Vietnamese, Hindi, Japanese, Korean, …).
-
-TONE:
-- Friendly, concise, non-judgmental. 2–5 short sentences per turn.
-- Do NOT diagnose or prescribe — provide general info and route to consultation.
-
-WHEN TO USE TOOLS:
-- Use \`search_blog_posts\` when the user asks a specific medical question (symptoms, medications,
-  procedures, price ranges) so the answer is grounded. Quote facts from the results, not memory.
-- Use \`get_service_info\` before listing what we offer or giving any price.
-- When the user expresses interest in being contacted (asks for a call back, wants to schedule,
-  asks how to book, etc.), ask for their name and Thai phone number (9–10 digits starting with 0).
-  Once you have both, call \`create_lead\` (or \`book_appointment\` if they picked a date).
-- Do NOT call \`create_lead\` or \`book_appointment\` speculatively. Require consent + both fields.
-
-AFTER A LEAD IS CREATED:
-Thank the user briefly and tell them the team will call back within 30 minutes. Do not keep
-pushing for more info.`
-
 type ClientMessage = { role: 'user' | 'assistant'; content: string }
 
 interface ChatRequest {
   messages?: ClientMessage[]
   sessionId?: string | null
+  // Either an explicit service hint ("std" | "glp1" | "ckd" | "foreign" | "general")
+  // or a raw pathname like "/std" that we'll map ourselves.
+  service?: string
+  path?: string
 }
 
 function getConversationSnippet(messages: Anthropic.MessageParam[]): string {
@@ -84,15 +64,17 @@ export async function POST(req: NextRequest) {
     // returned last turn; if missing or unknown, we start fresh.
     let sessionId = typeof body.sessionId === 'string' ? body.sessionId : null
     let messages: Anthropic.MessageParam[] = []
+    let existingServiceHint: ServiceContext | null = null
 
     if (sessionId) {
       const { data } = await supabaseAdmin
         .from('chat_sessions')
-        .select('messages,turn_count')
+        .select('messages,turn_count,service_hint')
         .eq('id', sessionId)
         .single()
       if (data && Array.isArray(data.messages)) {
         messages = data.messages as Anthropic.MessageParam[]
+        existingServiceHint = normalizeServiceContext(data.service_hint)
         if (data.turn_count >= MAX_SESSION_TURNS) {
           return NextResponse.json(
             { error: 'session_limit', text: 'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือโทรหาทีมงานที่ 02-xxx-xxxx' },
@@ -103,6 +85,17 @@ export async function POST(req: NextRequest) {
         sessionId = null // unknown id → start fresh
       }
     }
+
+    // Service context: explicit > path > existing session hint > general.
+    // Once a session has a non-general hint we keep it (user won't bounce between pages mid-chat).
+    const explicit = normalizeServiceContext(body.service)
+    const fromPath = typeof body.path === 'string' ? serviceContextFromPath(body.path) : 'general'
+    const currentService: ServiceContext =
+      explicit !== 'general'
+        ? explicit
+        : fromPath !== 'general'
+        ? fromPath
+        : existingServiceHint ?? 'general'
 
     // Append only the latest user turn from the client; we trust server-side history
     // for everything before that so a malicious client can't rewrite past turns.
@@ -122,11 +115,13 @@ export async function POST(req: NextRequest) {
     let leadId: string | null = null
     let finalText = ''
 
+    const systemPrompt = buildSystemPrompt(currentService)
+
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
       const response = await client.messages.create({
         model: MODEL,
         max_tokens: 800,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: AGENT_TOOLS,
         messages,
       })
@@ -169,6 +164,7 @@ export async function POST(req: NextRequest) {
       const update: Record<string, unknown> = {
         messages,
         turn_count: turnCount,
+        service_hint: currentService,
         updated_at: new Date().toISOString(),
       }
       if (leadId) update.lead_id = leadId
@@ -179,6 +175,7 @@ export async function POST(req: NextRequest) {
         .insert({
           messages,
           turn_count: turnCount,
+          service_hint: currentService,
           lead_id: leadId,
         })
         .select('id')

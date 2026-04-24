@@ -53,7 +53,11 @@ export default function ChatWidget() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, sessionId: sessionIdRef.current }),
+        body: JSON.stringify({
+          messages: newMessages,
+          sessionId: sessionIdRef.current,
+          path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+        }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text || t.chat.errorMessage }])
