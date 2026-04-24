@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
-import { logLeadAccess, requestIp } from '@/lib/audit'
-
-function requireAdmin() {
-  const session = cookies().get('admin_session')?.value
-  return !!session && session === process.env.ADMIN_SECRET
-}
+import { getSessionUser, requestIp } from '@/lib/auth'
+import { logLeadAccess } from '@/lib/audit'
 
 interface RouteParams { params: { id: string } }
 
 // POST — process the request: delete matching leads (and cascade vouchers) + mark processed
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  if (!requireAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const me = await getSessionUser()
+  if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (me.role !== 'manager') {
+    return NextResponse.json({ error: 'เฉพาะ manager เท่านั้น' }, { status: 403 })
+  }
 
   const { action } = await req.json() as { action?: 'process' | 'reject' }
   if (action !== 'process' && action !== 'reject') {
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     for (const id of deletedLeadIds) {
-      logLeadAccess({ leadId: id, actor: 'admin', action: 'delete', ip, details: { reason: 'pdpa_request', request_id: params.id } })
+      logLeadAccess({ leadId: id, actor: me.email, action: 'delete', ip, details: { reason: 'pdpa_request', request_id: params.id } })
     }
   }
 
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     .update({
       status:       action === 'process' ? 'processed' : 'rejected',
       processed_at: now,
-      processed_by: 'admin',
+      processed_by: me.email,
       notes:        action === 'process' ? `Deleted ${deletedLeadIds.length} lead(s)` : null,
     })
     .eq('id', params.id)

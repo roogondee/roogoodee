@@ -4,6 +4,7 @@ import { sendLeadNotification, sendVoucherToUser } from '@/lib/email'
 import { notifyLeadToSale } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
+import { pickNextAssignee } from '@/lib/quiz/assign'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import type { QuizSubmission, Service } from '@/types'
@@ -85,6 +86,9 @@ export async function POST(req: NextRequest) {
     // Spec §8.2: encrypt sensitive STD quiz answers at rest
     const storedAnswers = body.service === 'std' ? encryptJson(answers) : answers
 
+    // Round-robin auto-assign (§6.2 SLA routing)
+    const assignee = await pickNextAssignee()
+
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from('leads')
       .insert([{
@@ -99,6 +103,8 @@ export async function POST(req: NextRequest) {
         quiz_answers:  storedAnswers,
         lead_score:    scoring.score,
         lead_tier:     scoring.tier,
+        assigned_to:   assignee,
+        assigned_at:   assignee ? new Date().toISOString() : null,
         consent_pdpa:  true,
         consent_at:    body.consent_at || new Date().toISOString(),
         source:        'quiz',

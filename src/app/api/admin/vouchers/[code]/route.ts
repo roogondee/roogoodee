@@ -1,19 +1,14 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { logLeadAccess, requestIp } from '@/lib/audit'
-
-function requireAdmin() {
-  const session = cookies().get('admin_session')?.value
-  if (!session || session !== process.env.ADMIN_SECRET) return false
-  return true
-}
+import { getSessionUser, requestIp } from '@/lib/auth'
+import { logLeadAccess } from '@/lib/audit'
 
 interface RouteParams { params: { code: string } }
 
 // GET — look up voucher by code with associated lead
 export async function GET(_req: NextRequest, { params }: RouteParams) {
-  if (!requireAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const me = await getSessionUser()
+  if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const code = decodeURIComponent(params.code).trim().toUpperCase()
   const { data, error } = await supabaseAdmin
@@ -31,7 +26,8 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 
 // POST — mark voucher as redeemed
 export async function POST(req: NextRequest, { params }: RouteParams) {
-  if (!requireAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const me = await getSessionUser()
+  if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const code = decodeURIComponent(params.code).trim().toUpperCase()
   const { staff_name } = await req.json()
@@ -68,7 +64,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
   logLeadAccess({
     leadId:  voucher.lead_id,
-    actor:   'admin',
+    actor:   me.email,
     action:  'redeem',
     details: { code, staff_name: staff_name.trim() },
     ip:      requestIp(req),

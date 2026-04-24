@@ -1,9 +1,11 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { decryptJson, isEncrypted } from '@/lib/encryption'
 import { logLeadAccess } from '@/lib/audit'
+import { getSessionUser } from '@/lib/auth'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import NoteEditor from '@/components/admin/NoteEditor'
+import AssigneeSelect from '@/components/admin/AssigneeSelect'
 
 export const revalidate = 0
 
@@ -27,6 +29,9 @@ function fmt(iso: string) {
 }
 
 export default async function LeadDetailPage({ params }: { params: { id: string } }) {
+  const me = await getSessionUser()
+  if (!me) redirect('/admin/login')
+
   const [{ data: lead }, { data: vouchers }, { data: accessLog }] = await Promise.all([
     supabaseAdmin.from('leads').select('*').eq('id', params.id).maybeSingle(),
     supabaseAdmin.from('vouchers').select('*').eq('lead_id', params.id).order('issued_at', { ascending: false }),
@@ -35,7 +40,18 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
 
   if (!lead) notFound()
 
-  logLeadAccess({ leadId: params.id, actor: 'admin', action: 'view' })
+  // Spec §8.2: sales can only see leads assigned to them
+  if (me.role === 'sale' && me.id && lead.assigned_to !== me.id) {
+    return (
+      <div className="max-w-md mx-auto mt-12 bg-white rounded-xl p-6 border border-gray-100 text-center">
+        <p className="text-forest font-semibold mb-1">🔒 ไม่มีสิทธิ์ดู</p>
+        <p className="text-sm text-gray-500">Lead นี้ไม่ได้ถูกมอบหมายให้คุณ</p>
+        <Link href="/admin" className="text-xs text-forest underline mt-3 inline-block">← กลับ Leads</Link>
+      </div>
+    )
+  }
+
+  logLeadAccess({ leadId: params.id, actor: me.email, action: 'view' })
 
   const encryptedFlag = isEncrypted(lead.quiz_answers)
   const answers = encryptedFlag ? decryptJson(lead.quiz_answers) : lead.quiz_answers
@@ -78,6 +94,10 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           <Row label="UTM" value={[lead.utm_source, lead.utm_medium, lead.utm_campaign].filter(Boolean).join(' / ') || '-'} />
           <Row label="สร้างเมื่อ" value={fmt(lead.created_at)} />
           {lead.consent_at && <Row label="PDPA consent" value={fmt(lead.consent_at)} />}
+          <div className="pt-2 border-t border-gray-100 mt-2">
+            <p className="text-xs text-gray-500 mb-1">มอบหมายให้</p>
+            <AssigneeSelect leadId={lead.id} currentAssignee={lead.assigned_to} canEdit={me.role === 'manager'} />
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-100 p-5">

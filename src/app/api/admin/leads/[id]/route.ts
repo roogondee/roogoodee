@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { logLeadAccess, requestIp } from '@/lib/audit'
+import { getSessionUser, requestIp } from '@/lib/auth'
+import { logLeadAccess } from '@/lib/audit'
 
 // Spec §6.1 pipeline + legacy 'converted'
 const VALID_STATUSES = [
@@ -12,10 +12,19 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Check admin session
-  const session = cookies().get('admin_session')?.value
-  if (session !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const me = await getSessionUser()
+  if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Sales can only update leads assigned to them
+  if (me.role === 'sale' && me.id) {
+    const { data: lead } = await supabaseAdmin
+      .from('leads')
+      .select('assigned_to')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (!lead || lead.assigned_to !== me.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
   const body = await req.json() as { status?: string; note?: string }
@@ -43,7 +52,7 @@ export async function PATCH(
 
   logLeadAccess({
     leadId:  params.id,
-    actor:   'admin',
+    actor:   me.email,
     action:  'update',
     details: update,
     ip:      requestIp(req),

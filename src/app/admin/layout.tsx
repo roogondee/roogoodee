@@ -12,7 +12,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin" className="text-white/70 hover:text-white transition-colors">Leads</Link>
             <Link href="/admin/analytics" className="text-white/70 hover:text-white transition-colors">📊 Analytics</Link>
             <Link href="/admin/redeem" className="text-white/70 hover:text-white transition-colors">🎟 รับ Voucher</Link>
-            <Link href="/admin/deletion-requests" className="text-white/70 hover:text-white transition-colors">🔒 คำขอลบข้อมูล</Link>
+            <Link href="/admin/users" className="text-white/70 hover:text-white transition-colors">👥 Users</Link>
+            <Link href="/admin/deletion-requests" className="text-white/70 hover:text-white transition-colors">🔒 PDPA</Link>
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm">

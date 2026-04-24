@@ -3,6 +3,8 @@ import Link from 'next/link'
 import LeadStatusSelect from '@/components/admin/LeadStatusSelect'
 import LeadChart from '@/components/admin/LeadChart'
 import ExportCSV from '@/components/admin/ExportCSV'
+import { getSessionUser } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 const SERVICE_LABELS: Record<string, string> = {
   std: '🔴 STD & PrEP',
@@ -37,13 +39,29 @@ function formatDate(iso: string) {
 export const revalidate = 30
 
 export default async function AdminPage() {
+  const me = await getSessionUser()
+  if (!me) redirect('/admin/login')
+
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const today = new Date(new Date().setHours(0,0,0,0)).toISOString()
+
+  // Sales see only their assigned leads (spec §8.2 access control)
+  const saleOnly = me.role === 'sale' && me.id ? me.id : null
+
+  let leadsQuery  = supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100)
+  let todayQuery  = supabaseAdmin.from('leads').select('id').gte('created_at', today)
+  let chartQuery  = supabaseAdmin.from('leads').select('created_at').gte('created_at', thirtyDaysAgo)
+  if (saleOnly) {
+    leadsQuery = leadsQuery.eq('assigned_to', saleOnly)
+    todayQuery = todayQuery.eq('assigned_to', saleOnly)
+    chartQuery = chartQuery.eq('assigned_to', saleOnly)
+  }
 
   const [{ data: leads }, { data: posts }, { data: todayLeads }, { data: chartLeads }, { data: vouchers }] = await Promise.all([
-    supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100),
+    leadsQuery,
     supabaseAdmin.from('posts').select('id,title,slug,service,status,published_at,image_url').order('published_at', { ascending: false }).limit(50),
-    supabaseAdmin.from('leads').select('id').gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
-    supabaseAdmin.from('leads').select('created_at').gte('created_at', thirtyDaysAgo),
+    todayQuery,
+    chartQuery,
     supabaseAdmin.from('vouchers').select('code, lead_id, expires_at, redeemed_at'),
   ])
 
