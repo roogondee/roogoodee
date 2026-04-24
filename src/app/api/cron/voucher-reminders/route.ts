@@ -64,16 +64,18 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Sale team visibility — they can follow up via LINE/phone
+    // Handoff team visibility — they can follow up via LINE/phone
     await notifyLeadToSale({
-      name:         `${lead.first_name} ${lead.last_name || ''}`.trim(),
-      phone:        lead.phone,
-      line_id:      lead.line_id || undefined,
-      service:      v.service,
-      tier:         (lead.lead_tier as 'urgent' | 'hot' | 'warm' | 'cold') || 'warm',
-      score:        0,
-      voucher_code: v.code,
-      reasons:      [`⏰ Voucher หมดอายุ ${new Date(v.expires_at).toLocaleDateString('th-TH')} (เหลือ ${daysLeft} วัน)`],
+      name:               `${lead.first_name} ${lead.last_name || ''}`.trim(),
+      phone:              lead.phone,
+      line_id:            lead.line_id || undefined,
+      email:              lead.email || undefined,
+      service:            v.service,
+      tier:               (lead.lead_tier as 'urgent' | 'hot' | 'warm' | 'cold') || 'warm',
+      score:              0,
+      voucher_code:       v.code,
+      voucher_expires_at: v.expires_at,
+      reasons:            [`⏰ เตือน: voucher เหลืออีก ${daysLeft} วัน ลูกค้ายังไม่มาตรวจ`],
     })
 
     await supabaseAdmin

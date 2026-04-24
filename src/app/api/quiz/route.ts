@@ -5,6 +5,7 @@ import { notifyLeadToSale } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
 import { pickNextAssignee } from '@/lib/quiz/assign'
+import { summarizeAnswers } from '@/lib/quiz/summary'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import type { QuizSubmission, Service } from '@/types'
@@ -121,14 +122,17 @@ export async function POST(req: NextRequest) {
     const voucher = await issueVoucher({ leadId: inserted.id, service: body.service })
 
     void notifyLeadToSale({
-      name:         `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
-      phone:        inserted.phone,
-      line_id:      inserted.line_id,
-      service:      body.service,
-      tier:         scoring.tier,
-      score:        scoring.score,
-      voucher_code: voucher.code,
-      reasons:      scoring.reasons,
+      name:               `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
+      phone:              inserted.phone,
+      line_id:            inserted.line_id,
+      email:              inserted.email,
+      service:            body.service,
+      tier:               scoring.tier,
+      score:              scoring.score,
+      voucher_code:       voucher.code,
+      voucher_expires_at: voucher.expires_at,
+      reasons:            scoring.reasons,
+      answer_summary:     summarizeAnswers(body.service, answers),
     })
 
     void sendLeadNotification({
