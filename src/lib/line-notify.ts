@@ -10,6 +10,13 @@ const SERVICE_LABELS: Record<string, string> = {
   'chat-widget': 'Chat Widget',
 }
 
+const TIER_ICON: Record<string, string> = {
+  urgent: '🚨 URGENT',
+  hot: '🔥 HOT',
+  warm: '⚡ Warm',
+  cold: '❄️ Cold',
+}
+
 interface NotifyParams {
   name?: string
   phone?: string
@@ -18,8 +25,27 @@ interface NotifyParams {
   note?: string
 }
 
+async function pushLine(to: string, text: string) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN) return
+  try {
+    await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to,
+        messages: [{ type: 'text', text }],
+      }),
+    })
+  } catch (err) {
+    console.error('LINE push error:', err)
+  }
+}
+
 export async function notifyLineGroup(params: NotifyParams) {
-  if (!LINE_NOTIFY_GROUP_ID || !LINE_CHANNEL_ACCESS_TOKEN) return
+  if (!LINE_NOTIFY_GROUP_ID) return
 
   const label = SERVICE_LABELS[params.service] || params.service
   const lines = [
@@ -33,19 +59,38 @@ export async function notifyLineGroup(params: NotifyParams) {
   }
   lines.push('', '👉 ดูทั้งหมด: https://www.roogondee.com/admin')
 
-  try {
-    await fetch('https://api.line.me/v2/bot/message/push', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        to: LINE_NOTIFY_GROUP_ID,
-        messages: [{ type: 'text', text: lines.join('\n') }],
-      }),
-    })
-  } catch (err) {
-    console.error('LINE group notify error:', err)
-  }
+  await pushLine(LINE_NOTIFY_GROUP_ID, lines.join('\n'))
+}
+
+interface VoucherLeadNotifyParams {
+  name?: string
+  phone?: string
+  line_id?: string
+  service: string
+  tier: 'urgent' | 'hot' | 'warm' | 'cold'
+  score: number
+  voucher_code: string
+  reasons?: string[]
+}
+
+// Sales-team group notification when a quiz lead produces a voucher.
+export async function notifyLeadToSale(p: VoucherLeadNotifyParams) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+
+  const label = SERVICE_LABELS[p.service] || p.service
+  const tierLabel = TIER_ICON[p.tier] || p.tier
+  const lines = [
+    `${tierLabel} Lead (${p.service.toUpperCase()})`,
+    `👤 ${p.name || '-'}`,
+    `📞 ${p.phone || '-'}`,
+    p.line_id ? `💬 LINE: ${p.line_id}` : null,
+    `📋 ${label}`,
+    `🎟 ${p.voucher_code}`,
+    `📊 คะแนน ${p.score}`,
+    p.reasons && p.reasons.length > 0 ? `• ${p.reasons.slice(0, 3).join(' • ')}` : null,
+    '',
+    '👉 https://www.roogondee.com/admin',
+  ].filter(Boolean) as string[]
+
+  await pushLine(LINE_NOTIFY_GROUP_ID, lines.join('\n'))
 }
