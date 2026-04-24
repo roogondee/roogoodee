@@ -12,6 +12,20 @@ const SERVICE_LABELS: Record<string, string> = {
   'chat-widget': '💬 Chat',
 }
 
+const TIER_LABEL: Record<string, string> = {
+  urgent: '🚨 URGENT',
+  hot:    '🔥 Hot',
+  warm:   '⚡ Warm',
+  cold:   '❄️ Cold',
+}
+
+const TIER_COLOR: Record<string, string> = {
+  urgent: 'bg-red-100 text-red-700',
+  hot:    'bg-orange-100 text-orange-700',
+  warm:   'bg-yellow-100 text-yellow-700',
+  cold:   'bg-sky-100 text-sky-700',
+}
+
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('th-TH', {
@@ -24,12 +38,17 @@ export const revalidate = 30
 export default async function AdminPage() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
-  const [{ data: leads }, { data: posts }, { data: todayLeads }, { data: chartLeads }] = await Promise.all([
+  const [{ data: leads }, { data: posts }, { data: todayLeads }, { data: chartLeads }, { data: vouchers }] = await Promise.all([
     supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100),
     supabaseAdmin.from('posts').select('id,title,slug,service,status,published_at,image_url').order('published_at', { ascending: false }).limit(50),
     supabaseAdmin.from('leads').select('id').gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
     supabaseAdmin.from('leads').select('created_at').gte('created_at', thirtyDaysAgo),
+    supabaseAdmin.from('vouchers').select('code, lead_id, expires_at, redeemed_at'),
   ])
+
+  const voucherByLead = new Map(
+    (vouchers || []).map(v => [v.lead_id as string, v]),
+  )
 
   const totalLeads = leads?.length || 0
   const newLeads = leads?.filter(l => l.status === 'new').length || 0
@@ -81,14 +100,17 @@ export default async function AdminPage() {
                 <th className="text-left px-4 py-3">ชื่อ</th>
                 <th className="text-left px-4 py-3">เบอร์</th>
                 <th className="text-left px-4 py-3">บริการ</th>
+                <th className="text-left px-4 py-3">Tier</th>
+                <th className="text-left px-4 py-3">Voucher</th>
                 <th className="text-left px-4 py-3">ช่องทาง</th>
                 <th className="text-left px-4 py-3">สถานะ</th>
                 <th className="text-left px-4 py-3">วันที่</th>
-                <th className="text-left px-4 py-3">หมายเหตุ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {(leads || []).map(lead => (
+              {(leads || []).map(lead => {
+                const voucher = voucherByLead.get(lead.id)
+                return (
                 <tr key={lead.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">
                     {lead.first_name} {lead.last_name}
@@ -99,6 +121,26 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">
                     <span className="text-xs">{SERVICE_LABELS[lead.service] || lead.service}</span>
                   </td>
+                  <td className="px-4 py-3">
+                    {lead.lead_tier ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${TIER_COLOR[lead.lead_tier] || 'bg-gray-100 text-gray-600'}`}>
+                        {TIER_LABEL[lead.lead_tier] || lead.lead_tier}
+                        {typeof lead.lead_score === 'number' ? ` · ${lead.lead_score}` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {voucher ? (
+                      <span className={`font-mono text-xs ${voucher.redeemed_at ? 'text-green-700' : 'text-forest'}`}>
+                        {voucher.code}
+                        {voucher.redeemed_at && <span className="ml-1">✓</span>}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-500">{lead.source || 'website'}</td>
                   <td className="px-4 py-3">
                     <LeadStatusSelect id={lead.id} initialStatus={lead.status || 'new'} />
@@ -106,11 +148,10 @@ export default async function AdminPage() {
                   <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                     {lead.created_at ? formatDate(lead.created_at) : ''}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 max-w-xs truncate">{lead.note}</td>
                 </tr>
-              ))}
+              )})}
               {totalLeads === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">ยังไม่มี Lead</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">ยังไม่มี Lead</td></tr>
               )}
             </tbody>
           </table>

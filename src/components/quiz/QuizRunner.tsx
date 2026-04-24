@@ -1,8 +1,22 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Question, QuizDefinition } from '@/lib/quiz/questions'
 import type { LeadTier } from '@/types'
+
+declare global {
+  interface Window {
+    gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
+    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+  }
+}
+
+// Spec §7.2 — fire both GA4 and Meta Pixel when available
+function track(name: string, params: Record<string, unknown> = {}) {
+  if (typeof window === 'undefined') return
+  try { window.gtag?.('event', name, params) } catch {}
+  try { window.fbq?.('trackCustom', name, params) } catch {}
+}
 
 interface Props {
   definition: QuizDefinition
@@ -39,6 +53,16 @@ export default function QuizRunner({ definition }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<VoucherResult | null>(null)
+
+  const startedRef = useRef(false)
+  const lastProgressRef = useRef(-1)
+
+  // Spec §7.2: fire quiz_start on mount
+  useEffect(() => {
+    if (startedRef.current) return
+    startedRef.current = true
+    track('quiz_start', { service: definition.service })
+  }, [definition.service])
 
   const totalSteps = definition.questions.length + 1 // +1 for contact step
   const progress = Math.round((step / totalSteps) * 100)
@@ -123,12 +147,26 @@ export default function QuizRunner({ definition }: Props) {
         tier: data.tier,
         score: data.score,
       })
+      track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
+      track('voucher_sent', { service: definition.service, code: data.voucher.code })
     } catch {
       setError('ขออภัย มีปัญหา ลองอีกครั้ง')
     } finally {
       setLoading(false)
     }
   }
+
+  // Spec §7.2: fire quiz_progress as user advances through questions
+  useEffect(() => {
+    if (step > lastProgressRef.current && step < definition.questions.length) {
+      lastProgressRef.current = step
+      track('quiz_progress', {
+        service: definition.service,
+        step: step + 1,
+        total: definition.questions.length,
+      })
+    }
+  }, [step, definition.questions.length, definition.service])
 
   // ── Success screen ────────────────────────────────────────────────
   if (result) {

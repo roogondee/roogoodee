@@ -2,7 +2,10 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const VALID_STATUSES = ['new', 'contacted', 'converted', 'lost']
+// Spec §6.1 pipeline + legacy 'converted'
+const VALID_STATUSES = [
+  'new', 'contacted', 'qualified', 'booked', 'visited', 'customer', 'lost', 'converted',
+]
 
 export async function PATCH(
   req: NextRequest,

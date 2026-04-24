@@ -8,6 +8,9 @@ import type { QuizSubmission, Service } from '@/types'
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign']
 
+// Spec §5.2: "จำกัด 50 สิทธิ์/service/เดือน"
+const MONTHLY_QUOTA = 50
+
 function normalizePhone(p: string): string {
   return p.replace(/[-\s]/g, '')
 }
@@ -42,6 +45,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'คุณรับสิทธิ์ตรวจ service นี้แล้ว — ติดต่อ LINE @roogondee เพื่อสอบถาม' },
         { status: 409 },
+      )
+    }
+
+    // Spec §5.2: monthly quota 50/service/month
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+    const { count: monthCount } = await supabaseAdmin
+      .from('vouchers')
+      .select('id', { count: 'exact', head: true })
+      .eq('service', body.service)
+      .gte('issued_at', monthStart.toISOString())
+
+    if ((monthCount ?? 0) >= MONTHLY_QUOTA) {
+      return NextResponse.json(
+        { error: 'สิทธิ์ประจำเดือนเต็มแล้ว — กลับมาใหม่เดือนหน้า หรือติดต่อ LINE @roogondee' },
+        { status: 429 },
       )
     }
 
