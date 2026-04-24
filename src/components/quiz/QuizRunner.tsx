@@ -223,12 +223,21 @@ export default function QuizRunner({ definition }: Props) {
             </div>
           </div>
 
+          <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
+            <p className="font-semibold mb-2">📱 เชื่อมบัญชี LINE เพื่อรับการแจ้งเตือน:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>กดปุ่ม Add LINE ด้านล่าง</li>
+              <li>ส่งรหัส <span className={`font-mono font-bold ${dark ? 'text-mint' : 'text-forest'}`}>{result.code}</span> ในแชท</li>
+              <li>ระบบจะยืนยันและแจ้งเตือนก่อน voucher หมดอายุ</li>
+            </ol>
+          </div>
+
           <a
             href="https://line.me/ti/p/@roogondee"
             target="_blank" rel="noopener noreferrer"
             className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
           >
-            💬 Add LINE @roogondee เพื่อรับข้อมูลนัดหมาย
+            💬 Add LINE @roogondee
           </a>
           <a
             href="https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon"

@@ -44,6 +44,34 @@ async function pushLine(to: string, text: string) {
   }
 }
 
+// Spec §5.3: direct voucher delivery to user (requires userId obtained
+// via LINE OA follow event or linked through voucher-code message).
+export async function pushVoucherToUser(userId: string, params: {
+  name: string
+  service: string
+  code: string
+  expires_at: string
+  daysLeft?: number
+}) {
+  const label = SERVICE_LABELS[params.service] || params.service
+  const expires = new Date(params.expires_at).toLocaleDateString('th-TH', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  })
+  const urgency = typeof params.daysLeft === 'number' && params.daysLeft <= 3
+    ? `\n\n⏰ เหลืออีก ${params.daysLeft} วันก่อนหมดอายุ`
+    : ''
+  const text = [
+    `🎟 Voucher ${label}`,
+    ``,
+    `สวัสดีคุณ ${params.name}`,
+    `🎫 รหัส: ${params.code}`,
+    `📅 หมดอายุ: ${expires}`,
+    `📍 W Medical Hospital สมุทรสาคร`,
+    `📞 ติดต่อจองคิว: 034-XXX-XXX${urgency}`,
+  ].join('\n')
+  await pushLine(userId, text)
+}
+
 export async function notifyLineGroup(params: NotifyParams) {
   if (!LINE_NOTIFY_GROUP_ID) return
 

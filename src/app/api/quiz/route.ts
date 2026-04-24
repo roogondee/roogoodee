@@ -5,6 +5,7 @@ import { notifyLeadToSale } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
 import { verifyRecaptcha } from '@/lib/recaptcha'
+import { encryptJson } from '@/lib/encryption'
 import type { QuizSubmission, Service } from '@/types'
 
 type QuizPayload = Partial<QuizSubmission> & { recaptcha_token?: string }
@@ -81,6 +82,9 @@ export async function POST(req: NextRequest) {
     const answers = body.answers ?? {}
     const scoring = scoreQuiz(body.service, answers)
 
+    // Spec §8.2: encrypt sensitive STD quiz answers at rest
+    const storedAnswers = body.service === 'std' ? encryptJson(answers) : answers
+
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from('leads')
       .insert([{
@@ -92,7 +96,7 @@ export async function POST(req: NextRequest) {
         email:         body.email?.trim() || null,
         age:           body.age || null,
         gender:        body.gender || null,
-        quiz_answers:  answers,
+        quiz_answers:  storedAnswers,
         lead_score:    scoring.score,
         lead_tier:     scoring.tier,
         consent_pdpa:  true,
