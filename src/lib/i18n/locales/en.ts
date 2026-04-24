@@ -119,7 +119,7 @@ const en = {
     decline: 'Decline', acceptAll: 'Accept All',
   },
   std: {
-    heroTag: '🔴 Sexual Health',
+    heroTag: '🔴 TrustMed',
     heroTitle1: 'STD Testing', heroTitle2: '& PrEP HIV', heroTitle3: 'Safe & Non-judgmental',
     heroDesc: 'Complete 10-disease STD panel, 100% confidential\nPrEP/PEP HIV prevention by specialists in Samut Sakhon',
     ctaConsult: '📝 Free Consultation', ctaQuiz: '🔴 Take PrEP Risk Quiz',
