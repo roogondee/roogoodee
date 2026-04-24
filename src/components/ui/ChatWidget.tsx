@@ -17,10 +17,14 @@ export default function ChatWidget() {
   const [showQuickReplies, setShowQuickReplies] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const [initialized, setInitialized] = useState(false)
+  const sessionIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!initialized) {
       setMessages([{ role: 'assistant', content: t.chat.initialMessage }])
+      if (typeof window !== 'undefined') {
+        sessionIdRef.current = window.sessionStorage.getItem('roogondee_chat_session')
+      }
       setInitialized(true)
     }
   }, [t, initialized])
@@ -49,11 +53,15 @@ export default function ChatWidget() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, sessionId: sessionIdRef.current }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text || t.chat.errorMessage }])
       if (data.leadCaptured) setLeadCaptured(true)
+      if (data.sessionId && typeof window !== 'undefined') {
+        sessionIdRef.current = data.sessionId
+        window.sessionStorage.setItem('roogondee_chat_session', data.sessionId)
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: t.chat.errorRetry }])
     } finally {
