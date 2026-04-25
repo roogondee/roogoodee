@@ -36,7 +36,11 @@ jobs:
           ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
-          LINE_NOTIFY_TOKEN:        ${{ secrets.LINE_NOTIFY_TOKEN }}
+          DISCORD_WEBHOOK_URL:        ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL:          ${{ secrets.SLACK_WEBHOOK_URL }}
+          LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TARGET_ID:             ${{ secrets.LINE_TARGET_ID }}
+          LINE_NOTIFY_TOKEN:          ${{ secrets.LINE_NOTIFY_TOKEN }}
         run: |
           ARGS="${{ github.event.inputs.days }}"
           if [ -n "${{ github.event.inputs.start }}" ]; then

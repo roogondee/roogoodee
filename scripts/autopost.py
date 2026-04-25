@@ -18,6 +18,7 @@ from supabase import create_client
 from zoneinfo import ZoneInfo
 
 import gen_content_plan as gcp
+from notify import notify as _notify
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
@@ -453,16 +454,31 @@ def post_to_wordpress(plan: dict, html_content: str, image_url: str) -> str:
         print(f"  ⚠️ WordPress failed (ข้ามได้): {e}")
         return ""
 
-# ─── LINE NOTIFY ───────────────────────────────────────────────────────────────
+# ─── ON-DEMAND REVALIDATE ─────────────────────────────────────────────────────
+
+def trigger_revalidate(slug: str) -> None:
+    """ยิง /api/revalidate ให้ Next.js เคลียร์ cache สำหรับหน้า blog + sitemap"""
+    secret = os.environ.get("REVALIDATE_SECRET", "").strip()
+    site = os.environ.get("SITE_URL", "https://roogondee.com").rstrip("/")
+    if not secret:
+        print("  ℹ️ ข้าม revalidate (ยังไม่ตั้ง REVALIDATE_SECRET)")
+        return
+    paths = ["/blog", f"/blog/{slug}", "/sitemap.xml", "/"]
+    try:
+        params = "&".join([f"path={p}" for p in paths] + [f"secret={secret}"])
+        resp = requests.post(f"{site}/api/revalidate?{params}", timeout=15)
+        if resp.ok:
+            print(f"  ♻️  revalidated: {', '.join(paths)}")
+        else:
+            print(f"  ⚠️ revalidate response {resp.status_code}: {resp.text[:120]}")
+    except Exception as e:
+        print(f"  ⚠️ revalidate failed: {e}")
+
+# ─── NOTIFICATIONS (Discord/Slack/LINE Messaging API) ─────────────────────────
 
 def send_line(message: str):
-    if not LINE_TOKEN:
-        return
-    requests.post(
-        "https://notify-api.line.me/api/notify",
-        headers={"Authorization": f"Bearer {LINE_TOKEN}"},
-        data={"message": message},
-    )
+    """ชื่อ legacy — เรียก notify ใหม่ (รองรับ Discord/Slack/LINE Messaging)"""
+    _notify(message)
 
 # ─── MAIN ──────────────────────────────────────────────────────────────────────
 
@@ -534,6 +550,9 @@ def main():
             wp_url = post_to_wordpress(plan, html_content, image_url or "")
             if wp_url:
                 print(f"  ✅ WordPress: {wp_url}")
+
+            # 5. On-demand revalidate Next.js — บทความขึ้นทันที ไม่ต้องรอ ISR 60s
+            trigger_revalidate(plan["slug"])
 
             blog_url = f"roogondee.com/blog/{plan['slug']}"
             send_line(f"✅ รู้ก่อนดี โพสต์ใหม่: {title}\n{blog_url}")

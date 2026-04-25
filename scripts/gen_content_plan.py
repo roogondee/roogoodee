@@ -19,24 +19,8 @@ import anthropic
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL  = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
 SUPABASE_KEY  = os.environ["SUPABASE_SECRET"]
-LINE_TOKEN    = os.environ.get("LINE_NOTIFY_TOKEN", "")
 
-def _line_notify(message: str) -> None:
-    if not LINE_TOKEN:
-        return
-    try:
-        req = urllib.request.Request(
-            "https://notify-api.line.me/api/notify",
-            data=urllib.parse.urlencode({"message": message}).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {LINE_TOKEN}",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=10).read()
-    except Exception as e:
-        print(f"  ⚠️ LINE notify failed: {e}")
+from notify import notify as _line_notify  # ใช้ alias เดิมให้โค้ดอื่นไม่ต้องเปลี่ยน
 
 SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign"]  # วนซ้ำ
 
@@ -113,6 +97,30 @@ def get_service_count_by_date(start_date: date) -> dict:
             counts[svc] += 1
     return counts
 
+
+def get_top_topics(service: str, limit: int = 5) -> list[dict]:
+    """ดึงโพสต์ที่ traffic ดีของ service นี้ (ผ่าน view post_performance_30d)
+    เงียบถ้าไม่มี view (ก่อน migration จะรัน) — ใช้เป็น context เสริมให้ Claude
+    """
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/post_performance_30d"
+            f"?service=eq.{service}"
+            f"&order=views_30d.desc&limit={limit}"
+            f"&select=title,focus_kw,views_30d"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return [r for r in data if (r.get("views_30d") or 0) > 0]
+    except Exception as e:
+        # view ยังไม่มี / network — ไม่ใช่ blocker
+        print(f"  ℹ️ ข้าม top topics feedback: {e}")
+        return []
+
 # ─── CLAUDE GENERATION ─────────────────────────────────────────────────────────
 
 def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
@@ -120,11 +128,23 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
     ctx = SERVICE_CONTEXT[service]
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
+    top = get_top_topics(service)
+    perf_block = ""
+    if top:
+        items = "\n".join(
+            f"- {r['title']} (focus: {r.get('focus_kw','')}, views: {r['views_30d']})"
+            for r in top
+        )
+        perf_block = (
+            f"\n\nหัวข้อที่ traffic ดีในช่วง 30 วันที่ผ่านมา (ใช้เป็นแรงบันดาลใจ "
+            f"แต่ห้ามซ้ำหัวข้อเดิม — ให้ขยายความ ตอบลึก หรือมุมใหม่ที่เกี่ยวข้อง):\n{items}"
+        )
+
     prompt = f"""สร้างหัวข้อบทความสุขภาพสำหรับเว็บ roogondee.com
 
 บริการ: {ctx['name']}
 กลุ่มเป้าหมาย: {ctx['target']}
-หัวข้อที่เกี่ยวข้อง: {ctx['topics']}
+หัวข้อที่เกี่ยวข้อง: {ctx['topics']}{perf_block}
 
 ต้องการ JSON object เดียว (ไม่ใช่ array) ดังนี้:
 {{

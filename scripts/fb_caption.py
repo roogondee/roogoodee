@@ -170,18 +170,11 @@ def post_to_facebook(caption: str, link: str, image_url: str | None) -> str:
 
 # ─── LINE NOTIFY ───────────────────────────────────────────────────────────────
 
+from notify import notify as _notify
+
 def send_line(message: str) -> None:
-    if not LINE_TOKEN:
-        return
-    try:
-        requests.post(
-            "https://notify-api.line.me/api/notify",
-            headers={"Authorization": f"Bearer {LINE_TOKEN}"},
-            data={"message": message},
-            timeout=10,
-        )
-    except Exception:
-        pass
+    """legacy name — เรียก notify ใหม่ที่รองรับ Discord/Slack/LINE Messaging"""
+    _notify(message)
 
 # ─── MAIN ──────────────────────────────────────────────────────────────────────
 
