@@ -8,13 +8,16 @@ Company: บริษัท เจียรักษา จำกัด | roogon
 import os
 import re
 import json
+import time
 import base64
 import uuid
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import anthropic
 from supabase import create_client
 from zoneinfo import ZoneInfo
+
+import gen_content_plan as gcp
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
@@ -53,6 +56,110 @@ def get_today_plans() -> list[dict]:
         .eq("scheduled_date", TODAY_STR) \
         .execute()
     return result.data or []
+
+def get_overdue_ready_plans(limit: int = 1) -> list[dict]:
+    """Fallback: ดึง plan ที่ status='ready' ของวันก่อนหน้า (เก่าสุดก่อน) — กันบล็อกว่าง"""
+    sb = get_sb()
+    result = sb.table("content_plan") \
+        .select("*") \
+        .eq("status", "ready") \
+        .lt("scheduled_date", TODAY_STR) \
+        .order("scheduled_date", desc=False) \
+        .limit(limit) \
+        .execute()
+    return result.data or []
+
+def insert_inline_plan(entry: dict) -> dict | None:
+    """Insert a freshly generated plan for today and return it (with id)."""
+    sb = get_sb()
+    payload = {
+        **entry,
+        "scheduled_date": TODAY_STR,
+        "status": "ready",
+    }
+    res = sb.table("content_plan").insert(payload).execute()
+    return res.data[0] if res.data else None
+
+def generate_inline_plan() -> dict | None:
+    """Last-resort: ใช้ gen_content_plan สร้าง plan สดสำหรับวันนี้ทันที"""
+    try:
+        existing = gcp.get_existing_slugs()
+        counts = gcp.get_service_count_by_date(date.today())
+        # บริการที่มีน้อยที่สุด (ตาม cycle) เพื่อ balance
+        min_count = min(counts.values()) if counts else 0
+        service = next((s for s in gcp.SERVICES_CYCLE if counts.get(s, 0) == min_count), gcp.SERVICES_CYCLE[0])
+        for attempt in range(3):
+            entry = gcp.generate_plan_entry(service, existing)
+            if entry:
+                entry["service"] = service
+                return insert_inline_plan(entry)
+            print(f"  ↻ inline plan attempt {attempt + 1} failed, retrying...")
+            time.sleep(2 ** attempt)
+        return None
+    except Exception as e:
+        print(f"  ❌ generate_inline_plan failed: {e}")
+        return None
+
+# ─── AUTO TOP-UP ───────────────────────────────────────────────────────────────
+
+TOPUP_FLOOR = 7   # ถ้า ready plan ในอนาคตเหลือน้อยกว่านี้ (รวมวันนี้) จะเติมเอง
+TOPUP_TARGET = 14  # เติมจนมี ready plan ครอบคลุม N วันข้างหน้า
+
+def count_future_ready_plans() -> int:
+    """นับ plan ที่ status='ready' และ scheduled_date >= วันนี้"""
+    sb = get_sb()
+    res = sb.table("content_plan") \
+        .select("id", count="exact") \
+        .eq("status", "ready") \
+        .gte("scheduled_date", TODAY_STR) \
+        .execute()
+    return res.count or 0
+
+def topup_plans_if_needed() -> int:
+    """ถ้า ready plan ในอนาคตเหลือน้อย → generate ต่อให้ครบ TOPUP_TARGET วัน
+    Return: จำนวน plan ที่เพิ่มเข้าไป
+    """
+    remaining = count_future_ready_plans()
+    if remaining >= TOPUP_FLOOR:
+        print(f"📦 ready plan ข้างหน้า: {remaining} (พอแล้ว, ขั้นต่ำ {TOPUP_FLOOR})")
+        return 0
+
+    need = max(TOPUP_TARGET - remaining, 1)
+    print(f"📦 ready plan ข้างหน้าเหลือ {remaining} — เติมอีก {need} ตัว")
+
+    try:
+        existing = gcp.get_existing_slugs()
+        latest = gcp.get_latest_scheduled_date()
+        start = max(latest + timedelta(days=1), date.today())
+        counts = gcp.get_service_count_by_date(date.today())
+
+        new_plans: list[dict] = []
+        current = start
+        for _ in range(need):
+            min_count = min(counts.values())
+            service = next(s for s in gcp.SERVICES_CYCLE if counts[s] == min_count)
+            entry = gcp.generate_plan_entry(service, existing)
+            if entry:
+                entry["service"] = service
+                entry["scheduled_date"] = str(current)
+                entry["status"] = "ready"
+                new_plans.append(entry)
+                existing.add(entry["slug"])
+                counts[service] += 1
+                print(f"  ✅ {current} [{service}] {entry['title'][:50]}")
+            else:
+                print(f"  ⚠️ ข้าม {current}")
+            current += timedelta(days=1)
+
+        if new_plans:
+            sb = get_sb()
+            sb.table("content_plan").insert(new_plans).execute()
+            print(f"📦 top-up เพิ่ม {len(new_plans)} plans")
+        return len(new_plans)
+    except Exception as e:
+        print(f"  ❌ topup_plans_if_needed failed: {e}")
+        send_line(f"⚠️ รู้ก่อนดี top-up plan ล้มเหลว: {str(e)[:200]}")
+        return 0
 
 def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str | None:
     """บันทึกบทความลง posts table และอัปเดต content_plan"""
@@ -256,12 +363,24 @@ Meta Description: {plan.get('meta_desc', '')}
 
 เขียนบทความ HTML ให้ครบ 900-1,200 คำ"""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=4096,
-        messages=[{"role": "user", "content": user_prompt}],
-        system=system_prompt,
-    )
+    def _call():
+        return client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=4096,
+            messages=[{"role": "user", "content": user_prompt}],
+            system=system_prompt,
+        )
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            msg = _call()
+            break
+        except Exception as e:
+            last_err = e
+            print(f"  ↻ Claude call attempt {attempt + 1} failed: {e}")
+            time.sleep(2 ** attempt)
+    else:
+        raise last_err if last_err else RuntimeError("Claude call failed")
     text = msg.content[0].text.strip()
     # Strip markdown code fences if Claude wrapped output in ```html ... ```
     if text.startswith("```"):
@@ -351,9 +470,30 @@ def main():
     print(f"🌿 รู้ก่อนดี AutoPost — {TODAY_STR}")
 
     plans = get_today_plans()
+    fallback_used: str | None = None
+
     if not plans:
-        print("📭 ไม่มีบทความที่ต้องโพสต์วันนี้")
+        overdue = get_overdue_ready_plans(limit=1)
+        if overdue:
+            plans = overdue
+            fallback_used = f"overdue ({overdue[0].get('scheduled_date')})"
+            print(f"⏪ ใช้ plan ค้างคิว: {plans[0].get('scheduled_date')} — {plans[0].get('title')}")
+
+    if not plans:
+        print("⚙️  ไม่มี plan เลย — กำลัง generate inline...")
+        inline = generate_inline_plan()
+        if inline:
+            plans = [inline]
+            fallback_used = "inline"
+            print(f"✨ ได้ plan สดแล้ว: {inline.get('title')}")
+
+    if not plans:
+        print("📭 ไม่มีบทความที่ต้องโพสต์วันนี้ (และ generate inline ก็ไม่สำเร็จ)")
+        send_line("⚠️ รู้ก่อนดี: วันนี้ไม่มีบทความเลย — gen_content_plan/autopost ทั้งคู่ล้มเหลว ให้ตรวจสอบโดยด่วน")
         return
+
+    if fallback_used:
+        send_line(f"ℹ️ รู้ก่อนดี: ใช้ fallback path = {fallback_used}")
 
     print(f"📋 พบ {len(plans)} บทความ")
     posted_count = 0
@@ -407,6 +547,12 @@ def main():
             send_line(f"❌ รู้ก่อนดี Error: {title}\n{err[:200]}")
 
     print(f"\n🎉 เสร็จสิ้น — โพสต์ทั้งหมด {posted_count} บทความ")
+
+    # Auto top-up: เติม plan ในอนาคตให้พอ — ระบบเดินเองไม่ต้องสั่ง
+    try:
+        topup_plans_if_needed()
+    except Exception as e:
+        print(f"⚠️ top-up ล้มเหลว (ไม่ส่งผลกับการโพสต์): {e}")
 
 if __name__ == "__main__":
     main()

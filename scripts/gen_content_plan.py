@@ -9,6 +9,7 @@ Run: GitHub Actions ทุกวันอาทิตย์ 08:00 Bangkok (01:00
 import os
 import re
 import json
+import time
 import urllib.request
 import urllib.parse
 from datetime import date, timedelta
@@ -18,6 +19,24 @@ import anthropic
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL  = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
 SUPABASE_KEY  = os.environ["SUPABASE_SECRET"]
+LINE_TOKEN    = os.environ.get("LINE_NOTIFY_TOKEN", "")
+
+def _line_notify(message: str) -> None:
+    if not LINE_TOKEN:
+        return
+    try:
+        req = urllib.request.Request(
+            "https://notify-api.line.me/api/notify",
+            data=urllib.parse.urlencode({"message": message}).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {LINE_TOKEN}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=10).read()
+    except Exception as e:
+        print(f"  ⚠️ LINE notify failed: {e}")
 
 SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign"]  # วนซ้ำ
 
@@ -125,11 +144,23 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
 - หัวข้อต้องใหม่ ไม่ซ้ำ ตอบคำถามที่คนไทยค้นหาจริง
 - ตอบ JSON object เดียวเท่านั้น ไม่ต้องห่อด้วย array ไม่มีข้อความอื่น"""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=3000,
-        messages=[{"role": "user", "content": prompt}]
-    )
+    last_err: Exception | None = None
+    msg = None
+    for attempt in range(3):
+        try:
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=3000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            break
+        except Exception as e:
+            last_err = e
+            print(f"  ↻ Claude call attempt {attempt + 1} failed: {e}")
+            time.sleep(2 ** attempt)
+    if msg is None:
+        print(f"  ❌ Claude call ล้มเหลวทุกครั้ง: {last_err}")
+        return None
     text = msg.content[0].text.strip()
 
     # Parse JSON
@@ -267,6 +298,14 @@ def main():
         print(f"\n🎉 เพิ่ม {len(new_plans)} plans สำเร็จ (HTTP {status})")
     else:
         print("\n📭 ไม่มี plan ใหม่")
+
+    target = 14
+    skip_rate = (target - len(new_plans)) / target
+    if skip_rate >= 0.3:
+        _line_notify(
+            f"⚠️ รู้ก่อนดี gen_content_plan: skip rate สูง "
+            f"({len(new_plans)}/{target} ผ่าน) — ตรวจสอบ Claude/Supabase"
+        )
 
 if __name__ == "__main__":
     main()
