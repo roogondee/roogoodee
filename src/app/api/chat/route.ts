@@ -1,95 +1,192 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendLeadNotification } from '@/lib/email'
+import { AGENT_TOOLS, executeTool, ToolExecutionContext } from '@/lib/agent/tools'
+import {
+  buildSystemPrompt,
+  normalizeServiceContext,
+  serviceContextFromPath,
+  ServiceContext,
+} from '@/lib/agent/prompts'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const SYSTEM_PROMPT = `You are a health consultation assistant for รู้ก่อนดี(รู้งี้) / RooGonDee (roogondee.com)
-Operated by Jia Raksa Co., Ltd. with W Medical Hospital, Samut Sakhon, Thailand.
+const MODEL = 'claude-haiku-4-5-20251001'
+const MAX_TOOL_ITERATIONS = 6
+const MAX_SESSION_TURNS = 40
 
-Services:
-- STD & PrEP HIV testing (safe, non-judgmental)
-- GLP-1 weight loss (Ozempic, Wegovy, Saxenda)
-- CKD Clinic (chronic kidney disease)
-- Foreign worker health checkup (Samut Sakhon)
+type ClientMessage = { role: 'user' | 'assistant'; content: string }
 
-CRITICAL LANGUAGE RULE:
-- Detect the language the user writes in and ALWAYS reply in that SAME language.
-- If user writes in Thai → reply in Thai
-- If user writes in English → reply in English
-- If user writes in Burmese/Myanmar → reply in Burmese
-- If user writes in Lao → reply in Lao
-- If user writes in Khmer → reply in Khmer
-- If user writes in Chinese → reply in Chinese
-- If user writes in Vietnamese → reply in Vietnamese
-- If user writes in Hindi → reply in Hindi
-- If user writes in Japanese → reply in Japanese
-- If user writes in Korean → reply in Korean
-- For any other language → reply in that language if possible, otherwise English
+interface ChatRequest {
+  messages?: ClientMessage[]
+  sessionId?: string | null
+  // Either an explicit service hint ("std" | "glp1" | "ckd" | "foreign" | "general")
+  // or a raw pathname like "/std" that we'll map ourselves.
+  service?: string
+  path?: string
+}
 
-Rules:
-- Keep answers concise, friendly, non-judgmental
-- Do NOT diagnose diseases or prescribe medications — provide general info only
-- After 2-3 exchanges, ask for name and phone number so team can follow up
-- When you get name and phone, append this marker (always in this exact format):
-  [LEAD:{"name":"name","phone":"phone","service":"std or glp1 or ckd or foreign or general"}]
-- Phone must start with 0 and have 9-10 digits
-- Team will contact back within 30 minutes`
+function getConversationSnippet(messages: Anthropic.MessageParam[]): string {
+  // Pull the last 3 user texts for the lead note
+  const texts: string[] = []
+  for (let i = messages.length - 1; i >= 0 && texts.length < 3; i--) {
+    const m = messages[i]
+    if (m.role !== 'user') continue
+    const content = m.content
+    if (typeof content === 'string') {
+      texts.unshift(content)
+    } else if (Array.isArray(content)) {
+      for (const block of content) {
+        if (block.type === 'text') texts.unshift(block.text)
+      }
+    }
+  }
+  return texts.join(' | ').slice(0, 300)
+}
 
-function detectService(messages: Array<{ role: string; content: string }>): string {
-  const text = messages.map(m => m.content).join(' ').toLowerCase()
-  if (text.includes('std') || text.includes('hiv') || text.includes('prep') || text.includes('เพศ') || text.includes('hpv')) return 'std'
-  if (text.includes('glp') || text.includes('ลดน้ำหนัก') || text.includes('อ้วน') || text.includes('ozempic')) return 'glp1'
-  if (text.includes('ไต') || text.includes('ckd') || text.includes('ฟอกไต')) return 'ckd'
-  if (text.includes('แรงงาน') || text.includes('ต่างด้าว') || text.includes('foreign')) return 'foreign'
-  return 'general'
+function extractDisplayText(blocks: Anthropic.ContentBlock[]): string {
+  return blocks
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map(b => b.text)
+    .join('\n')
+    .trim()
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json()
-    if (!messages || !Array.isArray(messages)) {
+    const body = (await req.json()) as ChatRequest
+    const clientMessages = Array.isArray(body.messages) ? body.messages : []
+    if (clientMessages.length === 0) {
       return NextResponse.json({ error: 'messages required' }, { status: 400 })
     }
 
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
-      system: SYSTEM_PROMPT,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
-    })
+    // Load or create the session. The client echoes back whatever sessionId we
+    // returned last turn; if missing or unknown, we start fresh.
+    let sessionId = typeof body.sessionId === 'string' ? body.sessionId : null
+    let messages: Anthropic.MessageParam[] = []
+    let existingServiceHint: ServiceContext | null = null
 
-    const rawText = response.content[0].type === 'text' ? response.content[0].text : ''
-
-    // Extract lead data if present
-    const leadMatch = rawText.match(/\[LEAD:(\{[^}]+\})\]/)
-    if (leadMatch) {
-      try {
-        const lead = JSON.parse(leadMatch[1])
-        const service = lead.service || detectService(messages)
-        const note = `Chat: ${messages.slice(-3).map((m: { role: string; content: string }) => m.content).join(' | ')}`.slice(0, 300)
-        await supabaseAdmin.from('leads').insert({
-          first_name: lead.name || '',
-          phone: lead.phone || '',
-          service,
-          source: 'chat-widget',
-          status: 'new',
-          note,
-        })
-        sendLeadNotification({ name: lead.name || '', phone: lead.phone || '', service, source: 'chat-widget', note })
-      } catch {}
+    if (sessionId) {
+      const { data } = await supabaseAdmin
+        .from('chat_sessions')
+        .select('messages,turn_count,service_hint')
+        .eq('id', sessionId)
+        .single()
+      if (data && Array.isArray(data.messages)) {
+        messages = data.messages as Anthropic.MessageParam[]
+        existingServiceHint = normalizeServiceContext(data.service_hint)
+        if (data.turn_count >= MAX_SESSION_TURNS) {
+          return NextResponse.json(
+            { error: 'session_limit', text: 'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือโทรหาทีมงานที่ 02-xxx-xxxx' },
+            { status: 200 }
+          )
+        }
+      } else {
+        sessionId = null // unknown id → start fresh
+      }
     }
 
-    // Strip the [LEAD:...] marker from displayed text
-    const displayText = rawText.replace(/\[LEAD:\{[^}]+\}\]/g, '').trim()
+    // Service context: explicit > path > existing session hint > general.
+    // Once a session has a non-general hint we keep it (user won't bounce between pages mid-chat).
+    const explicit = normalizeServiceContext(body.service)
+    const fromPath = typeof body.path === 'string' ? serviceContextFromPath(body.path) : 'general'
+    const currentService: ServiceContext =
+      explicit !== 'general'
+        ? explicit
+        : fromPath !== 'general'
+        ? fromPath
+        : existingServiceHint ?? 'general'
+
+    // Append only the latest user turn from the client; we trust server-side history
+    // for everything before that so a malicious client can't rewrite past turns.
+    const latestUser = clientMessages[clientMessages.length - 1]
+    if (!latestUser || latestUser.role !== 'user' || !latestUser.content.trim()) {
+      return NextResponse.json({ error: 'latest message must be non-empty user' }, { status: 400 })
+    }
+    messages.push({ role: 'user', content: latestUser.content.slice(0, 2000) })
+
+    // Agent loop: keep calling the model while it wants tools
+    const ctx: ToolExecutionContext = {
+      sessionId: sessionId || 'pending',
+      conversationSnippet: getConversationSnippet(messages),
+    }
+
+    let leadCaptured = false
+    let leadId: string | null = null
+    let finalText = ''
+
+    const systemPrompt = buildSystemPrompt(currentService)
+
+    for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 800,
+        system: systemPrompt,
+        tools: AGENT_TOOLS,
+        messages,
+      })
+
+      // Record the assistant turn in full (text + tool_use blocks) so the next
+      // call has matching IDs for any tool_result blocks we're about to add.
+      messages.push({ role: 'assistant', content: response.content })
+
+      if (response.stop_reason !== 'tool_use') {
+        finalText = extractDisplayText(response.content)
+        break
+      }
+
+      const toolUses = response.content.filter(
+        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
+      )
+      const toolResultBlocks: Anthropic.ToolResultBlockParam[] = []
+      for (const use of toolUses) {
+        const result = await executeTool(use.name, use.input, ctx)
+        if (result.leadCreated) {
+          leadCaptured = true
+          leadId = result.leadCreated.leadId
+        }
+        toolResultBlocks.push({
+          type: 'tool_result',
+          tool_use_id: use.id,
+          content: JSON.stringify(result.output),
+        })
+      }
+      messages.push({ role: 'user', content: toolResultBlocks })
+    }
+
+    if (!finalText) {
+      finalText = 'ขออภัย ระบบประมวลผลไม่สำเร็จ กรุณาลองพิมพ์ใหม่อีกครั้ง'
+    }
+
+    // Persist session
+    const turnCount = messages.filter(m => m.role === 'user').length
+    if (sessionId) {
+      const update: Record<string, unknown> = {
+        messages,
+        turn_count: turnCount,
+        service_hint: currentService,
+        updated_at: new Date().toISOString(),
+      }
+      if (leadId) update.lead_id = leadId
+      await supabaseAdmin.from('chat_sessions').update(update).eq('id', sessionId)
+    } else {
+      const { data } = await supabaseAdmin
+        .from('chat_sessions')
+        .insert({
+          messages,
+          turn_count: turnCount,
+          service_hint: currentService,
+          lead_id: leadId,
+        })
+        .select('id')
+        .single()
+      sessionId = data?.id ?? null
+    }
 
     return NextResponse.json({
-      text: displayText,
-      leadCaptured: !!leadMatch,
+      text: finalText,
+      sessionId,
+      leadCaptured,
     })
   } catch (err) {
     console.error('Chat error:', err)
