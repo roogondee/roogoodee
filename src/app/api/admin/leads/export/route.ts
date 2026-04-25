@@ -1,19 +1,16 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { getSessionUser } from '@/lib/auth'
+import { logLeadAccess } from '@/lib/audit'
 
 export async function GET() {
-  // Auth check
-  const token = cookies().get('admin_token')?.value
-  if (token !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const me = await getSessionUser()
+  if (!me) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: leads, error } = await supabaseAdmin
-    .from('leads')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let query = supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false })
+  if (me.role === 'sale' && me.id) query = query.eq('assigned_to', me.id)
 
+  const { data: leads, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const headers = ['id', 'first_name', 'last_name', 'phone', 'service', 'status', 'source', 'note', 'age', 'gender', 'created_at']
@@ -26,8 +23,9 @@ export async function GET() {
     }).join(',')
   )
 
-  const csv = [headers.join(','), ...rows].join('\n')
+  logLeadAccess({ actor: me.email, action: 'export', details: { count: leads?.length || 0, role: me.role } })
 
+  const csv = [headers.join(','), ...rows].join('\n')
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

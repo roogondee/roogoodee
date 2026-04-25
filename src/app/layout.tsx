@@ -39,6 +39,7 @@ const orgJsonLd = {
 }
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -61,6 +62,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               `}
             </Script>
           </>
+        )}
+
+        {RECAPTCHA_SITE_KEY && (
+          <Script
+            src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
+            strategy="afterInteractive"
+          />
         )}
 
         <I18nProvider>

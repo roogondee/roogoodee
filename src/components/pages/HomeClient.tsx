@@ -53,7 +53,10 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
       <NavBar />
 
       {/* HERO */}
-      <section className="min-h-screen grid grid-cols-1 md:grid-cols-2 pt-16 md:pt-20">
+      {locale === 'th' ? (
+        <VoucherHero />
+      ) : (
+        <section className="min-h-screen grid grid-cols-1 md:grid-cols-2 pt-16 md:pt-20">
         <div className="flex flex-col justify-center px-6 md:px-20 py-16 md:py-20">
           <div className="inline-flex items-center gap-2 bg-mint/10 border border-mint/30 text-sage px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8 w-fit">
             <span className="w-2 h-2 bg-mint rounded-full animate-pulse"></span>
@@ -93,6 +96,7 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
           </div>
         </div>
       </section>
+      )}
 
       {/* TRUST STATS */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
@@ -304,5 +308,95 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
 
       <FooterFull />
     </main>
+  )
+}
+
+function VoucherHero() {
+  const OFFERS = [
+    {
+      emoji: '💉',
+      tag: 'GLP-1',
+      title: 'ตรวจเบาหวานฟรี',
+      value: 'FBS + HbA1c',
+      price: 'มูลค่า 500฿',
+      desc: 'ประเมินก่อนเริ่ม GLP-1',
+      href: '/quiz/glp1',
+      accent: 'from-emerald-400 to-emerald-600',
+    },
+    {
+      emoji: '🫘',
+      tag: 'CKD',
+      title: 'ตรวจโรคไตฟรี',
+      value: 'Urine Protein',
+      price: 'มูลค่า 200฿',
+      desc: 'สัญญาณเริ่มต้นของโรคไต',
+      href: '/quiz/ckd',
+      accent: 'from-blue-400 to-blue-600',
+    },
+    {
+      emoji: '🔴',
+      tag: 'STD / PrEP',
+      title: 'ตรวจ HIV ฟรี',
+      value: 'HIV + Syphilis',
+      price: 'มูลค่า 800฿',
+      desc: 'ส่วนตัว ไม่ตัดสิน',
+      href: '/quiz/std',
+      accent: 'from-rose-400 to-rose-600',
+    },
+  ]
+
+  return (
+    <section className="pt-20 md:pt-24 pb-12 md:pb-20 px-6 md:px-20 bg-gradient-to-br from-forest via-sage to-mint relative overflow-hidden">
+      <div className="absolute top-20 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-mint/20 rounded-full blur-3xl" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8">
+          <span className="w-2 h-2 bg-mint rounded-full animate-pulse" />
+          🎁 แจกฟรี • จำกัด 50 สิทธิ์ / service / เดือน
+        </div>
+
+        <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
+          รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>
+          ที่ W Medical Hospital
+        </h1>
+
+        <p className="text-base md:text-xl text-white/80 leading-relaxed mb-8 md:mb-10 max-w-2xl">
+          ตอบคำถามคัดกรอง <span className="font-bold text-white">2 นาที</span> รับ voucher ทันที
+          พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mb-8 md:mb-10">
+          {OFFERS.map(o => (
+            <Link
+              key={o.href}
+              href={o.href}
+              className="group bg-white rounded-2xl p-6 md:p-7 hover:-translate-y-1 hover:shadow-2xl transition-all border border-white/10"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-4xl md:text-5xl">{o.emoji}</span>
+                <span className={`text-xs font-bold tracking-widest uppercase bg-gradient-to-r ${o.accent} bg-clip-text text-transparent`}>
+                  {o.tag}
+                </span>
+              </div>
+              <h3 className="font-display text-xl md:text-2xl text-forest mb-1">{o.title}</h3>
+              <p className="text-sm font-mono text-muted mb-1">{o.value}</p>
+              <p className="text-xs text-mint font-bold mb-3">{o.price}</p>
+              <p className="text-xs md:text-sm text-muted leading-relaxed mb-4">{o.desc}</p>
+              <span className="inline-flex items-center gap-1 text-sm font-bold text-forest group-hover:gap-2 transition-all">
+                ทำ quiz 2 นาที <span>→</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm text-white/70">
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> ฟรี ไม่มีค่าใช้จ่าย</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> Voucher หมดอายุ 14 วัน</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> ผลตรวจส่วนตัว</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> พบแพทย์ 15 นาที</span>
+        </div>
+      </div>
+    </section>
   )
 }

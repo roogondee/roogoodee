@@ -106,6 +106,22 @@ export async function POST(req: NextRequest) {
         console.log('GROUP_ID:', event.source.groupId)
       }
 
+      // Spec §5.3: follow event = user added the OA. Send welcome + ask for
+      // voucher code so we can link their userId to a lead for future push.
+      if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
+        const welcome = [
+          'ยินดีต้อนรับสู่ รู้ก่อนดี(รู้งี้) 💚',
+          '',
+          'หากคุณเพิ่งรับ voucher จากเว็บไซต์ของเรา',
+          'กรุณาส่ง "โค้ด voucher" ของคุณในช่องแชทนี้',
+          '(เช่น RGD-GLP1-A3X9K2)',
+          '',
+          'เพื่อเชื่อมบัญชีและรับการแจ้งเตือนอัตโนมัติ',
+        ].join('\n')
+        await replyToLine(event.replyToken, welcome)
+        continue
+      }
+
       if (event.type !== 'message' || event.message?.type !== 'text') continue
 
       // Only reply to 1:1 chat (not group messages)
@@ -114,8 +130,46 @@ export async function POST(req: NextRequest) {
       const text: string = event.message.text || ''
       const replyToken: string = event.replyToken
       const userId: string = event.source?.userId || ''
-      const service = detectService(text)
 
+      // Voucher code linkage: if the message is a voucher code,
+      // match to a lead and save line_user_id for future push.
+      const codeMatch = text.trim().toUpperCase().match(/RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}/)
+      if (codeMatch && userId) {
+        const code = codeMatch[0]
+        const { data: voucher } = await supabaseAdmin
+          .from('vouchers')
+          .select('code, service, expires_at, redeemed_at, lead_id, lead:leads(first_name, line_user_id)')
+          .eq('code', code)
+          .maybeSingle()
+
+        if (!voucher) {
+          await replyToLine(replyToken, `ไม่พบ voucher รหัส ${code}\nกรุณาตรวจสอบอีกครั้ง`)
+          continue
+        }
+
+        // Link userId to the lead (idempotent)
+        await supabaseAdmin
+          .from('leads')
+          .update({ line_user_id: userId })
+          .eq('id', voucher.lead_id)
+
+        const expires = new Date(voucher.expires_at).toLocaleDateString('th-TH')
+        const reply = voucher.redeemed_at
+          ? `✓ Voucher ${code} ใช้ไปแล้ว\nขอบคุณที่ใช้บริการ 💚`
+          : [
+              `✓ เชื่อมบัญชีสำเร็จ`,
+              `🎟 ${code}`,
+              `📅 หมดอายุ ${expires}`,
+              `📍 W Medical Hospital สมุทรสาคร`,
+              ``,
+              `ต่อไปเราจะแจ้งเตือนคุณผ่าน LINE โดยตรง`,
+            ].join('\n')
+        await replyToLine(replyToken, reply)
+        continue
+      }
+
+      // Fallback: AI chat assistant
+      const service = detectService(text)
       const aiReply = await askClaude(text)
 
       // Save as lead (non-blocking)

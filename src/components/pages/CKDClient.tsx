@@ -33,7 +33,7 @@ export default function CKDClient() {
   return (
     <main className="min-h-screen bg-cream">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <NavBar ctaHref="/contact?service=ckd" />
+      <NavBar ctaHref="/quiz/ckd" />
 
       <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-blue-50 via-cream to-cream">
         <div className="max-w-3xl">
@@ -43,7 +43,7 @@ export default function CKDClient() {
           </h1>
           <p className="text-muted text-base md:text-lg leading-relaxed mb-8 max-w-xl whitespace-pre-line">{ckd.heroDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <Link href="/contact?service=ckd" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">{ckd.ctaConsult}</Link>
+            <Link href="/quiz/ckd" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">{ckd.ctaConsult}</Link>
             <Link href="/tools#egfr" className="flex items-center justify-center gap-2 border-2 border-blue-300 text-blue-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-blue-50 transition-all">{ckd.ctaEgfr}</Link>
           </div>
           <div className="flex flex-wrap gap-5 mt-8">
@@ -106,7 +106,7 @@ export default function CKDClient() {
           <h2 className="font-display text-3xl md:text-4xl text-forest mb-4">{ckd.ctaTitle}</h2>
           <p className="text-muted mb-8">{ckd.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/contact?service=ckd" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">📝 {t.common.consultFree}</Link>
+            <Link href="/quiz/ckd" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">📝 {t.common.consultFree}</Link>
             <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function AdminLoginPage() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -15,12 +16,13 @@ export default function AdminLoginPage() {
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email: email || undefined, password }),
     })
+    const data = await res.json()
     if (res.ok) {
       router.push('/admin')
     } else {
-      setError('รหัสผ่านไม่ถูกต้อง')
+      setError(data.error || 'เข้าสู่ระบบไม่สำเร็จ')
       setLoading(false)
     }
   }
@@ -34,6 +36,17 @@ export default function AdminLoginPage() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <label className="text-xs font-semibold text-rtext block mb-1">Email <span className="text-gray-400 font-normal">(ว่างไว้ได้ถ้ายังไม่มี user)</span></label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors"
+              placeholder="you@roogondee.com"
+              autoComplete="username"
+            />
+          </div>
+          <div>
             <label className="text-xs font-semibold text-rtext block mb-1">รหัสผ่าน</label>
             <input
               type="password"
@@ -42,6 +55,7 @@ export default function AdminLoginPage() {
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors"
               placeholder="••••••••"
               required
+              autoComplete="current-password"
             />
           </div>
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}

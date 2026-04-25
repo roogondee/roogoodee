@@ -66,6 +66,7 @@ export default function PrivacyClient() {
                   <li>ถอนความยินยอมที่ให้ไว้</li>
                 </ul>
                 <p className="mt-2">ติดต่อใช้สิทธิได้ที่: <a href="mailto:privacy@roogondee.com" className="text-forest underline">privacy@roogondee.com</a></p>
+                <p className="mt-2">หรือส่งคำขอลบข้อมูลออนไลน์ได้ที่: <a href="/privacy/delete" className="text-forest underline font-semibold">ขอลบข้อมูลของฉัน →</a></p>
               </section>
               <section>
                 <h2 className="font-display text-xl text-forest mb-3">7. คุกกี้</h2>
