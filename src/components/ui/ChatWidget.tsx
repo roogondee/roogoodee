@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 
 interface Message {
@@ -9,6 +10,7 @@ interface Message {
 
 export default function ChatWidget() {
   const { t } = useTranslation()
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -72,6 +74,10 @@ export default function ChatWidget() {
       setLoading(false)
     }
   }
+
+  // Hide on quiz pages so the floating button can't overlap the form's
+  // "ถัดไป" / "รับ Voucher" CTA on mobile.
+  if (pathname?.startsWith('/quiz/')) return null
 
   return (
     <>
