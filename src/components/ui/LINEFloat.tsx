@@ -1,15 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 
 export default function LINEFloat() {
   const [show, setShow] = useState(false)
   const { t } = useTranslation()
+  const pathname = usePathname()
 
   useEffect(() => {
     const timer = setTimeout(() => setShow(true), 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Hide on quiz pages so the floating button can't overlap the form's
+  // "ถัดไป" / "รับ Voucher" CTA on mobile. The quiz success screen has its
+  // own LINE add-friend button.
+  if (pathname?.startsWith('/quiz/')) return null
 
   return (
     <a
