@@ -3,6 +3,17 @@ import { sendLeadNotification } from '@/lib/email'
 import { notifyLineGroup } from '@/lib/line-notify'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Allowed values for the user-supplied source tag. Anything else falls back
+// to the website default. We keep the list closed so this public endpoint
+// can't be used to inject arbitrary text into our analytics.
+const ALLOWED_SOURCES = new Set([
+  'roogondee.com',
+  'contact-form',
+  'line-broadcast',
+  'fb-broadcast',
+  'campaign',
+])
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -12,9 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อและเบอร์โทร' }, { status: 400 })
     }
 
+    const rawSource = typeof body.source === 'string' ? body.source : ''
+    const source = ALLOWED_SOURCES.has(rawSource) ? rawSource : 'roogondee.com'
+
     const { data, error } = await supabaseAdmin
       .from('leads')
-      .insert([{ service, first_name, last_name, phone, age, gender, note, source: 'roogondee.com' }])
+      .insert([{ service, first_name, last_name, phone, age, gender, note, source }])
       .select()
 
     if (error) throw error
@@ -24,7 +38,7 @@ export async function POST(req: NextRequest) {
       name: `${first_name} ${last_name || ''}`.trim(),
       phone,
       service: service || 'general',
-      source: 'contact-form',
+      source,
       note,
     })
 
@@ -33,7 +47,7 @@ export async function POST(req: NextRequest) {
       name: `${first_name} ${last_name || ''}`.trim(),
       phone,
       service: service || 'general',
-      source: 'เว็บไซต์',
+      source,
       note,
     })
 
