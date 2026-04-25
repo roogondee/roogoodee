@@ -1,0 +1,45 @@
+name: 🌱 RuGonDee Seed Plan (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "จำนวนวันที่ต้องการสร้าง plan"
+        required: false
+        default: "14"
+      start:
+        description: "เริ่มวันที่ (YYYY-MM-DD) — เว้นว่าง = วันนี้"
+        required: false
+        default: ""
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🌱 Seed content_plan
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          LINE_NOTIFY_TOKEN:        ${{ secrets.LINE_NOTIFY_TOKEN }}
+        run: |
+          ARGS="${{ github.event.inputs.days }}"
+          if [ -n "${{ github.event.inputs.start }}" ]; then
+            ARGS="$ARGS --from ${{ github.event.inputs.start }}"
+          fi
+          python scripts/seed_plan.py $ARGS
