@@ -21,7 +21,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import anthropic
 
@@ -90,6 +90,25 @@ def supa_get(path: str, params: dict) -> list:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def supa_post(path: str, rows: list) -> None:
+    if not rows:
+        return
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(rows).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        resp.read()
+
+
 def google_suggest(seed: str) -> list:
     """Hit the public autocomplete endpoint. Thai locale."""
     url = (
@@ -132,7 +151,32 @@ def fetch_published_titles() -> list:
     )
 
 
-def build_prompt(kw_by_service: dict, published: list) -> str:
+def fetch_existing_slugs() -> set:
+    """Slugs already in content_plan or posts — don't re-queue these."""
+    cp = supa_get("content_plan", {"select": "slug", "status": "neq.error"})
+    posts = supa_get("posts", {"select": "slug"})
+    out: set = set()
+    for r in cp + posts:
+        s = r.get("slug")
+        if s:
+            out.add(s)
+    return out
+
+
+def next_scheduled_date():
+    """Find the latest scheduled_date in content_plan and start the day after.
+    If table is empty, start tomorrow."""
+    rows = supa_get(
+        "content_plan",
+        {"select": "scheduled_date", "order": "scheduled_date.desc", "limit": "1"},
+    )
+    if rows and rows[0].get("scheduled_date"):
+        latest = datetime.fromisoformat(rows[0]["scheduled_date"]).date()
+        return latest + timedelta(days=1)
+    return (datetime.now(timezone.utc) + timedelta(days=1)).date()
+
+
+def build_prompt(kw_by_service: dict, published: list, existing_slugs: set) -> str:
     kw_blocks = []
     for service, groups in kw_by_service.items():
         lines = [f"### {service}"]
@@ -148,62 +192,143 @@ def build_prompt(kw_by_service: dict, published: list) -> str:
         for p in published[:80]
     )
 
+    slug_hint = ", ".join(sorted(existing_slugs)[:30]) if existing_slugs else "(ยังไม่มี)"
+
     return f"""คุณเป็น SEO specialist ให้คลินิกสุขภาพ รู้ก่อนดี(รู้งี้) จ.สมุทรสาคร
 
-ข้อมูลที่ได้:
+ข้อมูล:
 A) Long-tail keywords จาก Google Suggest (autocomplete ที่คนไทยค้นจริง):
 {chr(10).join(kw_blocks)}
 
-B) บทความที่เราเผยแพร่แล้ว (เพื่อไม่แนะนำซ้ำ):
+B) บทความที่เผยแพร่แล้ว (ห้ามเสนอซ้ำเรื่องเดียวกัน):
 {published_block}
 
-ให้ output เป็นภาษาไทย:
+C) Slug ที่มีอยู่แล้วใน pipeline (ห้ามใช้ซ้ำ):
+{slug_hint}
 
-## 🎯 High-intent keywords (commercial / transactional)
-list top 8-12 keyword ที่มี purchase intent สูงสุด (ถามราคา, ถามที่ไหน, ถามนัด, เปรียบเทียบ) ที่เรายังไม่มีบทความรองรับ
+งาน: เลือก 8 keyword ที่มี commercial / transactional intent สูงสุด ที่เรายัง
+ไม่มีบทความรองรับ แล้วสร้าง content brief 1 ชิ้นต่อ 1 keyword
 
-## 📝 Content brief (8 บทความถัดไป)
-สำหรับแต่ละบทความให้:
-- service
-- title (ดึงดูด ≤ 60 ตัวอักษร)
-- focus_kw (1 keyword หลักจากลิสต์ A)
-- slug (อังกฤษ-kebab-case)
-- meta_desc (120-155 ตัวอักษร)
-- search intent (informational / transactional / navigational)
+ตอบเป็น JSON อย่างเดียว ห้ามมี markdown / text อื่น โครงสร้าง:
 
-## 🔗 Content cluster strategy
-เสนอ 2-3 topic cluster ที่ควรสร้าง (pillar + supporting articles) พร้อมเหตุผล
+{{
+  "summary": "1-2 ประโยคสรุปภาพรวม keyword landscape สัปดาห์นี้",
+  "briefs": [
+    {{
+      "service": "std" | "glp1" | "ckd" | "foreign",
+      "title": "หัวเรื่อง ≤ 60 ตัวอักษร",
+      "focus_kw": "keyword หลัก 1 คำ ตรงจากลิสต์ A",
+      "slug": "english-kebab-case-slug-unique",
+      "meta_desc": "120-155 ตัวอักษร",
+      "seed": "1-2 ประโยคบอก angle/มุมที่อยากให้บทความนี้เน้น (ใช้เป็น input ให้ writer ต่อ)",
+      "intent": "informational" | "transactional" | "navigational",
+      "rationale": "เหตุผลสั้นๆ ว่าทำไมเลือก keyword นี้"
+    }}
+  ],
+  "cluster_ideas": [
+    "1-2 ประโยคต่อ cluster, อย่างน้อย 2 cluster"
+  ],
+  "gap_alerts": [
+    "1-2 ประโยคต่อ alert"
+  ]
+}}
 
-## ⚠️ Keyword-gap alerts
-ชี้ 2-3 keyword ที่แข่งขันต่ำแต่ volume น่าจะสูง (อนุมานจาก suggestion ที่ซ้ำหลาย seed) และคลินิกใหญ่อื่นๆ น่าจะยังไม่จับ
+กฎสำคัญ:
+- slug ต้องไม่ซ้ำกับลิสต์ C และไม่ซ้ำกันเองในชุดนี้
+- title ห้ามเหมือนหรือใกล้เคียงบทความในลิสต์ B
+- focus_kw ต้องเป็น keyword จริงจากลิสต์ A เท่านั้น"""
 
-ตอบกระชับ รวมไม่เกิน 700 คำ"""
 
-
-def run_claude(prompt: str) -> str:
+def run_claude(prompt: str) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=1800,
+        max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
     )
-    return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+    return json.loads(text)
 
 
-def send_email(summary: str, kw_count: int) -> None:
+def queue_briefs(briefs: list, existing_slugs: set) -> list:
+    """Insert valid briefs into content_plan with status='ready', staggered dates.
+    Returns the list of accepted briefs (with scheduled_date attached)."""
+    accepted = []
+    used_slugs = set(existing_slugs)
+    cursor = next_scheduled_date()
+    for b in briefs:
+        slug = (b.get("slug") or "").strip().lower()
+        if not slug or slug in used_slugs:
+            continue
+        if b.get("service") not in ("std", "glp1", "ckd", "foreign"):
+            continue
+        if not (b.get("title") and b.get("focus_kw")):
+            continue
+        b["scheduled_date"] = cursor.isoformat()
+        accepted.append(b)
+        used_slugs.add(slug)
+        cursor += timedelta(days=1)
+
+    rows = [
+        {
+            "scheduled_date": b["scheduled_date"],
+            "service": b["service"],
+            "title": b["title"][:200],
+            "focus_kw": b.get("focus_kw", "")[:120],
+            "meta_desc": b.get("meta_desc", "")[:200],
+            "slug": b["slug"][:120],
+            "seed": b.get("seed", "")[:500],
+            "status": "ready",
+        }
+        for b in accepted
+    ]
+    supa_post("content_plan", rows)
+    return accepted
+
+
+def render_email(report: dict, accepted: list, kw_count: int) -> str:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    brief_cards = "".join(
+        f"""
+<div style="background:#fff;border:1px solid #e0ebe3;border-radius:8px;padding:12px;margin-bottom:10px;">
+  <div style="font-size:11px;color:#94a3b8;">{b.get("scheduled_date","")} · {b["service"]} · {b.get("intent","")}</div>
+  <div style="font-weight:700;font-size:15px;color:#2D4A3E;margin-top:2px;">{b["title"]}</div>
+  <div style="font-size:12px;color:#666;margin-top:4px;">focus: <code>{b.get("focus_kw","")}</code> · slug: <code>{b.get("slug","")}</code></div>
+  <div style="font-size:13px;color:#444;margin-top:6px;">{b.get("seed","")}</div>
+</div>
+""".strip()
+        for b in accepted
+    )
+    cluster_block = "<ul>" + "".join(f"<li>{c}</li>" for c in (report.get("cluster_ideas") or [])) + "</ul>"
+    gap_block = "<ul>" + "".join(f"<li>{g}</li>" for g in (report.get("gap_alerts") or [])) + "</ul>"
+
+    return f"""
+<div style="font-family:sans-serif;max-width:680px;margin:0 auto;background:#f8faf8;padding:24px;border-radius:12px;">
+  <h2 style="color:#2D4A3E;margin-top:0;">🎯 SEO Keyword Intelligence — {today}</h2>
+  <p style="color:#666;font-size:13px;">
+    Google Suggest: <b>{kw_count}</b> keywords · เพิ่มเข้า content plan: <b>{len(accepted)}</b> บทความ
+  </p>
+  <p style="color:#444;font-size:14px;">{report.get("summary","")}</p>
+  <h3 style="color:#2D4A3E;margin-bottom:8px;">📝 Briefs ที่เพิ่มเข้า content_plan</h3>
+  {brief_cards or "<i style='color:#94a3b8'>ไม่มี brief ใหม่ (อาจ slug ซ้ำหมด)</i>"}
+  <h3 style="color:#2D4A3E;margin-top:16px;margin-bottom:8px;">🔗 Cluster strategy</h3>
+  {cluster_block}
+  <h3 style="color:#2D4A3E;margin-top:16px;margin-bottom:8px;">⚠️ Gap alerts</h3>
+  {gap_block}
+</div>
+""".strip()
+
+
+def send_email(report: dict, accepted: list, kw_count: int) -> None:
     if not RESEND_KEY:
         print("RESEND_API_KEY not set — skipping email send")
         return
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    html = f"""
-<div style="font-family:sans-serif;max-width:640px;margin:0 auto;background:#f8faf8;padding:24px;border-radius:12px;">
-  <h2 style="color:#2D4A3E;margin-top:0;">🎯 SEO Keyword Intelligence — {today}</h2>
-  <p style="color:#666;font-size:13px;">keyword ที่ดึงจาก Google Suggest: <b>{kw_count}</b></p>
-  <pre style="white-space:pre-wrap;word-wrap:break-word;font-family:sans-serif;font-size:14px;line-height:1.6;color:#222;background:#fff;padding:16px;border-radius:8px;border:1px solid #e0ebe3;">
-{summary}
-  </pre>
-</div>
-""".strip()
+    html = render_email(report, accepted, kw_count)
     payload = json.dumps(
         {
             "from": "รู้ก่อนดี(รู้งี้) <onboarding@resend.dev>",
@@ -237,12 +362,25 @@ def main() -> int:
     published = fetch_published_titles()
     print(f"  published posts (exclusion): {len(published)}")
 
-    summary = run_claude(build_prompt(kw_by_service, published))
+    existing_slugs = fetch_existing_slugs()
+    print(f"  existing slugs (exclusion): {len(existing_slugs)}")
+
+    try:
+        report = run_claude(build_prompt(kw_by_service, published, existing_slugs))
+    except Exception as e:  # noqa: BLE001
+        print(f"Claude returned non-JSON or failed: {e}", file=sys.stderr)
+        return 1
+
+    briefs = report.get("briefs") or []
+    print(f"  briefs proposed by Claude: {len(briefs)}")
+    accepted = queue_briefs(briefs, existing_slugs)
+    print(f"  briefs accepted + inserted into content_plan: {len(accepted)}")
+
     print("\n" + "=" * 60)
-    print(summary)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
     print("=" * 60 + "\n")
 
-    send_email(summary, total)
+    send_email(report, accepted, total)
     return 0
 
 

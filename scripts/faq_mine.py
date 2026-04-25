@@ -21,7 +21,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import anthropic
 
@@ -49,6 +49,81 @@ def supa_get(path: str, params: dict) -> list:
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+def supa_post(path: str, rows: list) -> None:
+    if not rows:
+        return
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(rows).encode("utf-8"),
+        headers={
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        resp.read()
+
+
+def fetch_existing_slugs() -> set:
+    cp = supa_get("content_plan", {"select": "slug", "status": "neq.error"})
+    posts = supa_get("posts", {"select": "slug"})
+    out: set = set()
+    for r in cp + posts:
+        s = r.get("slug")
+        if s:
+            out.add(s)
+    return out
+
+
+def next_scheduled_date() -> date:
+    rows = supa_get(
+        "content_plan",
+        {"select": "scheduled_date", "order": "scheduled_date.desc", "limit": "1"},
+    )
+    if rows and rows[0].get("scheduled_date"):
+        latest = datetime.fromisoformat(rows[0]["scheduled_date"]).date()
+        return latest + timedelta(days=1)
+    return (datetime.now(timezone.utc) + timedelta(days=1)).date()
+
+
+def queue_briefs(briefs: list, existing_slugs: set) -> list:
+    accepted = []
+    used_slugs = set(existing_slugs)
+    cursor = next_scheduled_date()
+    for b in briefs:
+        slug = (b.get("slug") or "").strip().lower()
+        if not slug or slug in used_slugs:
+            continue
+        if b.get("service") not in ("std", "glp1", "ckd", "foreign"):
+            continue
+        if not (b.get("title") and b.get("focus_kw")):
+            continue
+        b["scheduled_date"] = cursor.isoformat()
+        accepted.append(b)
+        used_slugs.add(slug)
+        cursor += timedelta(days=1)
+
+    rows = [
+        {
+            "scheduled_date": b["scheduled_date"],
+            "service": b["service"],
+            "title": b["title"][:200],
+            "focus_kw": b.get("focus_kw", "")[:120],
+            "meta_desc": b.get("meta_desc", "")[:200],
+            "slug": b["slug"][:120],
+            "seed": b.get("seed", "")[:500],
+            "status": "ready",
+        }
+        for b in accepted
+    ]
+    supa_post("content_plan", rows)
+    return accepted
 
 
 def iso_n_days_ago(d: int) -> str:
@@ -110,60 +185,114 @@ def extract_first_user_text(messages) -> str:
     return ""
 
 
-def build_prompt(questions: list, recent_titles: list) -> str:
+def build_prompt(questions: list, recent_titles: list, existing_slugs: set) -> str:
     q_block = "\n".join(f"- [{q['service']}] {q['text']}" for q in questions[:MAX_QUESTIONS])
     titles_block = "\n".join(f"- [{p['service']}] {p['title']}" for p in recent_titles)
+    slug_hint = ", ".join(sorted(existing_slugs)[:30]) if existing_slugs else "(ยังไม่มี)"
+
     return f"""คุณเป็นบรรณาธิการคอนเทนต์สุขภาพของเว็บ รู้ก่อนดี(รู้งี้)
 
-ด้านล่างคือคำถามของจริงที่ผู้ใช้ถามในเว็บ {WINDOW_DAYS} วันล่าสุด ({len(questions)} คำถาม):
-
+ข้อมูล:
+A) คำถามจริงจากผู้ใช้ {WINDOW_DAYS} วันล่าสุด ({len(questions)} คำถาม):
 {q_block}
 
-บทความที่เราเผยแพร่ไปแล้วล่าสุด:
+B) บทความที่เผยแพร่แล้ว (ห้ามเสนอซ้ำ):
 {titles_block}
 
-ทำ analysis ให้เป็นภาษาไทย:
+C) Slug ใน pipeline (ห้ามใช้ซ้ำ):
+{slug_hint}
 
-## Top question clusters
-จัด cluster คำถามที่ถามซ้ำ (5-8 cluster) — ระบุ service, topic, จำนวน/สัดส่วน, และคำถาม example 1-2 คำถาม
+งาน: cluster คำถามใน A หาเรื่องที่ถามซ้ำสูงสุดแต่เรายังไม่มีบทความ → สร้าง pillar
+content brief 6 ชิ้น
 
-## Pillar articles ที่ควรเขียนเพิ่ม
-แนะนำ 5-8 บทความที่ยังไม่มีในลิสต์เผยแพร่ พร้อม:
-- title (ภาษาไทย, SEO-friendly)
-- focus_kw (keyword หลัก)
-- service (std/glp1/ckd/foreign)
-- เหตุผลสั้นๆ ว่าทำไมควรเขียน (อ้างจาก cluster ข้างบน)
+ตอบเป็น JSON อย่างเดียว ห้ามมี markdown / text อื่น:
 
-## Content-gap signals
-ระบุ 2-3 pattern ที่น่าสังเกต (เช่น มีคำถามเรื่องราคามากแต่เว็บไม่มีหน้า pricing ชัด, คำถามภาษาเมียนมาเยอะผิดปกติ ฯลฯ)
+{{
+  "summary": "1-2 ประโยคสรุปภาพรวม question landscape",
+  "clusters": [
+    {{ "topic": "ชื่อ cluster", "service": "std|glp1|ckd|foreign|general", "count_estimate": 5, "examples": ["คำถาม 1", "คำถาม 2"] }}
+  ],
+  "briefs": [
+    {{
+      "service": "std" | "glp1" | "ckd" | "foreign",
+      "title": "หัวเรื่อง ≤ 60 ตัวอักษร",
+      "focus_kw": "keyword หลัก",
+      "slug": "english-kebab-case-unique",
+      "meta_desc": "120-155 ตัวอักษร",
+      "seed": "1-2 ประโยคบอก angle ของบทความ + อ้างถึง cluster ที่มาจาก",
+      "rationale": "เหตุผลสั้นๆ"
+    }}
+  ],
+  "gap_signals": [
+    "1-2 pattern ที่น่าสังเกต (เช่น เรื่องราคา / ภาษา / segment)"
+  ]
+}}
 
-ตอบกระชับ ไม่เกิน 600 คำ"""
+กฎ: slug ต้องไม่ซ้ำลิสต์ C, title ห้ามเหมือนลิสต์ B"""
 
 
-def run_claude(prompt: str) -> str:
+def run_claude(prompt: str) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=1500,
+        max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
     )
-    return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+    return json.loads(text)
 
 
-def send_email(summary: str, q_count: int) -> None:
+def render_email(report: dict, accepted: list, q_count: int) -> str:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cluster_block = "".join(
+        f"""
+<div style="background:#fff;border:1px solid #e0ebe3;border-radius:8px;padding:10px 12px;margin-bottom:8px;">
+  <div style="font-weight:700;color:#2D4A3E;font-size:14px;">[{c.get("service","?")}] {c.get("topic","")} <span style="color:#94a3b8;font-weight:400;font-size:12px;">≈ {c.get("count_estimate","?")} คำถาม</span></div>
+  <div style="font-size:12px;color:#555;margin-top:4px;">{" / ".join((c.get("examples") or [])[:2])}</div>
+</div>
+""".strip()
+        for c in (report.get("clusters") or [])
+    )
+    brief_cards = "".join(
+        f"""
+<div style="background:#fff;border:1px solid #e0ebe3;border-radius:8px;padding:12px;margin-bottom:10px;">
+  <div style="font-size:11px;color:#94a3b8;">{b.get("scheduled_date","")} · {b["service"]}</div>
+  <div style="font-weight:700;font-size:15px;color:#2D4A3E;margin-top:2px;">{b["title"]}</div>
+  <div style="font-size:12px;color:#666;margin-top:4px;">focus: <code>{b.get("focus_kw","")}</code> · slug: <code>{b.get("slug","")}</code></div>
+  <div style="font-size:13px;color:#444;margin-top:6px;">{b.get("seed","")}</div>
+</div>
+""".strip()
+        for b in accepted
+    )
+    gap_block = "<ul>" + "".join(f"<li>{g}</li>" for g in (report.get("gap_signals") or [])) + "</ul>"
+
+    return f"""
+<div style="font-family:sans-serif;max-width:680px;margin:0 auto;background:#f8faf8;padding:24px;border-radius:12px;">
+  <h2 style="color:#2D4A3E;margin-top:0;">🔍 FAQ Mining — {today}</h2>
+  <p style="color:#666;font-size:13px;">
+    คำถามจาก {WINDOW_DAYS} วันล่าสุด: <b>{q_count}</b> · เพิ่มเข้า content plan: <b>{len(accepted)}</b> บทความ
+  </p>
+  <p style="color:#444;font-size:14px;">{report.get("summary","")}</p>
+  <h3 style="color:#2D4A3E;margin-bottom:8px;">📊 Question clusters</h3>
+  {cluster_block}
+  <h3 style="color:#2D4A3E;margin-top:16px;margin-bottom:8px;">📝 Briefs ที่เพิ่มเข้า content_plan</h3>
+  {brief_cards or "<i style='color:#94a3b8'>ไม่มี brief ใหม่ (อาจ slug ซ้ำหมด)</i>"}
+  <h3 style="color:#2D4A3E;margin-top:16px;margin-bottom:8px;">⚠️ Gap signals</h3>
+  {gap_block}
+</div>
+""".strip()
+
+
+def send_email(report: dict, accepted: list, q_count: int) -> None:
     if not RESEND_KEY:
         print("RESEND_API_KEY not set — skipping email send")
         return
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    html = f"""
-<div style="font-family:sans-serif;max-width:640px;margin:0 auto;background:#f8faf8;padding:24px;border-radius:12px;">
-  <h2 style="color:#2D4A3E;margin-top:0;">🔍 FAQ Mining — {today}</h2>
-  <p style="color:#666;font-size:13px;">คำถามจริงจากเว็บ {WINDOW_DAYS} วันล่าสุด: <b>{q_count}</b> คำถาม</p>
-  <pre style="white-space:pre-wrap;word-wrap:break-word;font-family:sans-serif;font-size:14px;line-height:1.6;color:#222;background:#fff;padding:16px;border-radius:8px;border:1px solid #e0ebe3;">
-{summary}
-  </pre>
-</div>
-""".strip()
+    html = render_email(report, accepted, q_count)
     payload = json.dumps(
         {
             "from": "รู้ก่อนดี(รู้งี้) <onboarding@resend.dev>",
@@ -214,14 +343,27 @@ def main() -> int:
         return 0
 
     recent = fetch_published_posts()
-    print(f"  recent posts (exclusion list): {len(recent)}")
+    print(f"  recent posts (exclusion): {len(recent)}")
 
-    summary = run_claude(build_prompt(questions, recent))
+    existing_slugs = fetch_existing_slugs()
+    print(f"  existing slugs (exclusion): {len(existing_slugs)}")
+
+    try:
+        report = run_claude(build_prompt(questions, recent, existing_slugs))
+    except Exception as e:  # noqa: BLE001
+        print(f"Claude returned non-JSON or failed: {e}", file=sys.stderr)
+        return 1
+
+    briefs = report.get("briefs") or []
+    print(f"  briefs proposed: {len(briefs)}")
+    accepted = queue_briefs(briefs, existing_slugs)
+    print(f"  briefs inserted into content_plan: {len(accepted)}")
+
     print("\n" + "=" * 60)
-    print(summary)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
     print("=" * 60 + "\n")
 
-    send_email(summary, len(questions))
+    send_email(report, accepted, len(questions))
     return 0
 
 
