@@ -221,7 +221,7 @@ const STD_QUESTIONS: Question[] = [
       { value: 'unprotected',  label: 'มีเพศสัมพันธ์ไม่ป้องกัน' },
       { value: 'multi_partner',label: 'เปลี่ยนคู่บ่อย' },
       { value: 'shared_needle',label: 'เข็มร่วม' },
-      { value: 'needlestick',  label: 'Needlestick injury' },
+      { value: 'needlestick',  label: 'Needlestick injury (เข็ม/ของมีคมตำ)' },
       { value: 'no_say',       label: 'ไม่สะดวกบอก' },
     ],
   },
@@ -257,7 +257,7 @@ const STD_QUESTIONS: Question[] = [
     options: [
       { value: 'screen',    label: 'ตรวจเพื่อสบายใจ' },
       { value: 'treat',     label: 'รักษา' },
-      { value: 'prep',      label: 'PrEP' },
+      { value: 'prep',      label: 'รับยา PrEP (ป้องกัน HIV)' },
       { value: 'pep',       label: 'PEP ฉุกเฉิน', badge: '🚨 ด่วน' },
     ],
   },
