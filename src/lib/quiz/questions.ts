@@ -92,8 +92,8 @@ const GLP1_QUESTIONS: Question[] = [
       { value: 'exercise', label: 'ออกกำลัง' },
       { value: 'clinic',   label: 'คลินิก' },
       { value: 'drug',     label: 'ยา' },
-      { value: 'if',       label: 'IF' },
-      { value: 'keto',     label: 'Keto' },
+      { value: 'if',       label: 'IF (อดอาหารเป็นช่วง)' },
+      { value: 'keto',     label: 'Keto (ลดคาร์บ)' },
       { value: 'none',     label: 'ไม่เคย' },
     ],
   },
@@ -221,7 +221,7 @@ const STD_QUESTIONS: Question[] = [
       { value: 'unprotected',  label: 'มีเพศสัมพันธ์ไม่ป้องกัน' },
       { value: 'multi_partner',label: 'เปลี่ยนคู่บ่อย' },
       { value: 'shared_needle',label: 'เข็มร่วม' },
-      { value: 'needlestick',  label: 'Needlestick injury' },
+      { value: 'needlestick',  label: 'ถูกเข็มตำโดยอุบัติเหตุ' },
       { value: 'no_say',       label: 'ไม่สะดวกบอก' },
     ],
   },
@@ -257,8 +257,8 @@ const STD_QUESTIONS: Question[] = [
     options: [
       { value: 'screen',    label: 'ตรวจเพื่อสบายใจ' },
       { value: 'treat',     label: 'รักษา' },
-      { value: 'prep',      label: 'PrEP' },
-      { value: 'pep',       label: 'PEP ฉุกเฉิน', badge: '🚨 ด่วน' },
+      { value: 'prep',      label: 'PrEP (ยากันก่อนเสี่ยง)' },
+      { value: 'pep',       label: 'PEP ฉุกเฉิน (ยาหลังเสี่ยง 72 ชม.)', badge: '🚨 ด่วน' },
     ],
   },
   {
@@ -267,9 +267,9 @@ const STD_QUESTIONS: Question[] = [
     title: 'ช่องทางติดต่อ',
     required: true,
     options: [
-      { value: 'line_only', label: 'LINE เท่านั้น (default)' },
+      { value: 'line_only', label: 'LINE เท่านั้น' },
       { value: 'call_ok',   label: 'โทรได้' },
-      { value: 'email',     label: 'Email' },
+      { value: 'email',     label: 'อีเมล' },
     ],
   },
 ]
