@@ -128,7 +128,14 @@ export default function QuizRunner({ definition }: Props) {
 
   const toggleMulti = (id: string, value: string) => {
     const prev = (answers[id] as string[] | undefined) ?? []
-    const next = prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    let next: string[]
+    if (prev.includes(value)) {
+      next = prev.filter(v => v !== value)
+    } else if (value === 'none') {
+      next = ['none']
+    } else {
+      next = [...prev.filter(v => v !== 'none'), value]
+    }
     setAnswer(id, next)
   }
 
