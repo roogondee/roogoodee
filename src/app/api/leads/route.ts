@@ -26,9 +26,14 @@ export async function POST(req: NextRequest) {
     const rawSource = typeof body.source === 'string' ? body.source : ''
     const source = ALLOWED_SOURCES.has(rawSource) ? rawSource : 'roogondee.com'
 
+    // LINE userId from LIFF — keep only U[0-9a-f]{32} format to avoid storing
+    // junk if a different client sends something unexpected.
+    const rawLineId = typeof body.line_id === 'string' ? body.line_id : ''
+    const line_id = /^U[0-9a-f]{32}$/.test(rawLineId) ? rawLineId : null
+
     const { data, error } = await supabaseAdmin
       .from('leads')
-      .insert([{ service, first_name, last_name, phone, age, gender, note, source }])
+      .insert([{ service, first_name, last_name, phone, age, gender, note, source, line_id }])
       .select()
 
     if (error) throw error

@@ -31,6 +31,7 @@ ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 LINE_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+LIFF_ID = os.environ.get("LIFF_ID", "").strip()  # if set, lead button uses liff.line.me/<id>
 SITE_BASE = os.environ.get("SITE_BASE_URL", "https://roogondee.com").rstrip("/")
 MODEL = "claude-haiku-4-5-20251001"
 
@@ -134,8 +135,15 @@ def build_flex(post: dict, caption: str) -> dict:
     title = (post.get("title") or "")[:80]
     image_url = post["image_url"]
     blog_url = f"{SITE_BASE}/blog/{post.get('slug','')}"
+    # Prefer the LIFF entry URL when configured — opens inside LINE with full
+    # SDK access so we can capture the user's LINE userId silently. Falls back
+    # to the plain landing page when LIFF_ID is unset.
+    if LIFF_ID:
+        lead_base = f"https://liff.line.me/{LIFF_ID}"
+    else:
+        lead_base = f"{SITE_BASE}/lead/line"
     lead_url = (
-        f"{SITE_BASE}/lead/line"
+        f"{lead_base}"
         f"?service={urllib.parse.quote(service)}"
         f"&utm_source=line&utm_medium=broadcast&utm_campaign={urllib.parse.quote(post.get('slug','') or 'daily')}"
     )
