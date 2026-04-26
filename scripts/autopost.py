@@ -329,11 +329,18 @@ def validate_content(html: str, plan: dict) -> list[str]:
     if "line" not in lower and "roogondee" not in lower:
         issues.append("ขาด CTA (ไม่พบ LINE หรือ roogondee)")
 
-    # 10. Focus keyword relevance — at least first keyword appears in body
+    # 10. Focus keyword relevance — every token of first keyword appears in body
+    #     (token-based to tolerate natural Thai-English word ordering, e.g. focus
+    #     "prep hiv ผู้หญิง" matching "PrEP สำหรับผู้หญิง ... HIV ...")
     focus = (plan.get("focus_kw") or "").split(",")
     first_kw = focus[0].strip().lower() if focus else ""
-    if first_kw and first_kw not in plain.lower():
-        issues.append(f"ไม่พบ focus keyword หลัก '{first_kw}' ในเนื้อหา")
+    if first_kw:
+        plain_lower = plain.lower()
+        missing = [tok for tok in first_kw.split() if tok and tok not in plain_lower]
+        if missing:
+            issues.append(
+                f"ไม่พบ focus keyword หลัก '{first_kw}' ในเนื้อหา (ขาด: {', '.join(missing)})"
+            )
 
     return issues
 
