@@ -43,6 +43,12 @@ export interface Lead {
   quiz_answers?: Record<string, unknown>
   lead_score?: number
   lead_tier?: LeadTier
+  // AI-judged signal — separate from quiz-derived lead_tier (see
+  // scripts/score_leads.py). 1=noise, 100=ready-to-buy.
+  ai_score?: number
+  ai_score_reason?: string
+  ai_score_action?: string
+  ai_scored_at?: string
   consent_pdpa?: boolean
   consent_at?: string
   crm_deal_id?: string
