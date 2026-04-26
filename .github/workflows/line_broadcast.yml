@@ -1,0 +1,35 @@
+name: 📣 RuGonDee Daily LINE OA Broadcast
+
+on:
+  # ทุกวัน 18:00 Bangkok (11:00 UTC) — เวลาคนเลิกงาน เปิด LINE เยอะสุด
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+jobs:
+  broadcast:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: requirements.txt
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 📣 Broadcast to LINE OA
+        env:
+          ANTHROPIC_API_KEY:           ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL:    ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:             ${{ secrets.SUPABASE_SECRET }}
+          LINE_CHANNEL_ACCESS_TOKEN:   ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          SITE_BASE_URL:               ${{ secrets.SITE_BASE_URL }}
+        run: python scripts/line_broadcast.py
