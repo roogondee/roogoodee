@@ -6,6 +6,7 @@ export interface QuestionOption {
   value: string
   label: string
   badge?: string
+  exclusive?: boolean
 }
 
 export interface Question {
@@ -221,8 +222,8 @@ const STD_QUESTIONS: Question[] = [
       { value: 'unprotected',  label: 'มีเพศสัมพันธ์ไม่ป้องกัน' },
       { value: 'multi_partner',label: 'เปลี่ยนคู่บ่อย' },
       { value: 'shared_needle',label: 'เข็มร่วม' },
-      { value: 'needlestick',  label: 'ถูกเข็มตำ (Needlestick)' },
-      { value: 'no_say',       label: 'ไม่สะดวกบอก' },
+      { value: 'needlestick',  label: 'เข็มตำโดยอุบัติเหตุ (Needlestick)' },
+      { value: 'no_say',       label: 'ไม่สะดวกบอก', exclusive: true },
     ],
   },
   {
