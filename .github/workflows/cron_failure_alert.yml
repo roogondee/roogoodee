@@ -1,0 +1,59 @@
+name: 🚨 Cron Failure Alert
+
+# Watcher pattern: ใช้ workflow_run เพื่อจับการ fail ของ cron ตัวอื่น
+# โดยไม่ต้องไปแก้ทุก yml ที่มีอยู่ — ถ้ามี cron ใหม่ในอนาคต เพิ่ม name
+# เข้าลิสต์ตรงนี้ตัวเดียว (workflow_run.workflows ไม่รองรับ wildcard)
+on:
+  workflow_run:
+    workflows:
+      - "🌿 RuGonDee Daily Lead Brief"
+      - "💌 RuGonDee Daily Lead Nurture"
+      - "🔍 RuGonDee Weekly FAQ Mining"
+      - "🎯 RuGonDee Weekly SEO Keywords"
+      - "🎬 RuGonDee Weekly TikTok Scripts"
+      - "📣 RuGonDee Daily LINE OA Broadcast"
+      - "📊 RuGonDee Weekly LINE Broadcast Review"
+      - "💬 RuGonDee Daily LINE 1-on-1 Follow-up"
+      - "🤖 RuGonDee Hourly AI Lead Scoring"
+      - "🌿 RuGonDee AutoPost"
+      - "📘 RuGonDee Facebook Daily Caption"
+      - "📅 RuGonDee Auto-Generate Content Plan"
+      - "🖼️ Generate Homepage Images"
+      - "📊 RuGonDee Sync Metrics"
+      - "🌱 RuGonDee Seed Plan (manual)"
+    types: [completed]
+
+jobs:
+  alert:
+    # GH รัน job นี้ทุกครั้งที่ watched workflow จบ — filter เฉพาะที่ fail
+    if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🚨 Send failure alert
+        env:
+          # LINE staff group push (ใช้ token + target_id เดิมที่ scripts/notify.py ใช้)
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TARGET_ID:            ${{ secrets.LINE_TARGET_ID }}
+          # Email backup (ใช้ secret เดียวกับ agent อื่น)
+          RESEND_API_KEY:            ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL:              ${{ secrets.NOTIFY_EMAIL }}
+          # workflow_run context — pass through ให้ script
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_PATH: ${{ github.event.workflow_run.path }}
+          RUN_ID:        ${{ github.event.workflow_run.id }}
+          RUN_URL:       ${{ github.event.workflow_run.html_url }}
+          CONCLUSION:    ${{ github.event.workflow_run.conclusion }}
+          HEAD_SHA:      ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH:   ${{ github.event.workflow_run.head_branch }}
+          EVENT_NAME:    ${{ github.event.workflow_run.event }}
+          ACTOR:         ${{ github.event.workflow_run.actor.login }}
+          ATTEMPT:       ${{ github.event.workflow_run.run_attempt }}
+        run: python scripts/cron_failure_alert.py
