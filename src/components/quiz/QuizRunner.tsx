@@ -198,6 +198,10 @@ export default function QuizRunner({ definition }: Props) {
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
       track('voucher_sent', { service: definition.service, code: data.voucher.code })
+      try {
+        window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
+        window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+      } catch {}
     } catch {
       setError('ขออภัย มีปัญหา ลองอีกครั้ง')
     } finally {
