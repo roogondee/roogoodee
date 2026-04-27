@@ -258,8 +258,8 @@ const STD_QUESTIONS: Question[] = [
     options: [
       { value: 'screen',    label: 'ตรวจเพื่อสบายใจ' },
       { value: 'treat',     label: 'รักษา' },
-      { value: 'prep',      label: 'PrEP (ยากันก่อนเสี่ยง)' },
-      { value: 'pep',       label: 'PEP ฉุกเฉิน (ยาหลังเสี่ยง 72 ชม.)', badge: '🚨 ด่วน' },
+      { value: 'prep',      label: 'PrEP (ยากันก่อนเสี่ยง HIV)' },
+      { value: 'pep',       label: 'PEP ฉุกเฉิน (ภายใน 72 ชม. หลังเสี่ยง)', badge: '🚨 ด่วน' },
     ],
   },
   {

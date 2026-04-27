@@ -120,6 +120,7 @@ export default async function AdminPage() {
                 <th className="text-left px-4 py-3">เบอร์</th>
                 <th className="text-left px-4 py-3">บริการ</th>
                 <th className="text-left px-4 py-3">Tier</th>
+                <th className="text-left px-4 py-3">🤖 AI</th>
                 <th className="text-left px-4 py-3">Voucher</th>
                 <th className="text-left px-4 py-3">ช่องทาง</th>
                 <th className="text-left px-4 py-3">สถานะ</th>
@@ -153,6 +154,24 @@ export default async function AdminPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
+                    {typeof lead.ai_score === 'number' ? (
+                      <span
+                        title={`${lead.ai_score_reason || ''}${lead.ai_score_action ? ' — ' + lead.ai_score_action : ''}`}
+                        className={`text-xs px-2 py-0.5 rounded-full font-bold cursor-help ${
+                          lead.ai_score >= 80 ? 'bg-red-100 text-red-700'
+                          : lead.ai_score >= 60 ? 'bg-orange-100 text-orange-700'
+                          : lead.ai_score >= 40 ? 'bg-yellow-100 text-yellow-700'
+                          : lead.ai_score >= 20 ? 'bg-sky-100 text-sky-700'
+                          : 'bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {lead.ai_score >= 80 ? '🔥' : lead.ai_score >= 60 ? '⚡' : lead.ai_score >= 40 ? '☀️' : lead.ai_score >= 20 ? '🌤' : '❄️'} {lead.ai_score}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
                     {voucher ? (
                       <span className={`font-mono text-xs ${voucher.redeemed_at ? 'text-green-700' : 'text-forest'}`}>
                         {voucher.code}
@@ -172,7 +191,7 @@ export default async function AdminPage() {
                 </tr>
               )})}
               {totalLeads === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">ยังไม่มี Lead</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">ยังไม่มี Lead</td></tr>
               )}
             </tbody>
           </table>
