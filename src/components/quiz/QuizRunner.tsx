@@ -9,6 +9,11 @@ declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
     fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    ttq?: {
+      track: (name: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void
+      page?: () => void
+      identify?: (params: Record<string, unknown>) => void
+    }
     grecaptcha?: {
       ready: (cb: () => void) => void
       execute: (siteKey: string, opts: { action: string }) => Promise<string>
@@ -17,6 +22,12 @@ declare global {
 }
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : undefined
+}
 
 async function getRecaptchaToken(action: string): Promise<string | undefined> {
   if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined' || !window.grecaptcha) return undefined
@@ -30,11 +41,12 @@ async function getRecaptchaToken(action: string): Promise<string | undefined> {
   })
 }
 
-// Spec §7.2 — fire both GA4 and Meta Pixel when available
+// Spec §7.2 — fan out events to GA4, Meta Pixel, and TikTok Pixel when available
 function track(name: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return
   try { window.gtag?.('event', name, params) } catch {}
   try { window.fbq?.('trackCustom', name, params) } catch {}
+  try { window.ttq?.track(name, params) } catch {}
 }
 
 interface Props {
@@ -90,12 +102,28 @@ export default function QuizRunner({ definition }: Props) {
     utm_campaign: searchParams?.get('utm_campaign') || undefined,
   }), [searchParams])
 
-  // Spec §7.2: fire quiz_start on mount
+  // Spec §7.2: fire quiz_start on mount + TikTok InitiateCheckout standard event
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
     track('quiz_start', { service: definition.service })
+    try {
+      window.ttq?.track('InitiateCheckout', {
+        content_id: `quiz-${definition.service}`,
+        content_name: `${definition.service.toUpperCase()} Quiz Start`,
+        content_type: 'product',
+        currency: 'THB',
+      })
+    } catch {}
   }, [definition.service])
+
+  // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
+  useEffect(() => {
+    const ttclid = searchParams?.get('ttclid')
+    if (ttclid && typeof document !== 'undefined') {
+      document.cookie = `ttclid=${encodeURIComponent(ttclid)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    }
+  }, [searchParams])
 
   const totalSteps = definition.questions.length + 1 // +1 for contact step
   const progress = Math.round((step / totalSteps) * 100)
@@ -163,6 +191,8 @@ export default function QuizRunner({ definition }: Props) {
     setLoading(true)
     try {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
+      const ttclid = readCookie('ttclid')
+      const ttp = readCookie('_ttp')
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,6 +212,8 @@ export default function QuizRunner({ definition }: Props) {
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
           recaptcha_token: recaptchaToken,
+          ttclid,
+          ttp,
         }),
       })
       const data = await res.json()
@@ -201,6 +233,22 @@ export default function QuizRunner({ definition }: Props) {
       try {
         window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
         window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+      } catch {}
+      // TikTok standard events — event_id = voucher code so the server-side
+      // Events API call from /api/quiz dedupes against this client-side fire.
+      try {
+        window.ttq?.track('SubmitForm', {
+          content_id: data.voucher.code,
+          content_name: `${definition.service.toUpperCase()} Voucher`,
+          content_type: 'lead',
+          value: data.score,
+          currency: 'THB',
+        }, { event_id: data.voucher.code })
+        window.ttq?.track('CompleteRegistration', {
+          content_id: data.voucher.code,
+          content_name: `${definition.service.toUpperCase()} Lead`,
+          content_type: 'lead',
+        }, { event_id: data.voucher.code })
       } catch {}
     } catch {
       setError('ขออภัย มีปัญหา ลองอีกครั้ง')

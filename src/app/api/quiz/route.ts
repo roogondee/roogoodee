@@ -9,9 +9,14 @@ import { summarizeAnswers } from '@/lib/quiz/summary'
 import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
+import { sendTikTokEvent } from '@/lib/tiktok-events'
 import type { QuizSubmission, Service } from '@/types'
 
-type QuizPayload = Partial<QuizSubmission> & { recaptcha_token?: string }
+type QuizPayload = Partial<QuizSubmission> & {
+  recaptcha_token?: string
+  ttclid?: string
+  ttp?: string
+}
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign']
 
@@ -153,6 +158,34 @@ export async function POST(req: NextRequest) {
         expires_at: voucher.expires_at,
       })
     }
+
+    // TikTok Events API — fire SubmitForm with event_id = voucher.code so it
+    // dedupes against the client-side ttq.track('SubmitForm', …, { event_id })
+    // call in QuizRunner.
+    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || undefined
+    const userAgent = req.headers.get('user-agent') || undefined
+    void sendTikTokEvent({
+      event_name: 'SubmitForm',
+      event_id: voucher.code,
+      user: {
+        email: inserted.email || undefined,
+        phone: inserted.phone,
+        external_id: voucher.code,
+        ip,
+        user_agent: userAgent,
+        ttclid: body.ttclid,
+        ttp: body.ttp,
+      },
+      properties: {
+        content_id: voucher.code,
+        content_name: `${body.service.toUpperCase()} Voucher`,
+        content_type: 'lead',
+        value: scoring.score,
+        currency: 'THB',
+        lead_score: scoring.tier,
+        vertical: body.service,
+      },
+    })
 
     return NextResponse.json({
       success: true,
