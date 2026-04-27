@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase'
 import { notifyLineGroup } from '@/lib/line-notify'
 import Anthropic from '@anthropic-ai/sdk'
@@ -7,7 +8,17 @@ export const maxDuration = 60
 
 const FB_PAGE_ACCESS_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || ''
 const FB_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || ''
+const FB_APP_SECRET = process.env.FB_APP_SECRET || ''
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+function verifySignature(rawBody: string, signatureHeader: string | null): boolean {
+  if (!FB_APP_SECRET) return true
+  if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false
+  const expected = createHmac('sha256', FB_APP_SECRET).update(rawBody).digest('hex')
+  const received = signatureHeader.slice('sha256='.length)
+  if (expected.length !== received.length) return false
+  return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(received, 'hex'))
+}
 
 const SYSTEM_PROMPT = `คุณคือผู้ช่วยสุขภาพของ "รู้ก่อนดี(รู้งี้)" (roogondee.com) บริการของบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 
@@ -90,7 +101,11 @@ export async function GET(req: NextRequest) {
 // Receive messages (POST)
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const rawBody = await req.text()
+    if (!verifySignature(rawBody, req.headers.get('x-hub-signature-256'))) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+    const body = JSON.parse(rawBody)
 
     if (body.object !== 'page') {
       return NextResponse.json({ ok: false }, { status: 404 })

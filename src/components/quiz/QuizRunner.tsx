@@ -126,17 +126,20 @@ export default function QuizRunner({ definition }: Props) {
     setAnswers(prev => ({ ...prev, [id]: value }))
   }
 
-  const toggleMulti = (id: string, value: string) => {
-    const prev = (answers[id] as string[] | undefined) ?? []
+  const toggleMulti = (q: Question, value: string) => {
+    const prev = (answers[q.id] as string[] | undefined) ?? []
+    const exclusiveValues = (q.options ?? [])
+      .filter(o => o.exclusive || o.value === 'none')
+      .map(o => o.value)
     let next: string[]
     if (prev.includes(value)) {
       next = prev.filter(v => v !== value)
-    } else if (value === 'none') {
-      next = ['none']
+    } else if (exclusiveValues.includes(value)) {
+      next = [value]
     } else {
-      next = [...prev.filter(v => v !== 'none'), value]
+      next = [...prev.filter(v => !exclusiveValues.includes(v)), value]
     }
-    setAnswer(id, next)
+    setAnswer(q.id, next)
   }
 
   const handleSubmit = async () => {
@@ -195,6 +198,10 @@ export default function QuizRunner({ definition }: Props) {
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
       track('voucher_sent', { service: definition.service, code: data.voucher.code })
+      try {
+        window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
+        window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+      } catch {}
     } catch {
       setError('ขออภัย มีปัญหา ลองอีกครั้ง')
     } finally {
@@ -435,7 +442,7 @@ export default function QuizRunner({ definition }: Props) {
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => toggleMulti(q.id, opt.value)}
+                  onClick={() => toggleMulti(q, opt.value)}
                   className={optionCls(dark, selected)}
                 >
                   <span>{selected ? '✓' : '○'} {opt.label}</span>
