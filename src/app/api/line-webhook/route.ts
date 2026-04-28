@@ -101,98 +101,28 @@ export async function POST(req: NextRequest) {
     const events = body.events || []
 
     for (const event of events) {
-      // Log group ID when bot is added to a group or receives group message
-      if (event.source?.type === 'group') {
-        console.log('GROUP_ID:', event.source.groupId)
-      }
-
-      // Spec §5.3: follow event = user added the OA. Send welcome + ask for
-      // voucher code so we can link their userId to a lead for future push.
-      if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
-        const welcome = [
-          'ยินดีต้อนรับสู่ รู้ก่อนดี(รู้งี้) 💚',
-          '',
-          'หากคุณเพิ่งรับ voucher จากเว็บไซต์ของเรา',
-          'กรุณาส่ง "โค้ด voucher" ของคุณในช่องแชทนี้',
-          '(เช่น RGD-GLP1-A3X9K2)',
-          '',
-          'เพื่อเชื่อมบัญชีและรับการแจ้งเตือนอัตโนมัติ',
-        ].join('\n')
-        await replyToLine(event.replyToken, welcome)
-        continue
-      }
-
-      if (event.type !== 'message' || event.message?.type !== 'text') continue
-
-      // Only reply to 1:1 chat (not group messages)
-      if (event.source?.type !== 'user') continue
-
-      const text: string = event.message.text || ''
-      const replyToken: string = event.replyToken
-      const userId: string = event.source?.userId || ''
-
-      // Voucher code linkage: if the message is a voucher code,
-      // match to a lead and save line_user_id for future push.
-      const codeMatch = text.trim().toUpperCase().match(/RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}/)
-      if (codeMatch && userId) {
-        const code = codeMatch[0]
-        const { data: voucher } = await supabaseAdmin
-          .from('vouchers')
-          .select('code, service, expires_at, redeemed_at, lead_id, lead:leads(first_name, line_user_id)')
-          .eq('code', code)
-          .maybeSingle()
-
-        if (!voucher) {
-          await replyToLine(replyToken, `ไม่พบ voucher รหัส ${code}\nกรุณาตรวจสอบอีกครั้ง`)
-          continue
+      // Idempotency: LINE retries webhooks that don't 200 within 3s, resending
+      // the same webhookEventId. Atomically claim the event_id; if the insert
+      // hits the PK, another delivery already processed (or is processing) it.
+      const eventId: string | undefined = event.webhookEventId
+      if (eventId) {
+        const { error: claimErr } = await supabaseAdmin
+          .from('processed_webhook_events')
+          .insert({ event_id: eventId, source: 'line' })
+        if (claimErr) {
+          // 23505 = unique_violation → duplicate delivery, skip silently.
+          if ((claimErr as { code?: string }).code === '23505') continue
+          console.error('webhook dedup insert error:', claimErr)
         }
-
-        // Link userId to the lead (idempotent)
-        await supabaseAdmin
-          .from('leads')
-          .update({ line_user_id: userId })
-          .eq('id', voucher.lead_id)
-
-        const expires = new Date(voucher.expires_at).toLocaleDateString('th-TH')
-        const reply = voucher.redeemed_at
-          ? `✓ Voucher ${code} ใช้ไปแล้ว\nขอบคุณที่ใช้บริการ 💚`
-          : [
-              `✓ เชื่อมบัญชีสำเร็จ`,
-              `🎟 ${code}`,
-              `📅 หมดอายุ ${expires}`,
-              `📍 W Medical Hospital สมุทรสาคร`,
-              ``,
-              `ต่อไปเราจะแจ้งเตือนคุณผ่าน LINE โดยตรง`,
-            ].join('\n')
-        await replyToLine(replyToken, reply)
-        continue
       }
 
-      // Fallback: AI chat assistant
-      const service = detectService(text)
-      const aiReply = await askClaude(text)
-
-      // Save as lead (non-blocking)
-      void supabaseAdmin.from('leads').insert([{
-        first_name: 'LINE Bot',
-        phone: userId,
-        service,
-        note: text.slice(0, 500),
-        source: 'line-bot',
-        status: 'new',
-      }])
-
-      // Reply with AI answer
-      if (replyToken && aiReply) {
-        await replyToLine(replyToken, aiReply)
+      try {
+        await handleEvent(event)
+      } catch (err) {
+        // Per-event isolation: a single failure must not 500 the whole batch
+        // and trigger LINE to retry every event in this delivery.
+        console.error('LINE event processing error:', err, { eventId })
       }
-
-      // Notify staff group (non-blocking)
-      void notifyLineGroup({
-        service,
-        source: 'LINE Bot',
-        note: text,
-      })
     }
 
     return NextResponse.json({ ok: true })
@@ -200,6 +130,102 @@ export async function POST(req: NextRequest) {
     console.error('LINE webhook error:', err)
     return NextResponse.json({ ok: false }, { status: 500 })
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleEvent(event: any): Promise<void> {
+  // Log group ID when bot is added to a group or receives group message
+  if (event.source?.type === 'group') {
+    console.log('GROUP_ID:', event.source.groupId)
+  }
+
+  // Spec §5.3: follow event = user added the OA. Send welcome + ask for
+  // voucher code so we can link their userId to a lead for future push.
+  if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
+    const welcome = [
+      'ยินดีต้อนรับสู่ รู้ก่อนดี(รู้งี้) 💚',
+      '',
+      'หากคุณเพิ่งรับ voucher จากเว็บไซต์ของเรา',
+      'กรุณาส่ง "โค้ด voucher" ของคุณในช่องแชทนี้',
+      '(เช่น RGD-GLP1-A3X9K2)',
+      '',
+      'เพื่อเชื่อมบัญชีและรับการแจ้งเตือนอัตโนมัติ',
+    ].join('\n')
+    await replyToLine(event.replyToken, welcome)
+    return
+  }
+
+  if (event.type !== 'message' || event.message?.type !== 'text') return
+
+  // Only reply to 1:1 chat (not group messages)
+  if (event.source?.type !== 'user') return
+
+  const text: string = event.message.text || ''
+  const replyToken: string = event.replyToken
+  const userId: string = event.source?.userId || ''
+
+  // Voucher code linkage: if the message is a voucher code,
+  // match to a lead and save line_user_id for future push.
+  const codeMatch = text.trim().toUpperCase().match(/RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}/)
+  if (codeMatch && userId) {
+    const code = codeMatch[0]
+    const { data: voucher } = await supabaseAdmin
+      .from('vouchers')
+      .select('code, service, expires_at, redeemed_at, lead_id, lead:leads(first_name, line_user_id)')
+      .eq('code', code)
+      .maybeSingle()
+
+    if (!voucher) {
+      await replyToLine(replyToken, `ไม่พบ voucher รหัส ${code}\nกรุณาตรวจสอบอีกครั้ง`)
+      return
+    }
+
+    // Link userId to the lead (idempotent)
+    await supabaseAdmin
+      .from('leads')
+      .update({ line_user_id: userId })
+      .eq('id', voucher.lead_id)
+
+    const expires = new Date(voucher.expires_at).toLocaleDateString('th-TH')
+    const reply = voucher.redeemed_at
+      ? `✓ Voucher ${code} ใช้ไปแล้ว\nขอบคุณที่ใช้บริการ 💚`
+      : [
+          `✓ เชื่อมบัญชีสำเร็จ`,
+          `🎟 ${code}`,
+          `📅 หมดอายุ ${expires}`,
+          `📍 W Medical Hospital สมุทรสาคร`,
+          ``,
+          `ต่อไปเราจะแจ้งเตือนคุณผ่าน LINE โดยตรง`,
+        ].join('\n')
+    await replyToLine(replyToken, reply)
+    return
+  }
+
+  // Fallback: AI chat assistant
+  const service = detectService(text)
+  const aiReply = await askClaude(text)
+
+  // Save as lead (non-blocking)
+  void supabaseAdmin.from('leads').insert([{
+    first_name: 'LINE Bot',
+    phone: userId,
+    service,
+    note: text.slice(0, 500),
+    source: 'line-bot',
+    status: 'new',
+  }])
+
+  // Reply with AI answer
+  if (replyToken && aiReply) {
+    await replyToLine(replyToken, aiReply)
+  }
+
+  // Notify staff group (non-blocking)
+  void notifyLineGroup({
+    service,
+    source: 'LINE Bot',
+    note: text,
+  })
 }
 
 export async function GET() {
