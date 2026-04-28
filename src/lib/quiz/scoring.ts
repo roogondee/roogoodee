@@ -152,11 +152,96 @@ export function scoreSTD(a: STDAnswers): ScoringResult {
   return { score, tier, reasons }
 }
 
+// ── Men's Health (Andropause + Sexual Wellness) ─────────────────────
+// Tap-only screening. Red flags (heart/prostate cancer) → refer out.
+interface MensAnswers {
+  age_range?: string
+  comorbid?: string[]
+  symptoms?: string[]
+  lifestyle?: string[]
+  interest?: string
+  start_when?: string
+}
+
+const MENS_RED_FLAGS = ['heart', 'prostate']
+const MENS_AGE_SCORE: Record<string, number> = {
+  under_40: 0,
+  '40_49':  1,
+  '50_59':  2,
+  '60_plus': 3,
+}
+
+export interface MensScoringResult extends ScoringResult {
+  refer?: boolean
+}
+
+export function scoreMens(a: MensAnswers): MensScoringResult {
+  const comorbid = a.comorbid || []
+  const hasRedFlag = comorbid.some(c => MENS_RED_FLAGS.includes(c))
+  if (hasRedFlag) {
+    return {
+      score: 0,
+      tier: 'cold',
+      refer: true,
+      reasons: ['ควรพบแพทย์เฉพาะทางโดยตรง — ไม่อยู่ในเกณฑ์โครงการ voucher'],
+    }
+  }
+
+  let score = 0
+  const reasons: string[] = []
+
+  const ageScore = MENS_AGE_SCORE[a.age_range || ''] ?? 0
+  if (ageScore > 0) { score += ageScore; reasons.push(`อายุ ${a.age_range?.replace('_', '-')}`) }
+
+  const metabolic = ['dm', 'ht', 'dyslipidemia'].filter(c => comorbid.includes(c))
+  if (metabolic.length >= 1) {
+    score += 2
+    reasons.push(`มีโรคร่วม metabolic ${metabolic.length} ข้อ`)
+  }
+
+  const symptoms = (a.symptoms || []).filter(s => s !== 'none')
+  score += symptoms.length
+  if (symptoms.includes('sexual')) {
+    score += 2
+    reasons.push('flag เรื่องสมรรถภาพ')
+  }
+  if (symptoms.length >= 3) {
+    reasons.push(`มีอาการ ${symptoms.length} ข้อ`)
+  }
+
+  const lifestyleCount = (a.lifestyle || []).filter(s => s !== 'none').length
+  if (lifestyleCount >= 2) {
+    score += 1
+    reasons.push(`lifestyle risk ${lifestyleCount} ข้อ`)
+  }
+
+  if (a.start_when === 'now') {
+    score += 3
+    reasons.push('พร้อมเริ่มทันที')
+  } else if (a.start_when === '1m') {
+    score += 2
+    reasons.push('ภายใน 1 เดือน')
+  }
+  if (a.interest === 'sexual_health') {
+    score += 2
+    reasons.push('สนใจเรื่องสมรรถภาพ')
+  }
+
+  let tier: LeadTier
+  if (symptoms.includes('sexual') && a.start_when === 'now') tier = 'urgent'
+  else if (score >= 9) tier = 'hot'
+  else if (score >= 5) tier = 'warm'
+  else tier = 'cold'
+
+  return { score, tier, reasons }
+}
+
 export function scoreQuiz(service: Service, answers: Record<string, unknown>): ScoringResult {
   switch (service) {
     case 'glp1':    return scoreGLP1(answers as GLP1Answers)
     case 'ckd':     return scoreCKD(answers as CKDAnswers)
     case 'std':     return scoreSTD(answers as STDAnswers)
+    case 'mens':    return scoreMens(answers as MensAnswers)
     case 'foreign': return { score: 0, tier: 'warm', reasons: ['B2B lead'] }
   }
 }

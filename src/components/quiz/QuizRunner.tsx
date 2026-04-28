@@ -400,7 +400,7 @@ export default function QuizRunner({ definition }: Props) {
   // ── Contact step ──────────────────────────────────────────────────
   if (isContactStep) {
     return (
-      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)} backLabel={tq.back} homeLabel={ttq.backHome}>
+      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)} backLabel={tq.back} homeLabel={tq.backHome}>
         {resumeBanner}
         <h2 className={`font-display text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>{tq.contactTitle}</h2>
         <p className={`text-sm mb-5 ${dark ? 'text-white/60' : 'text-muted'}`}>
@@ -415,7 +415,7 @@ export default function QuizRunner({ definition }: Props) {
                 value={contact.first_name}
                 onChange={e => setContact({ ...contact, first_name: e.target.value })}
                 className={inputCls(dark)}
-                placeholder={definition.allowAnonymous ? tq.nicknamePlaceholder : ttq.firstNamePlaceholder}
+                placeholder={definition.allowAnonymous ? tq.nicknamePlaceholder : tq.firstNamePlaceholder}
               />
             </Field>
             <Field dark={dark} label={tq.lastName}>
@@ -433,7 +433,7 @@ export default function QuizRunner({ definition }: Props) {
               value={contact.phone}
               onChange={e => setContact({ ...contact, phone: e.target.value })}
               className={inputCls(dark)}
-              placeholder={ttq.phonePlaceholder}
+              placeholder={tq.phonePlaceholder}
             />
           </Field>
           <Field dark={dark} label={tq.lineId}>
@@ -442,7 +442,7 @@ export default function QuizRunner({ definition }: Props) {
               value={contact.line_id}
               onChange={e => setContact({ ...contact, line_id: e.target.value })}
               className={inputCls(dark)}
-              placeholder={ttq.lineIdPlaceholder}
+              placeholder={tq.lineIdPlaceholder}
             />
           </Field>
           <Field dark={dark} label={tq.email}>
@@ -477,7 +477,7 @@ export default function QuizRunner({ definition }: Props) {
             onClick={handleSubmit}
             className={`w-full py-3.5 rounded-full font-bold text-base transition-all ${dark ? 'bg-mint text-neutral-900 hover:bg-mint/90' : 'bg-forest text-white hover:bg-sage'} disabled:opacity-60`}
           >
-            {loading ? ttq.submitting : tq.submit}
+            {loading ? tq.submitting : tq.submit}
           </button>
         </div>
       </QuizShell>
@@ -494,7 +494,7 @@ export default function QuizRunner({ definition }: Props) {
       progress={progress}
       onBack={step > 0 ? () => setStep(step - 1) : undefined}
       backLabel={tq.back}
-      homeLabel={ttq.backHome}
+      homeLabel={tq.backHome}
     >
       {resumeBanner}
       <div className={`text-xs font-medium mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>

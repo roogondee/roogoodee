@@ -22,7 +22,7 @@ SUPABASE_KEY  = os.environ["SUPABASE_SECRET"]
 
 from notify import notify as _line_notify  # ใช้ alias เดิมให้โค้ดอื่นไม่ต้องเปลี่ยน
 
-SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign"]  # วนซ้ำ
+SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign", "mens"]  # วนซ้ำ
 
 SERVICE_CONTEXT = {
     "std": {
@@ -44,6 +44,26 @@ SERVICE_CONTEXT = {
         "name": "ตรวจสุขภาพแรงงานต่างด้าว",
         "target": "HR นายจ้าง และแรงงานต่างด้าวในสมุทรสาคร",
         "topics": "ตรวจสุขภาพแรงงาน, ใบรับรองแพทย์, โรคต้องห้าม, MOU, work permit, ตรวจหมู่คณะ, สมุทรสาคร"
+    },
+    "mens": {
+        "name": "สุขภาพชายวัย 40+ (Andropause & Men's Wellness)",
+        "target": "ผู้ชายอายุ 40-65 ปี กังวลเรื่องพลังงาน อารมณ์ ฮอร์โมน",
+        "topics": (
+            "วัยทองชาย, andropause, testosterone, ฮอร์โมนเพศชาย, "
+            "อ่อนเพลีย วัย 40+, มวลกล้ามเนื้อลด, รอบเอวเพิ่ม, "
+            "lifestyle boost พลังงาน, ตรวจสุขภาพชาย 40+, "
+            "สุขภาพต่อมลูกหมาก, PSA, metabolic syndrome ผู้ชาย, "
+            "การนอน, ความเครียด, การออกกำลังกายผู้ชายวัย 40+"
+        ),
+        "compliance": (
+            "COMPLIANCE สำหรับ Men's Health (บังคับ): "
+            "ห้ามระบุชื่อยา (Viagra, Cialis, sildenafil, tadalafil, Nebido, Sustanon); "
+            "ห้ามคำว่า 'รักษาหายขาด', '100%', 'การันตี', 'ดีที่สุด', 'เพิ่มขนาด', 'อึด', 'ทน X นาที'; "
+            "ห้ามคำว่า 'แจกยา', 'ยาฟรี', 'ทดลองยา'; "
+            "ต้องมีคำว่า 'ภายใต้การดูแลของแพทย์' หรือใกล้เคียง อย่างน้อยครั้งหนึ่ง; "
+            "tone ให้ความรู้ ไม่ตัดสิน ไม่ขายของ; "
+            "เน้น Pillar A (พลังงาน อารมณ์ lifestyle) มากกว่า Pillar B (สมรรถภาพ)"
+        ),
     }
 }
 
@@ -140,11 +160,15 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
             f"แต่ห้ามซ้ำหัวข้อเดิม — ให้ขยายความ ตอบลึก หรือมุมใหม่ที่เกี่ยวข้อง):\n{items}"
         )
 
+    compliance_block = ""
+    if ctx.get("compliance"):
+        compliance_block = f"\n\n{ctx['compliance']}"
+
     prompt = f"""สร้างหัวข้อบทความสุขภาพสำหรับเว็บ roogondee.com
 
 บริการ: {ctx['name']}
 กลุ่มเป้าหมาย: {ctx['target']}
-หัวข้อที่เกี่ยวข้อง: {ctx['topics']}{perf_block}
+หัวข้อที่เกี่ยวข้อง: {ctx['topics']}{perf_block}{compliance_block}
 
 ต้องการ JSON object เดียว (ไม่ใช่ array) ดังนี้:
 {{

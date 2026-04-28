@@ -166,11 +166,89 @@ function insightSTD(a: Answers, tier: LeadTier): HealthInsight {
   }
 }
 
+// ── Men's Health (Andropause + Sexual Wellness) ─────────────────────
+// Compliance-safe insight: no drug names, no claims of cure, doctor-led framing.
+function insightMens(a: Answers, tier: LeadTier): HealthInsight {
+  const comorbid = asArray(a.comorbid)
+  const symptoms = asArray(a.symptoms).filter(s => s !== 'none')
+  const ageRange = asString(a.age_range)
+  const interest = asString(a.interest)
+
+  const referRedFlag = comorbid.includes('heart') || comorbid.includes('prostate')
+  if (referRedFlag) {
+    return {
+      headline: 'แนะนำพบแพทย์เฉพาะทางโดยตรง',
+      body: 'จากประวัติที่กรอก คุณควรได้รับการประเมินจากแพทย์เฉพาะทางก่อน เพื่อให้การดูแลปลอดภัยและเหมาะสมที่สุด — เคสนี้ไม่อยู่ในเกณฑ์ voucher ปกติ',
+      recommendation: 'ติดต่อ W Medical Hospital เพื่อนัดพบแพทย์เฉพาะทางโดยตรง — ทีมจะช่วยประสานงานให้',
+      disclaimer: DISCLAIMER,
+      urgent: true,
+    }
+  }
+
+  const metabolic = ['dm', 'ht', 'dyslipidemia'].filter(c => comorbid.includes(c))
+  const hasSexualSymptom = symptoms.includes('sexual')
+  const hasMultipleSymptoms = symptoms.length >= 3
+
+  if (hasSexualSymptom && metabolic.length >= 1) {
+    return {
+      headline: 'อาการที่กรอกเชื่อมโยงกับสุขภาพหลอดเลือด',
+      body: `คุณรายงานทั้งอาการสมรรถภาพ + ${metabolic.length} โรคในกลุ่ม metabolic — งานวิจัยพบว่าอาการสมรรถภาพมักเป็นสัญญาณเตือนล่วงหน้าของปัญหาหลอดเลือดและระบบหัวใจ`,
+      recommendation: 'ปรึกษาแพทย์เพื่อตรวจประเมินสาเหตุร่วม (ฮอร์โมน หลอดเลือด เบาหวาน) ภายใต้การดูแลของแพทย์ W Medical Hospital',
+      disclaimer: DISCLAIMER,
+      urgent: tier === 'urgent' || tier === 'hot',
+    }
+  }
+
+  if (hasMultipleSymptoms) {
+    return {
+      headline: `อาการ ${symptoms.length} ข้อ — อาจสัมพันธ์กับฮอร์โมน`,
+      body: 'อาการที่คุณรายงาน (อ่อนเพลีย อารมณ์ มวลกล้ามเนื้อ การนอน) เป็นกลุ่มอาการที่พบได้บ่อยในผู้ชายวัย 40+ ที่ฮอร์โมน Testosterone ค่อยๆ ลดลงตามวัย — แต่อาจเกิดจากสาเหตุอื่นได้ด้วย',
+      recommendation: 'ปรึกษาแพทย์เพื่อประเมินสาเหตุและแนวทางดูแลที่เหมาะสมกับกรณีของคุณ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'sexual_health') {
+    return {
+      headline: 'ปรึกษาเรื่องสมรรถภาพอย่างเป็นความลับ',
+      body: 'ปัญหาสมรรถภาพในผู้ชายวัย 40+ มีหลายสาเหตุ — ฮอร์โมน หลอดเลือด ความเครียด ผลข้างเคียงยา การวินิจฉัยที่ถูกต้องเริ่มจากการตรวจประเมินก่อน',
+      recommendation: 'ปรึกษาแพทย์เฉพาะทาง ส่วนตัว ไม่ตัดสิน — แผนการดูแลขึ้นอยู่กับดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'hormone') {
+    return {
+      headline: 'ตรวจฮอร์โมน — เก็บ baseline ไว้ก่อน',
+      body: 'การรู้ค่าฮอร์โมนปัจจุบันช่วยให้แพทย์ประเมินว่าอาการที่มีสัมพันธ์กับฮอร์โมนหรือสาเหตุอื่น และวางแผน lifestyle หรือการดูแลที่เหมาะสม',
+      recommendation: 'ปรึกษาแพทย์เพื่อตัดสินใจร่วมกันว่าควรตรวจ panel ไหน — ค่าตรวจตามดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (ageRange === '60_plus' || ageRange === '50_59') {
+    return {
+      headline: 'การเช็กสุขภาพเชิงป้องกันของชายวัย 50+',
+      body: 'ผู้ชายวัย 50+ ควรตรวจสุขภาพประจำปีครอบคลุมทั้ง metabolic, prostate และฮอร์โมน — เพื่อจับสัญญาณเตือนเชิงป้องกันก่อนเกิดอาการหนัก',
+      recommendation: 'ปรึกษาแพทย์ฟรีเพื่อวางแผนการตรวจที่เหมาะกับช่วงวัยของคุณ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  return {
+    headline: 'ประเมินสุขภาพเบื้องต้นเรียบร้อย',
+    body: 'ข้อมูลที่คุณกรอกอยู่ในเกณฑ์พอใช้ได้ — แต่ผู้ชายวัย 40+ ควรเช็กสุขภาพเชิงป้องกันอย่างน้อยปีละครั้ง',
+    recommendation: 'ใช้ voucher ปรึกษาแพทย์ฟรี เก็บไว้เป็น baseline ของสุขภาพชาย',
+    disclaimer: DISCLAIMER,
+  }
+}
+
 export function generateInsight(service: Service, answers: Answers, tier: LeadTier): HealthInsight | null {
   switch (service) {
     case 'glp1':    return insightGLP1(answers, tier)
     case 'ckd':     return insightCKD(answers, tier)
     case 'std':     return insightSTD(answers, tier)
+    case 'mens':    return insightMens(answers, tier)
     case 'foreign': return null
   }
 }

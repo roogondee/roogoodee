@@ -9,6 +9,7 @@ const SERVICE_CODE: Record<Service, string> = {
   ckd: 'CKD',
   std: 'STD',
   foreign: 'FRN',
+  mens: 'MENS',
 }
 
 // A-Z + 2-9 (avoid 0/1/O/I for voice/SMS readability)

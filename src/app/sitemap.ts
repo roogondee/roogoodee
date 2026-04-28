@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: 'https://roogondee.com/glp1', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/ckd', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/foreign', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
+    { url: 'https://roogondee.com/mens', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/ask', priority: 0.9, changeFrequency: 'daily', lastModified: new Date() },
     { url: 'https://roogondee.com/tools', priority: 0.9, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/blog', priority: 0.85, changeFrequency: 'daily', lastModified: new Date() },

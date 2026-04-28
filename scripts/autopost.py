@@ -41,6 +41,7 @@ SERVICE_LABELS = {
     "glp1":    "GLP-1 & ฮอร์โมน",
     "ckd":     "CKD & โรคไต",
     "foreign": "แรงงานต่างด้าว",
+    "mens":    "Men's Health 40+",
 }
 
 # ─── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -163,8 +164,19 @@ def topup_plans_if_needed() -> int:
         return 0
 
 def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str | None:
-    """บันทึกบทความลง posts table และอัปเดต content_plan"""
+    """บันทึกบทความลง posts table และอัปเดต content_plan
+
+    NOTE: mens vertical → publish เป็น 'draft' รอ admin + W Medical sign-off
+    ก่อน publish จริง (ตาม mens-vertical-plan.md compliance gate เดือนแรก)
+    """
     sb = get_sb()
+
+    # mens vertical → draft mode by default until W Medical compliance review
+    # is established as routine (set MENS_AUTO_PUBLISH=1 to bypass).
+    is_mens = plan["service"] == "mens"
+    auto_publish_mens = os.environ.get("MENS_AUTO_PUBLISH") == "1"
+    status = "draft" if (is_mens and not auto_publish_mens) else "published"
+    published_at = datetime.now(BKK_TZ).isoformat() if status == "published" else None
 
     post_data = {
         "title":        plan["title"],
@@ -176,8 +188,8 @@ def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str 
         "focus_kw":     plan.get("focus_kw", ""),
         "meta_desc":    plan.get("meta_desc", ""),
         "image_url":    image_url or "",
-        "status":       "published",
-        "published_at": datetime.now(BKK_TZ).isoformat(),
+        "status":       status,
+        "published_at": published_at,
     }
 
     result = sb.table("posts").upsert(post_data, on_conflict="slug").execute()
@@ -220,6 +232,7 @@ SERVICE_PROMPTS = {
     "glp1":    "healthy lifestyle, weight management, fresh vegetables, fitness, soft green tones, Thai woman smiling, professional photo",
     "ckd":     "kidney health, medical care, calm hospital environment, blue and white tones, doctor consultation, professional",
     "foreign": "diverse workers, health checkup, medical certificate, professional clinic, Samut Sakhon Thailand, clean environment",
+    "mens":    "Thai man aged 45 to 55, professional lifestyle, office or outdoor setting, thoughtful expression, navy and slate tones, clean modern medical aesthetic, fully clothed business casual, no shirtless, no sexual imagery, no couples, professional photo",
 }
 
 def generate_image(title: str, service: str) -> str | None:
@@ -347,6 +360,23 @@ def validate_content(html: str, plan: dict) -> list[str]:
 def generate_content(plan: dict) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
+    is_mens = plan.get("service") == "mens"
+    mens_compliance_block = """
+
+⚠️ COMPLIANCE สำหรับ Men's Health (บังคับ — ห้ามฝ่าฝืน):
+- ห้ามระบุชื่อยา (Viagra, Cialis, Levitra, sildenafil, tadalafil, vardenafil,
+  Nebido, Sustanon, Testogel, AndroGel หรือยาตัวอื่นๆ)
+- ห้ามใช้คำ: รักษาหายขาด, การันตี, 100%, ดีที่สุด, อันดับ 1,
+  เพิ่มขนาด, อึด, ทน X นาที, แข็งทน, ปลุกเซ็กส์, แจกยา, ยาฟรี
+- ห้ามรีวิวพร้อมชื่อจริง + ผลลัพธ์เจาะจง
+- ต้องมีประโยค "ภายใต้การดูแลของแพทย์" หรือใกล้เคียง อย่างน้อยครั้งหนึ่ง
+- ต้องมี disclaimer ท้ายบทความ:
+  "ข้อมูลในบทความเพื่อการศึกษา ไม่ใช่การวินิจฉัยหรือรักษา
+   กรุณาปรึกษาแพทย์ที่ W Medical Hospital สมุทรสาคร"
+- tone: ให้ความรู้ ไม่ตัดสิน ไม่ขายของ
+- เน้น Pillar A (พลังงาน อารมณ์ lifestyle ฮอร์โมนเชิงให้ความรู้)
+  มากกว่า Pillar B (สมรรถภาพ)"""
+
     system_prompt = """คุณเป็นนักเขียนบทความสุขภาพระดับ Medical Grade สำหรับเว็บไซต์ รู้ก่อนดี (roogondee.com)
 โดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 
@@ -358,6 +388,9 @@ def generate_content(plan: dict) -> str:
 - ใช้ <h2>, <h3>, <p>, <ul>, <strong>, <em> เท่านั้น
 - ลงท้ายด้วย CTA: ชวนติดต่อ LINE @roogondee หรือ roogondee.com
 - ห้ามใส่ <!DOCTYPE>, <html>, <head>, <body>, <style>"""
+
+    if is_mens:
+        system_prompt += mens_compliance_block
 
     user_prompt = f"""เขียนบทความสำหรับหัวข้อ:
 
@@ -536,12 +569,30 @@ def main():
                 print("  ☁️  กำลังอัปโหลดรูปไป Supabase Storage...")
                 image_url = upload_image_to_storage(image_url, plan["slug"])
 
-            # 2. Generate content
+            # 2. Generate content (with mens compliance retry)
             print("  🤖 กำลังสร้างเนื้อหาด้วย Claude...")
             html_content = generate_content(plan)
+            html_content = clean_content(html_content)
+
+            # 2a. Mens compliance gate — retry up to 3 times on failure.
+            if plan["service"] == "mens":
+                from compliance import check_mens_compliance
+                ok, comp_issues = check_mens_compliance(html_content)
+                attempt = 1
+                while not ok and attempt < 3:
+                    print(f"  ⚠️ mens compliance fail (try {attempt}): {comp_issues}")
+                    html_content = clean_content(generate_content(plan))
+                    ok, comp_issues = check_mens_compliance(html_content)
+                    attempt += 1
+                if not ok:
+                    err = "mens compliance ไม่ผ่าน: " + " | ".join(comp_issues)
+                    print(f"  ❌ {err}")
+                    get_sb().table("content_plan").update({"status": "error"}).eq("id", plan["id"]).execute()
+                    send_line(f"⚠️ รู้ก่อนดี ข้ามโพสต์ (mens compliance): {title}\n{err[:400]}")
+                    continue
+                print("  ✓ mens compliance ผ่าน")
 
             # 2b. Clean + validate before publishing
-            html_content = clean_content(html_content)
             issues = validate_content(html_content, plan)
             if issues:
                 err = "คุณภาพเนื้อหาไม่ผ่าน: " + " | ".join(issues)

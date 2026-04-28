@@ -278,6 +278,93 @@ const STD_QUESTIONS: Question[] = [
   },
 ]
 
+// ── Men's Health (Andropause + Sexual Wellness) ─────────────────────
+// Tap-only screening — 6 step, no number input.
+// Voucher = ปรึกษาแพทย์ฟรี + InBody + AI Report (compliance-safe framing).
+const MENS_QUESTIONS: Question[] = [
+  {
+    id: 'age_range',
+    type: 'radio',
+    title: 'อายุประมาณเท่าไหร่?',
+    required: true,
+    options: [
+      { value: 'under_40', label: 'ต่ำกว่า 40 ปี' },
+      { value: '40_49',    label: '40-49 ปี' },
+      { value: '50_59',    label: '50-59 ปี' },
+      { value: '60_plus',  label: '60 ปีขึ้นไป' },
+    ],
+  },
+  {
+    id: 'comorbid',
+    type: 'multi',
+    title: 'มีโรคประจำตัวเหล่านี้ไหม?',
+    subtitle: 'เลือกได้หลายข้อ — ใช้ประเมินความปลอดภัย',
+    required: true,
+    options: [
+      { value: 'dm',           label: 'เบาหวาน' },
+      { value: 'ht',           label: 'ความดันโลหิตสูง' },
+      { value: 'dyslipidemia', label: 'ไขมันในเลือดสูง' },
+      { value: 'heart',        label: 'โรคหัวใจ / เคยเจ็บแน่นหน้าอก' },
+      { value: 'prostate',     label: 'มะเร็ง / ปัญหาต่อมลูกหมาก' },
+      { value: 'none',         label: 'ไม่มี', exclusive: true },
+    ],
+  },
+  {
+    id: 'symptoms',
+    type: 'multi',
+    title: 'ในช่วง 6 เดือน มีอาการเหล่านี้ไหม?',
+    subtitle: 'เลือกได้หลายข้อ',
+    required: true,
+    options: [
+      { value: 'fatigue',  label: 'อ่อนเพลีย พลังงานลด' },
+      { value: 'mood',     label: 'อารมณ์แปรปรวน หงุดหงิด เศร้า' },
+      { value: 'muscle',   label: 'มวลกล้ามเนื้อลด / ไขมันท้องเพิ่ม' },
+      { value: 'sleep',    label: 'นอนไม่หลับ / หลับไม่สนิท' },
+      { value: 'sexual',   label: 'สมรรถภาพหรือความต้องการลดลง' },
+      { value: 'none',     label: 'ไม่มี', exclusive: true },
+    ],
+  },
+  {
+    id: 'lifestyle',
+    type: 'multi',
+    title: 'ใช่กับคุณข้อไหนบ้าง?',
+    subtitle: 'เลือกได้หลายข้อ',
+    options: [
+      { value: 'sleep_short', label: 'นอน < 6 ชม./คืน เป็นประจำ' },
+      { value: 'no_exercise', label: 'ออกกำลังกาย < 1 ครั้ง/สัปดาห์' },
+      { value: 'alcohol',     label: 'ดื่มแอลกอฮอล์บ่อย / สูบบุหรี่' },
+      { value: 'stress',      label: 'ทำงานเครียดสูงต่อเนื่อง' },
+      { value: 'weight_gain', label: 'น้ำหนักขึ้นเร็วในปีที่ผ่านมา' },
+      { value: 'none',        label: 'ไม่มีข้อใด', exclusive: true },
+    ],
+  },
+  {
+    id: 'interest',
+    type: 'radio',
+    title: 'อยากให้แพทย์ช่วยเรื่องอะไรเป็นหลัก?',
+    required: true,
+    options: [
+      { value: 'general',        label: 'ตรวจประเมินสุขภาพชายโดยรวม' },
+      { value: 'lifestyle',      label: 'ปรับ lifestyle / boost พลังงาน' },
+      { value: 'sexual_health',  label: 'ปรึกษาเรื่องสมรรถภาพ' },
+      { value: 'hormone',        label: 'ตรวจฮอร์โมนเพื่อ baseline' },
+      { value: 'unsure',         label: 'ยังไม่แน่ใจ — อยากปรึกษาก่อน' },
+    ],
+  },
+  {
+    id: 'start_when',
+    type: 'radio',
+    title: 'พร้อมเริ่มดูแลเมื่อไหร่?',
+    required: true,
+    options: [
+      { value: 'now',    label: 'ทันที',         badge: 'Hot' },
+      { value: '1m',     label: 'ภายใน 1 เดือน' },
+      { value: '1-3m',   label: '1-3 เดือน' },
+      { value: 'unsure', label: 'ยังไม่แน่ใจ' },
+    ],
+  },
+]
+
 export const QUIZZES: Record<Service, QuizDefinition> = {
   glp1: {
     service: 'glp1',
@@ -304,5 +391,11 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
     landingHeadline: 'ตรวจสุขภาพแรงงานต่างด้าว',
     subHeadline: 'ติดต่อ sale เพื่อขอใบเสนอราคาหมู่คณะ',
     questions: [],
+  },
+  mens: {
+    service: 'mens',
+    landingHeadline: 'ปรึกษาแพทย์ฟรี + ตรวจประเมินสุขภาพชายวัย 40+',
+    subHeadline: 'ภายใต้การดูแลของแพทย์ W Medical Hospital สมุทรสาคร — ปรึกษาเป็นความลับ ไม่ตัดสิน',
+    questions: MENS_QUESTIONS,
   },
 }
