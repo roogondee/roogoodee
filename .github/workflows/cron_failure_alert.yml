@@ -28,6 +28,10 @@ jobs:
     # GH รัน job นี้ทุกครั้งที่ watched workflow จบ — filter เฉพาะที่ fail
     if: ${{ github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out' }}
     runs-on: ubuntu-latest
+    permissions:
+      # ต้องการ actions:read เพื่อดึง log ของ run ที่ fail มาประกอบ alert
+      contents: read
+      actions: read
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -45,6 +49,9 @@ jobs:
           # Email backup (ใช้ secret เดียวกับ agent อื่น)
           RESEND_API_KEY:            ${{ secrets.RESEND_API_KEY }}
           NOTIFY_EMAIL:              ${{ secrets.NOTIFY_EMAIL }}
+          # GitHub API — ใช้ดึง log excerpt ของ run ที่ fail
+          GITHUB_TOKEN:              ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:         ${{ github.repository }}
           # workflow_run context — pass through ให้ script
           WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
           WORKFLOW_PATH: ${{ github.event.workflow_run.path }}

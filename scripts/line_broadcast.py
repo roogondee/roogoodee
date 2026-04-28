@@ -253,30 +253,61 @@ def mark_broadcast(post_id: str, broadcast_id: str) -> None:
 
 
 # ─── MAIN ──────────────────────────────────────────────────────────────────
+def _fail(step: str, err: BaseException) -> int:
+    """Print a structured failure line so the cron alert excerpt is useful."""
+    detail = ""
+    if isinstance(err, urllib.error.HTTPError):
+        body = err.read().decode("utf-8", errors="ignore")
+        detail = f" code={err.code} body={body[:500]}"
+    print(
+        f"FAIL step={step} type={type(err).__name__} msg={err}{detail}",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main() -> int:
     if not LINE_TOKEN:
         print("LINE_CHANNEL_ACCESS_TOKEN not set — skipping (not configured yet).")
         return 0
 
-    post = pick_post()
+    try:
+        post = pick_post()
+    except Exception as e:  # noqa: BLE001
+        return _fail("pick_post", e)
+
     if not post:
         print("No eligible post to broadcast (all caught up or none have image).")
         return 0
 
-    print(f"Picked post: {post.get('title')!r} (service={post.get('service')})")
-    caption = write_caption(post)
+    print(f"Picked post id={post.get('id')} title={post.get('title')!r} service={post.get('service')}")
+
+    try:
+        caption = write_caption(post)
+    except Exception as e:  # noqa: BLE001
+        return _fail("write_caption", e)
     print(f"Caption: {caption!r}")
 
     flex = build_flex(post, caption)
     try:
         request_id = line_broadcast(flex)
-    except urllib.error.HTTPError as e:  # noqa: PERF203
-        body = e.read().decode("utf-8", errors="ignore")
-        print(f"LINE broadcast failed ({e.code}): {body}", file=sys.stderr)
-        return 1
+    except Exception as e:  # noqa: BLE001
+        return _fail("line_broadcast", e)
 
     print(f"Broadcast OK — request_id={request_id}")
-    mark_broadcast(post["id"], request_id)
+    try:
+        mark_broadcast(post["id"], request_id)
+    except Exception as e:  # noqa: BLE001
+        # Broadcast already went out, but the dedup row wasn't written. Next
+        # cron would re-broadcast the same post. Exit non-zero so the alert
+        # fires and an operator can mark posts.line_broadcast_at manually
+        # before the next run at 18:00 Bangkok.
+        print(
+            f"WARN broadcast sent (request_id={request_id}) but mark_broadcast failed — "
+            f"set posts.line_broadcast_at manually for id={post['id']} to prevent duplicate.",
+            file=sys.stderr,
+        )
+        return _fail("mark_broadcast", e)
     print("Marked posts.line_broadcast_at — done.")
     return 0
 
