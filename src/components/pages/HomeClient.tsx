@@ -22,6 +22,7 @@ const SERVICE_COLORS: Record<string, string> = {
   glp1: 'bg-emerald-100 text-emerald-700',
   ckd: 'bg-blue-100 text-blue-700',
   foreign: 'bg-amber-100 text-amber-700',
+  mens: 'bg-indigo-100 text-indigo-700',
 }
 
 export default function HomeClient({ posts }: { posts: Post[] | null }) {
@@ -40,6 +41,7 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
     { key: 'glp1',   emoji: '💉', tag: 'Weight Management', color: 'from-green-50 to-emerald-100 border-emerald-200', name: t.home.glp1Name,   desc: t.home.glp1Desc,   features: [t.home.glp1Feature1, t.home.glp1Feature2, t.home.glp1Feature3],     href: '/glp1' },
     { key: 'ckd',    emoji: '🫘', tag: 'Kidney Health',     color: 'from-blue-50 to-indigo-100 border-indigo-200',   name: t.home.ckdName,    desc: t.home.ckdDesc,    features: [t.home.ckdFeature1, t.home.ckdFeature2, t.home.ckdFeature3],       href: '/ckd' },
     { key: 'foreign',emoji: '🧪', tag: 'Corporate Health',  color: 'from-yellow-50 to-amber-100 border-amber-200',  name: t.home.foreignName, desc: t.home.foreignDesc, features: [t.home.foreignFeature1, t.home.foreignFeature2, t.home.foreignFeature3], href: '/foreign' },
+    { key: 'mens',   emoji: '🧔', tag: 'Men\'s Health 40+', color: 'from-slate-50 to-indigo-100 border-indigo-200', name: t.home.mensName,    desc: t.home.mensDesc,    features: [t.home.mensFeature1, t.home.mensFeature2, t.home.mensFeature3],         href: '/mens' },
   ]
 
   const STEPS = [
@@ -343,6 +345,16 @@ function VoucherHero() {
       href: '/quiz/std',
       accent: 'from-rose-400 to-rose-600',
     },
+    {
+      emoji: '🧔',
+      tag: "Men's Health 40+",
+      title: 'ปรึกษาแพทย์ฟรี',
+      value: 'ตรวจประเมินสุขภาพชาย',
+      price: 'มูลค่า 1,500฿',
+      desc: 'พลังงาน อารมณ์ ฮอร์โมน',
+      href: '/quiz/mens',
+      accent: 'from-slate-500 to-indigo-700',
+    },
   ]
 
   return (
@@ -366,7 +378,7 @@ function VoucherHero() {
           พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 mb-8 md:mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8 md:mb-10">
           {OFFERS.map(o => (
             <Link
               key={o.href}

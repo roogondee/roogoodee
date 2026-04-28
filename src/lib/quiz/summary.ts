@@ -171,11 +171,84 @@ function summarizeSTD(a: Answers): string[] {
   return lines
 }
 
+// ── Men's Health (Andropause + Sexual Wellness) ─────────────────────
+const MENS_AGE: Record<string, string> = {
+  under_40: '< 40 ปี',
+  '40_49':  '40-49 ปี',
+  '50_59':  '50-59 ปี',
+  '60_plus': '60+ ปี',
+}
+const MENS_COMORBID: Record<string, string> = {
+  dm: 'เบาหวาน',
+  ht: 'ความดัน',
+  dyslipidemia: 'ไขมันสูง',
+  heart: '🚩 หัวใจ / เจ็บหน้าอก',
+  prostate: '🚩 มะเร็ง/ต่อมลูกหมาก',
+}
+const MENS_SYMPTOMS: Record<string, string> = {
+  fatigue: 'อ่อนเพลีย',
+  mood: 'อารมณ์แปรปรวน',
+  muscle: 'มวลกล้ามเนื้อลด',
+  sleep: 'นอนไม่หลับ',
+  sexual: 'สมรรถภาพลด',
+}
+const MENS_LIFESTYLE: Record<string, string> = {
+  sleep_short: 'นอน < 6 ชม.',
+  no_exercise: 'ไม่ออกกำลัง',
+  alcohol: 'ดื่ม/สูบ',
+  stress: 'เครียดสูง',
+  weight_gain: 'น้ำหนักขึ้นเร็ว',
+}
+const MENS_INTEREST: Record<string, string> = {
+  general: 'สุขภาพรวม',
+  lifestyle: 'lifestyle/พลังงาน',
+  sexual_health: 'สมรรถภาพ',
+  hormone: 'ตรวจฮอร์โมน',
+  unsure: 'ยังไม่แน่ใจ',
+}
+const MENS_START: Record<string, string> = {
+  now: 'ทันที',
+  '1m': 'ภายใน 1 เดือน',
+  '1-3m': '1-3 เดือน',
+  unsure: 'ยังไม่แน่ใจ',
+}
+
+function summarizeMens(a: Answers): string[] {
+  const lines: string[] = []
+
+  const age = asString(a.age_range)
+  if (age) lines.push(`ช่วงอายุ: ${MENS_AGE[age] || age}`)
+
+  const comorbid = asArray(a.comorbid).filter(s => s !== 'none')
+  if (comorbid.length) {
+    lines.push(`โรคประจำตัว: ${comorbid.map(s => MENS_COMORBID[s] || s).join(', ')}`)
+  }
+
+  const symptoms = asArray(a.symptoms).filter(s => s !== 'none')
+  if (symptoms.length) {
+    lines.push(`อาการ: ${symptoms.map(s => MENS_SYMPTOMS[s] || s).join(', ')}`)
+  }
+
+  const lifestyle = asArray(a.lifestyle).filter(s => s !== 'none')
+  if (lifestyle.length) {
+    lines.push(`lifestyle: ${lifestyle.map(s => MENS_LIFESTYLE[s] || s).join(', ')}`)
+  }
+
+  const interest = asString(a.interest)
+  if (interest) lines.push(`สนใจ: ${MENS_INTEREST[interest] || interest}`)
+
+  const start = asString(a.start_when)
+  if (start) lines.push(`พร้อมเริ่ม: ${MENS_START[start] || start}`)
+
+  return lines
+}
+
 export function summarizeAnswers(service: Service, answers: Answers): string[] {
   switch (service) {
     case 'glp1':    return summarizeGLP1(answers)
     case 'ckd':     return summarizeCKD(answers)
     case 'std':     return summarizeSTD(answers)
+    case 'mens':    return summarizeMens(answers)
     case 'foreign': return []
   }
 }

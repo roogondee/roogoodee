@@ -1,4 +1,4 @@
-export type Service = 'std' | 'glp1' | 'ckd' | 'foreign'
+export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens'
 
 export interface Post {
   id: string
@@ -132,5 +132,13 @@ export const SERVICES = {
     target: 'HR/นายจ้าง สมุทรสาคร',
     tone: 'B2B เน้นราคา ความสะดวก',
     cta: 'สอบถามราคาหมู่คณะ'
+  },
+  mens: {
+    name: 'สุขภาพชายวัย 40+',
+    emoji: '🧔',
+    color: '#E0E7FF',
+    target: 'ผู้ชายอายุ 40-65 ปี ที่กังวลเรื่องพลังงาน อารมณ์ ฮอร์โมน',
+    tone: 'ให้ความรู้ ไม่ตัดสิน ภายใต้การดูแลของแพทย์',
+    cta: 'ปรึกษาแพทย์ฟรี'
   }
 } as const

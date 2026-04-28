@@ -32,6 +32,9 @@ SERVICE_HASHTAGS = {
     "glp1":    "#GLP1 #ลดน้ำหนัก #ฮอร์โมน #สุขภาพ",
     "ckd":     "#โรคไต #CKD #ดูแลไต #สุขภาพ",
     "foreign": "#แรงงานต่างด้าว #ตรวจสุขภาพ #ใบรับรองแพทย์",
+    # mens — Pillar A only (วัยทอง / พลังงาน / lifestyle).
+    # ห้ามใช้ #ED #PrEP #แข็งตัว — Meta จะ flag
+    "mens":    "#สุขภาพชาย #วัยทองชาย #ฮอร์โมนชาย #ชายวัย40 #andropause",
 }
 
 # ─── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -95,7 +98,9 @@ def generate_caption(post: dict, link: str) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     excerpt = post.get("excerpt") or _strip_html(post.get("content", ""))[:600]
-    tags    = SERVICE_HASHTAGS.get(post.get("service", ""), "#สุขภาพ #roogondee")
+    service = post.get("service", "")
+    tags    = SERVICE_HASHTAGS.get(service, "#สุขภาพ #roogondee")
+    is_mens = service == "mens"
 
     system_prompt = (
         "คุณเป็นแอดมินเพจสุขภาพ รู้ก่อนดี (roogondee.com) โดยบริษัท เจียรักษา จำกัด\n"
@@ -109,6 +114,16 @@ def generate_caption(post: dict, link: str) -> str:
         "- ห้ามใช้ Markdown เช่น ** หรือ ##\n"
         "- ห้ามใส่ emoji เกิน 4 ตัวในทั้ง caption"
     )
+    if is_mens:
+        system_prompt += (
+            "\n\n⚠️ COMPLIANCE สำหรับโพสต์สุขภาพชาย (บังคับ):\n"
+            "- ห้ามใช้คำว่า ED, แข็งตัว, สมรรถภาพทางเพศ, เพิ่มขนาด, อึด, ทน X นาที\n"
+            "- ห้ามระบุชื่อยา (sildenafil, tadalafil, Viagra, Cialis, Nebido)\n"
+            "- ห้ามใช้ 'รักษาหายขาด', '100%', 'การันตี', 'แจกยา', 'ยาฟรี'\n"
+            "- เน้น Pillar A: พลังงาน อารมณ์ สุขภาพรวม ฮอร์โมนเชิงให้ความรู้\n"
+            "- tone: ให้ความรู้ ไม่ตัดสิน ไม่ขายของ\n"
+            "- เพิ่มประโยค 'ปรึกษาแพทย์ที่ W Medical Hospital'"
+        )
 
     user_prompt = f"""เขียน caption Facebook สำหรับบทความนี้:
 
@@ -123,13 +138,29 @@ Hashtag แนะนำ: {tags}
 
 ส่งคืนเฉพาะข้อความ caption ไม่ต้องมีคำอธิบายอื่น"""
 
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=700,
-        messages=[{"role": "user", "content": user_prompt}],
-        system=system_prompt,
-    )
-    caption = msg.content[0].text.strip()
+    def _call_claude() -> str:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=700,
+            messages=[{"role": "user", "content": user_prompt}],
+            system=system_prompt,
+        )
+        return msg.content[0].text.strip()
+
+    caption = _call_claude()
+
+    # Mens compliance gate — retry up to 3 times if forbidden words detected.
+    if is_mens:
+        from compliance import check_caption_compliance
+        ok, issues = check_caption_compliance(caption, service)
+        attempt = 1
+        while not ok and attempt < 3:
+            print(f"  ⚠️ caption compliance fail (try {attempt}): {issues}")
+            caption = _call_claude()
+            ok, issues = check_caption_compliance(caption, service)
+            attempt += 1
+        if not ok:
+            raise RuntimeError(f"mens caption compliance ไม่ผ่าน: {' | '.join(issues)}")
 
     # ensure link is present
     if link not in caption:

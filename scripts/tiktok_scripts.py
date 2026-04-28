@@ -57,7 +57,7 @@ def iso_n_days_ago(d: int) -> str:
 
 def fetch_recent_posts() -> list:
     cutoff = iso_n_days_ago(WINDOW_DAYS)
-    return supa_get(
+    posts = supa_get(
         "posts",
         {
             "select": "id,title,slug,excerpt,content,service,focus_kw,published_at",
@@ -67,6 +67,12 @@ def fetch_recent_posts() -> list:
             "limit": "40",
         },
     )
+    # mens vertical → ไม่ทำ TikTok script auto จนกว่าจะ phase 3
+    # (CONTEXT §10 — TikTok mens เริ่มหลัง GLP-1 เดือน 4)
+    # ตั้ง MENS_TIKTOK_ENABLE=1 เพื่อเปิดใช้
+    if os.environ.get("MENS_TIKTOK_ENABLE") != "1":
+        posts = [p for p in posts if p.get("service") != "mens"]
+    return posts
 
 
 def build_prompt(posts: list) -> str:
