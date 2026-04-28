@@ -2,23 +2,23 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
+import { getConsent, setConsent } from '@/lib/analytics/consent'
 
 export default function PDPABanner() {
   const [visible, setVisible] = useState(false)
   const { t } = useTranslation()
 
   useEffect(() => {
-    const consent = localStorage.getItem('pdpa_consent')
-    if (!consent) setVisible(true)
+    if (!getConsent()) setVisible(true)
   }, [])
 
   const accept = () => {
-    localStorage.setItem('pdpa_consent', 'accepted')
+    setConsent('accepted')
     setVisible(false)
   }
 
   const decline = () => {
-    localStorage.setItem('pdpa_consent', 'declined')
+    setConsent('declined')
     setVisible(false)
   }
 
