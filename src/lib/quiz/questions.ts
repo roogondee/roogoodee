@@ -147,6 +147,7 @@ const CKD_QUESTIONS: Question[] = [
     id: 'conditions',
     type: 'multi',
     title: 'มีโรคประจำตัวเหล่านี้หรือไม่?',
+    required: true,
     options: [
       { value: 'dm',        label: 'เบาหวาน (DM)' },
       { value: 'ht',        label: 'ความดัน (HT)' },
@@ -160,6 +161,7 @@ const CKD_QUESTIONS: Question[] = [
     id: 'symptoms',
     type: 'multi',
     title: 'มีอาการเหล่านี้หรือไม่?',
+    required: true,
     options: [
       { value: 'swell',       label: 'บวมขา/หน้า' },
       { value: 'foamy_urine', label: 'ปัสสาวะฟอง' },
@@ -172,6 +174,7 @@ const CKD_QUESTIONS: Question[] = [
     id: 'kidney_test_history',
     type: 'radio',
     title: 'เคยตรวจค่าไตไหม?',
+    required: true,
     options: [
       { value: 'normal',   label: 'ปกติ' },
       { value: 'abnormal', label: 'ผิดปกติ' },

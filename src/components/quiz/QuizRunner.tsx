@@ -4,11 +4,17 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Question, QuizDefinition } from '@/lib/quiz/questions'
 import type { LeadTier } from '@/types'
+import { useTranslation } from '@/lib/i18n/context'
 
 declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
     fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    ttq?: {
+      track: (name: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void
+      page?: () => void
+      identify?: (params: Record<string, unknown>) => void
+    }
     grecaptcha?: {
       ready: (cb: () => void) => void
       execute: (siteKey: string, opts: { action: string }) => Promise<string>
@@ -17,6 +23,12 @@ declare global {
 }
 
 const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
+function readCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : undefined
+}
 
 async function getRecaptchaToken(action: string): Promise<string | undefined> {
   if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined' || !window.grecaptcha) return undefined
@@ -30,11 +42,12 @@ async function getRecaptchaToken(action: string): Promise<string | undefined> {
   })
 }
 
-// Spec §7.2 — fire both GA4 and Meta Pixel when available
+// Spec §7.2 — fan out events to GA4, Meta Pixel, and TikTok Pixel when available
 function track(name: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return
   try { window.gtag?.('event', name, params) } catch {}
   try { window.fbq?.('trackCustom', name, params) } catch {}
+  try { window.ttq?.track(name, params) } catch {}
 }
 
 interface Props {
@@ -71,7 +84,11 @@ const EMPTY_CONTACT: ContactForm = {
   email: '',
 }
 
+const STORAGE_VERSION = 1
+
 export default function QuizRunner({ definition }: Props) {
+  const { t } = useTranslation()
+  const tq = t.quiz
   const searchParams = useSearchParams()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, unknown>>({})
@@ -80,9 +97,35 @@ export default function QuizRunner({ definition }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<VoucherResult | null>(null)
+  const [resumed, setResumed] = useState(false)
 
   const startedRef = useRef(false)
   const lastProgressRef = useRef(-1)
+  const storageKey = `rgd-quiz-${definition.service}-v${STORAGE_VERSION}`
+
+  // Restore saved progress on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const { step: s, answers: a } = JSON.parse(saved) as { step: number; answers: Record<string, unknown> }
+        if (typeof s === 'number' && s > 0) {
+          setStep(s)
+          setAnswers(a || {})
+          setResumed(true)
+        }
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist progress whenever step or answers change
+  useEffect(() => {
+    if (step === 0 && Object.keys(answers).length === 0) return
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ step, answers }))
+    } catch {}
+  }, [step, answers, storageKey])
 
   const utm = useMemo(() => ({
     utm_source:   searchParams?.get('utm_source')   || undefined,
@@ -90,12 +133,28 @@ export default function QuizRunner({ definition }: Props) {
     utm_campaign: searchParams?.get('utm_campaign') || undefined,
   }), [searchParams])
 
-  // Spec §7.2: fire quiz_start on mount
+  // Spec §7.2: fire quiz_start on mount + TikTok InitiateCheckout standard event
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
     track('quiz_start', { service: definition.service })
+    try {
+      window.ttq?.track('InitiateCheckout', {
+        content_id: `quiz-${definition.service}`,
+        content_name: `${definition.service.toUpperCase()} Quiz Start`,
+        content_type: 'product',
+        currency: 'THB',
+      })
+    } catch {}
   }, [definition.service])
+
+  // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
+  useEffect(() => {
+    const ttclid = searchParams?.get('ttclid')
+    if (ttclid && typeof document !== 'undefined') {
+      document.cookie = `ttclid=${encodeURIComponent(ttclid)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    }
+  }, [searchParams])
 
   const totalSteps = definition.questions.length + 1 // +1 for contact step
   const progress = Math.round((step / totalSteps) * 100)
@@ -109,7 +168,6 @@ export default function QuizRunner({ definition }: Props) {
   const canProceed = useMemo(() => {
     if (!currentQuestion) return true
     const val = answers[currentQuestion.id]
-    if (!currentQuestion.required) return true
     if (currentQuestion.type === 'multi') return Array.isArray(val) && val.length > 0
     if (currentQuestion.type === 'bmi') {
       const v = val as { weight_kg?: number; height_cm?: number; age?: number; gender?: string } | undefined
@@ -144,10 +202,10 @@ export default function QuizRunner({ definition }: Props) {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!contact.first_name.trim()) { setError('กรุณากรอกชื่อ'); return }
+    if (!contact.first_name.trim()) { setError(tq.errorName); return }
     const phone = contact.phone.replace(/[-\s]/g, '')
-    if (!/^0\d{8,9}$/.test(phone)) { setError('เบอร์โทรไม่ถูกต้อง'); return }
-    if (!consent) { setError('กรุณายอมรับเงื่อนไข PDPA'); return }
+    if (!/^0\d{8,9}$/.test(phone)) { setError(tq.errorPhone); return }
+    if (!consent) { setError(tq.errorConsent); return }
 
     // Flatten BMI/basic step into scoring-compatible answers
     const flat: Record<string, unknown> = { ...answers }
@@ -163,6 +221,8 @@ export default function QuizRunner({ definition }: Props) {
     setLoading(true)
     try {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
+      const ttclid = readCookie('ttclid')
+      const ttp = readCookie('_ttp')
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,13 +242,16 @@ export default function QuizRunner({ definition }: Props) {
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
           recaptcha_token: recaptchaToken,
+          ttclid,
+          ttp,
         }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) {
-        setError(data.error || 'ส่งไม่สำเร็จ')
+        setError(data.error || tq.errorSubmit)
         return
       }
+      try { localStorage.removeItem(storageKey) } catch {}
       setResult({
         code: data.voucher.code,
         expires_at: data.voucher.expires_at,
@@ -202,8 +265,24 @@ export default function QuizRunner({ definition }: Props) {
         window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
         window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
       } catch {}
+      // TikTok standard events — event_id = voucher code so the server-side
+      // Events API call from /api/quiz dedupes against this client-side fire.
+      try {
+        window.ttq?.track('SubmitForm', {
+          content_id: data.voucher.code,
+          content_name: `${definition.service.toUpperCase()} Voucher`,
+          content_type: 'lead',
+          value: data.score,
+          currency: 'THB',
+        }, { event_id: data.voucher.code })
+        window.ttq?.track('CompleteRegistration', {
+          content_id: data.voucher.code,
+          content_name: `${definition.service.toUpperCase()} Lead`,
+          content_type: 'lead',
+        }, { event_id: data.voucher.code })
+      } catch {}
     } catch {
-      setError('ขออภัย มีปัญหา ลองอีกครั้ง')
+      setError(tq.errorGeneral)
     } finally {
       setLoading(false)
     }
@@ -231,17 +310,17 @@ export default function QuizRunner({ definition }: Props) {
         <div className={`max-w-md w-full rounded-3xl p-8 shadow-2xl ${dark ? 'bg-neutral-800 border border-white/10' : 'bg-white'}`}>
           <div className="text-6xl text-center mb-4">🎟</div>
           <h1 className={`font-display text-3xl text-center mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
-            รับ Voucher เรียบร้อย!
+            {tq.successTitle}
           </h1>
           <p className={`text-center text-sm mb-6 ${dark ? 'text-white/70' : 'text-muted'}`}>
-            แสดงโค้ดนี้ที่ W Medical Hospital เพื่อใช้สิทธิ์
+            {tq.successDesc}
           </p>
 
           <div className={`rounded-2xl p-5 text-center mb-5 ${dark ? 'bg-neutral-900 border border-mint/30' : 'bg-mint/10 border border-mint/30'}`}>
-            <div className={`text-xs mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>Voucher Code</div>
+            <div className={`text-xs mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>{tq.voucherCodeLabel}</div>
             <div className="font-mono text-2xl font-bold tracking-wider mb-2">{result.code}</div>
             <div className={`text-xs ${dark ? 'text-white/60' : 'text-muted'}`}>
-              หมดอายุ {expires} (14 วัน)
+              {tq.voucherExpires} {expires} {tq.voucherDays}
             </div>
           </div>
 
@@ -256,7 +335,7 @@ export default function QuizRunner({ definition }: Props) {
                   ? 'text-red-500'
                   : (dark ? 'text-mint' : 'text-amber-700')
               }`}>
-                💡 ประเมินจากคำตอบของคุณ
+                💡 {tq.insightLabel}
               </p>
               <h3 className={`font-display text-base md:text-lg mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
                 {result.insight.headline}
@@ -265,7 +344,7 @@ export default function QuizRunner({ definition }: Props) {
                 {result.insight.body}
               </p>
               <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-white/70' : 'text-muted'}`}>
-                <span className="font-semibold">แนะนำ: </span>{result.insight.recommendation}
+                <span className="font-semibold">{tq.insightRecommend} </span>{result.insight.recommendation}
               </p>
               <p className={`text-xs italic border-t pt-2 ${dark ? 'text-white/40 border-white/10' : 'text-muted border-amber-200'}`}>
                 ⚕️ {result.insight.disclaimer}
@@ -274,11 +353,11 @@ export default function QuizRunner({ definition }: Props) {
           )}
 
           <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
-            <p className="font-semibold mb-2">📱 เชื่อมบัญชี LINE เพื่อรับการแจ้งเตือน:</p>
+            <p className="font-semibold mb-2">📱 {tq.linePrompt}</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>กดปุ่ม Add LINE ด้านล่าง</li>
-              <li>ส่งรหัส <span className={`font-mono font-bold ${dark ? 'text-mint' : 'text-forest'}`}>{result.code}</span> ในแชท</li>
-              <li>ระบบจะยืนยันและแจ้งเตือนก่อน voucher หมดอายุ</li>
+              <li>{tq.lineStep1}</li>
+              <li>{tq.lineStep2}: <span className={`font-mono font-bold ${dark ? 'text-mint' : 'text-forest'}`}>{result.code}</span></li>
+              <li>{tq.lineStep3}</li>
             </ol>
           </div>
 
@@ -287,45 +366,59 @@ export default function QuizRunner({ definition }: Props) {
             target="_blank" rel="noopener noreferrer"
             className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
           >
-            💬 Add LINE @roogondee
+            💬 {tq.addLine}
           </a>
           <a
             href="https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon"
             target="_blank" rel="noopener noreferrer"
             className={`block text-center py-3 rounded-full font-bold text-sm border ${dark ? 'border-white/20 text-white' : 'border-forest text-forest'}`}
           >
-            📍 ดูเส้นทางไปโรงพยาบาล
+            📍 {tq.directions}
           </a>
 
           <p className={`text-xs text-center mt-5 ${dark ? 'text-white/40' : 'text-muted'}`}>
-            ทีมเราจะติดต่อกลับภายใน 24 ชั่วโมง
+            {tq.teamContact}
           </p>
         </div>
       </main>
     )
   }
 
+  const resumeBanner = resumed ? (
+    <div className={`text-xs mb-4 px-3 py-2 rounded-xl flex items-center justify-between ${dark ? 'bg-mint/10 text-mint border border-mint/20' : 'bg-mint/10 text-forest border border-mint/20'}`}>
+      <span>{tq.resumeBanner} {step + 1})</span>
+      <button
+        type="button"
+        onClick={() => { setStep(0); setAnswers({}); setResumed(false); try { localStorage.removeItem(storageKey) } catch {} }}
+        className="underline opacity-60 hover:opacity-100"
+      >
+        {tq.restartLink}
+      </button>
+    </div>
+  ) : null
+
   // ── Contact step ──────────────────────────────────────────────────
   if (isContactStep) {
     return (
-      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)}>
-        <h2 className={`font-display text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>ใกล้เสร็จแล้ว — กรอกเพื่อรับ voucher</h2>
+      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)} backLabel={tq.back} homeLabel={ttq.backHome}>
+        {resumeBanner}
+        <h2 className={`font-display text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>{tq.contactTitle}</h2>
         <p className={`text-sm mb-5 ${dark ? 'text-white/60' : 'text-muted'}`}>
-          ข้อมูลนี้ใช้เพื่อส่ง voucher และนัดหมายเท่านั้น
+          {tq.contactDesc}
         </p>
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field dark={dark} label="ชื่อ *">
+            <Field dark={dark} label={tq.firstName}>
               <input
                 type="text"
                 value={contact.first_name}
                 onChange={e => setContact({ ...contact, first_name: e.target.value })}
                 className={inputCls(dark)}
-                placeholder={definition.allowAnonymous ? 'ชื่อ / nickname' : 'ชื่อจริง'}
+                placeholder={definition.allowAnonymous ? tq.nicknamePlaceholder : ttq.firstNamePlaceholder}
               />
             </Field>
-            <Field dark={dark} label="นามสกุล">
+            <Field dark={dark} label={tq.lastName}>
               <input
                 type="text"
                 value={contact.last_name}
@@ -334,25 +427,25 @@ export default function QuizRunner({ definition }: Props) {
               />
             </Field>
           </div>
-          <Field dark={dark} label="เบอร์โทร *">
+          <Field dark={dark} label={tq.phone}>
             <input
               type="tel"
               value={contact.phone}
               onChange={e => setContact({ ...contact, phone: e.target.value })}
               className={inputCls(dark)}
-              placeholder="08X-XXX-XXXX"
+              placeholder={ttq.phonePlaceholder}
             />
           </Field>
-          <Field dark={dark} label="LINE ID (แนะนำ)">
+          <Field dark={dark} label={tq.lineId}>
             <input
               type="text"
               value={contact.line_id}
               onChange={e => setContact({ ...contact, line_id: e.target.value })}
               className={inputCls(dark)}
-              placeholder="@your_line_id"
+              placeholder={ttq.lineIdPlaceholder}
             />
           </Field>
-          <Field dark={dark} label="Email (ทางเลือก)">
+          <Field dark={dark} label={tq.email}>
             <input
               type="email"
               value={contact.email}
@@ -369,10 +462,9 @@ export default function QuizRunner({ definition }: Props) {
               className="mt-0.5 h-4 w-4 accent-forest shrink-0"
             />
             <span>
-              🔒 ยินยอมให้ รู้ก่อนดี(รู้งี้) และ W Medical Hospital เก็บและใช้ข้อมูลนี้
-              ตาม{' '}
+              🔒 {tq.pdpaConsent}{' '}
               <Link href="/privacy" target="_blank" className={dark ? 'text-mint underline' : 'text-forest underline'}>
-                นโยบาย PDPA
+                {tq.pdpaLink}
               </Link>
             </span>
           </label>
@@ -385,7 +477,7 @@ export default function QuizRunner({ definition }: Props) {
             onClick={handleSubmit}
             className={`w-full py-3.5 rounded-full font-bold text-base transition-all ${dark ? 'bg-mint text-neutral-900 hover:bg-mint/90' : 'bg-forest text-white hover:bg-sage'} disabled:opacity-60`}
           >
-            {loading ? 'กำลังส่ง…' : 'รับ Voucher ฟรี'}
+            {loading ? ttq.submitting : tq.submit}
           </button>
         </div>
       </QuizShell>
@@ -401,9 +493,12 @@ export default function QuizRunner({ definition }: Props) {
       dark={dark}
       progress={progress}
       onBack={step > 0 ? () => setStep(step - 1) : undefined}
+      backLabel={tq.back}
+      homeLabel={ttq.backHome}
     >
+      {resumeBanner}
       <div className={`text-xs font-medium mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>
-        คำถาม {step + 1} / {definition.questions.length}
+        {tq.question} {step + 1} {tq.of} {definition.questions.length}
       </div>
       <h2 className={`font-display text-xl md:text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>
         {q.title}
@@ -434,7 +529,7 @@ export default function QuizRunner({ definition }: Props) {
 
         {q.type === 'multi' && q.options && (
           <div className="space-y-2">
-            <p className={`text-xs mb-2 ${dark ? 'text-white/50' : 'text-muted'}`}>เลือกได้มากกว่า 1 ข้อ</p>
+            <p className={`text-xs mb-2 ${dark ? 'text-white/50' : 'text-muted'}`}>{tq.multiHint}</p>
             {q.options.map(opt => {
               const current = (answers[q.id] as string[] | undefined) ?? []
               const selected = current.includes(opt.value)
@@ -452,8 +547,8 @@ export default function QuizRunner({ definition }: Props) {
           </div>
         )}
 
-        {q.type === 'bmi' && <BmiStep dark={dark} value={answers[q.id] as BmiValue | undefined} onChange={v => setAnswer(q.id, v)} />}
-        {q.type === 'basic' && <BasicStep dark={dark} value={answers[q.id] as BasicValue | undefined} onChange={v => setAnswer(q.id, v)} />}
+        {q.type === 'bmi' && <BmiStep dark={dark} value={answers[q.id] as BmiValue | undefined} onChange={v => setAnswer(q.id, v)} labels={t.quiz} />}
+        {q.type === 'basic' && <BasicStep dark={dark} value={answers[q.id] as BasicValue | undefined} onChange={v => setAnswer(q.id, v)} labels={t.quiz} />}
       </div>
 
       <button
@@ -462,18 +557,20 @@ export default function QuizRunner({ definition }: Props) {
         onClick={() => setStep(step + 1)}
         className={`w-full mt-6 py-3.5 rounded-full font-bold text-base transition-all ${dark ? 'bg-mint text-neutral-900 hover:bg-mint/90' : 'bg-forest text-white hover:bg-sage'} disabled:opacity-40`}
       >
-        ถัดไป →
+        {tq.next}
       </button>
     </QuizShell>
   )
 }
 
 // ── Shell / helpers ───────────────────────────────────────────────────
-function QuizShell({ dark, progress, onBack, children }: {
+function QuizShell({ dark, progress, onBack, children, backLabel, homeLabel }: {
   dark?: boolean
   progress: number
   onBack?: () => void
   children: React.ReactNode
+  backLabel?: string
+  homeLabel?: string
 }) {
   return (
     <main className={`min-h-screen flex items-center justify-center p-4 md:p-6 ${dark ? 'bg-neutral-900' : 'bg-gradient-to-br from-forest via-sage to-mint'}`}>
@@ -481,11 +578,11 @@ function QuizShell({ dark, progress, onBack, children }: {
         <div className="flex items-center justify-between mb-4">
           {onBack ? (
             <button type="button" onClick={onBack} className={`text-sm ${dark ? 'text-white/60' : 'text-muted'}`}>
-              ← ย้อน
+              {backLabel ?? '← ย้อน'}
             </button>
           ) : (
             <Link href="/" className={`text-sm ${dark ? 'text-white/60' : 'text-muted'}`}>
-              ← หน้าแรก
+              {homeLabel ?? '← หน้าแรก'}
             </Link>
           )}
           <div className={`text-xs ${dark ? 'text-white/50' : 'text-muted'}`}>{progress}%</div>
@@ -504,14 +601,20 @@ function QuizShell({ dark, progress, onBack, children }: {
 
 interface BmiValue { weight_kg?: number; height_cm?: number; age?: number; gender?: string }
 interface BasicValue { age?: number; gender?: string }
+interface QuizLabels { weight: string; height: string; age: string; gender: string; genderF: string; genderM: string; genderX: string; yourBmi: string; [key: string]: string }
 
-function BmiStep({ dark, value, onChange }: { dark?: boolean; value?: BmiValue; onChange: (v: BmiValue) => void }) {
+const DEFAULT_LABELS: QuizLabels = {
+  weight: 'น้ำหนัก (กก.)', height: 'ส่วนสูง (ซม.)', age: 'อายุ (ปี)', gender: 'เพศ',
+  genderF: 'หญิง', genderM: 'ชาย', genderX: 'ไม่สะดวกบอก', yourBmi: 'BMI ของคุณ:',
+}
+
+function BmiStep({ dark, value, onChange, labels = DEFAULT_LABELS }: { dark?: boolean; value?: BmiValue; onChange: (v: BmiValue) => void; labels?: QuizLabels }) {
   const v = value || {}
   const bmi = v.weight_kg && v.height_cm ? v.weight_kg / Math.pow(v.height_cm / 100, 2) : null
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <Field dark={dark} label="น้ำหนัก (กก.)">
+        <Field dark={dark} label={labels.weight}>
           <input
             type="number"
             className={inputCls(dark)}
@@ -519,7 +622,7 @@ function BmiStep({ dark, value, onChange }: { dark?: boolean; value?: BmiValue; 
             onChange={e => onChange({ ...v, weight_kg: Number(e.target.value) || undefined })}
           />
         </Field>
-        <Field dark={dark} label="ส่วนสูง (ซม.)">
+        <Field dark={dark} label={labels.height}>
           <input
             type="number"
             className={inputCls(dark)}
@@ -530,19 +633,19 @@ function BmiStep({ dark, value, onChange }: { dark?: boolean; value?: BmiValue; 
       </div>
       {bmi && (
         <div className={`text-center text-sm font-semibold ${dark ? 'text-mint' : 'text-forest'}`}>
-          BMI ของคุณ: {bmi.toFixed(1)}
+          {labels.yourBmi} {bmi.toFixed(1)}
         </div>
       )}
-      <BasicStep dark={dark} value={v} onChange={(bv) => onChange({ ...v, ...bv })} />
+      <BasicStep dark={dark} value={v} onChange={(bv) => onChange({ ...v, ...bv })} labels={labels} />
     </div>
   )
 }
 
-function BasicStep({ dark, value, onChange }: { dark?: boolean; value?: BasicValue; onChange: (v: BasicValue) => void }) {
+function BasicStep({ dark, value, onChange, labels = DEFAULT_LABELS }: { dark?: boolean; value?: BasicValue; onChange: (v: BasicValue) => void; labels?: QuizLabels }) {
   const v = value || {}
   return (
     <div className="space-y-3">
-      <Field dark={dark} label="อายุ (ปี)">
+      <Field dark={dark} label={labels.age}>
         <input
           type="number"
           className={inputCls(dark)}
@@ -550,12 +653,12 @@ function BasicStep({ dark, value, onChange }: { dark?: boolean; value?: BasicVal
           onChange={e => onChange({ ...v, age: Number(e.target.value) || undefined })}
         />
       </Field>
-      <Field dark={dark} label="เพศ">
+      <Field dark={dark} label={labels.gender}>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { value: 'f', label: 'หญิง' },
-            { value: 'm', label: 'ชาย' },
-            { value: 'x', label: 'ไม่สะดวกบอก' },
+            { value: 'f', label: labels.genderF },
+            { value: 'm', label: labels.genderM },
+            { value: 'x', label: labels.genderX },
           ].map(o => {
             const selected = v.gender === o.value
             return (

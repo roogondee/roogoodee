@@ -5,6 +5,7 @@ import LeadChart from '@/components/admin/LeadChart'
 import ExportCSV from '@/components/admin/ExportCSV'
 import { getSessionUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import type { ReadonlyURLSearchParams } from 'next/navigation'
 
 const SERVICE_LABELS: Record<string, string> = {
   std: '🔴 STD & PrEP',
@@ -36,19 +37,28 @@ function formatDate(iso: string) {
   })
 }
 
-export const revalidate = 30
+export const revalidate = 0
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: { service?: string; tier?: string; status?: string; q?: string }
+}) {
   const me = await getSessionUser()
   if (!me) redirect('/admin/login')
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const today = new Date(new Date().setHours(0,0,0,0)).toISOString()
 
+  const filterService = searchParams.service || 'all'
+  const filterTier    = searchParams.tier    || 'all'
+  const filterStatus  = searchParams.status  || 'all'
+  const filterQ       = searchParams.q       || ''
+
   // Sales see only their assigned leads (spec §8.2 access control)
   const saleOnly = me.role === 'sale' && me.id ? me.id : null
 
-  let leadsQuery  = supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(100)
+  let leadsQuery  = supabaseAdmin.from('leads').select('*').order('created_at', { ascending: false }).limit(200)
   let todayQuery  = supabaseAdmin.from('leads').select('id').gte('created_at', today)
   let chartQuery  = supabaseAdmin.from('leads').select('created_at').gte('created_at', thirtyDaysAgo)
   if (saleOnly) {
@@ -56,6 +66,9 @@ export default async function AdminPage() {
     todayQuery = todayQuery.eq('assigned_to', saleOnly)
     chartQuery = chartQuery.eq('assigned_to', saleOnly)
   }
+  if (filterService !== 'all') leadsQuery = leadsQuery.eq('service', filterService)
+  if (filterTier    !== 'all') leadsQuery = leadsQuery.eq('lead_tier', filterTier)
+  if (filterStatus  !== 'all') leadsQuery = leadsQuery.eq('status', filterStatus)
 
   const [{ data: leads }, { data: posts }, { data: todayLeads }, { data: chartLeads }, { data: vouchers }] = await Promise.all([
     leadsQuery,
@@ -103,12 +116,62 @@ export default async function AdminPage() {
       {/* Chart */}
       <LeadChart data={chartData} />
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {/* Service filter */}
+        {[
+          { label: 'ทั้งหมด', value: 'all' },
+          { label: '🔴 STD', value: 'std' },
+          { label: '💉 GLP-1', value: 'glp1' },
+          { label: '🫘 CKD', value: 'ckd' },
+          { label: '🧪 แรงงาน', value: 'foreign' },
+        ].map(f => (
+          <a key={f.value}
+            href={`/admin?service=${f.value}&tier=${filterTier}&status=${filterStatus}`}
+            className={`px-3 py-1.5 rounded-full border font-medium transition-colors ${filterService === f.value ? 'bg-forest text-white border-forest' : 'bg-white text-gray-600 border-gray-200 hover:border-forest'}`}
+          >{f.label}</a>
+        ))}
+        <span className="text-gray-300 mx-1">|</span>
+        {/* Tier filter */}
+        {[
+          { label: 'All tier', value: 'all' },
+          { label: '🚨 Urgent', value: 'urgent' },
+          { label: '🔥 Hot', value: 'hot' },
+          { label: '⚡ Warm', value: 'warm' },
+          { label: '❄️ Cold', value: 'cold' },
+        ].map(f => (
+          <a key={f.value}
+            href={`/admin?service=${filterService}&tier=${f.value}&status=${filterStatus}`}
+            className={`px-3 py-1.5 rounded-full border font-medium transition-colors ${filterTier === f.value ? 'bg-forest text-white border-forest' : 'bg-white text-gray-600 border-gray-200 hover:border-forest'}`}
+          >{f.label}</a>
+        ))}
+        <span className="text-gray-300 mx-1">|</span>
+        {/* Status filter */}
+        {[
+          { label: 'All status', value: 'all' },
+          { label: 'New', value: 'new' },
+          { label: 'Contacted', value: 'contacted' },
+          { label: 'Qualified', value: 'qualified' },
+          { label: 'Booked', value: 'booked' },
+        ].map(f => (
+          <a key={f.value}
+            href={`/admin?service=${filterService}&tier=${filterTier}&status=${f.value}`}
+            className={`px-3 py-1.5 rounded-full border font-medium transition-colors ${filterStatus === f.value ? 'bg-forest text-white border-forest' : 'bg-white text-gray-600 border-gray-200 hover:border-forest'}`}
+          >{f.label}</a>
+        ))}
+      </div>
+
       {/* Leads Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-800">Lead ทั้งหมด</h2>
+          <h2 className="font-semibold text-gray-800">
+            Lead {filterService !== 'all' || filterTier !== 'all' || filterStatus !== 'all' ? '(filtered)' : 'ทั้งหมด'}
+          </h2>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-400">{totalLeads} รายการ</span>
+            {(filterService !== 'all' || filterTier !== 'all' || filterStatus !== 'all') && (
+              <a href="/admin" className="text-xs text-red-400 hover:text-red-600 underline">ล้าง filter</a>
+            )}
             <ExportCSV />
           </div>
         </div>
