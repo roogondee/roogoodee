@@ -109,7 +109,6 @@ export default function QuizRunner({ definition }: Props) {
   const canProceed = useMemo(() => {
     if (!currentQuestion) return true
     const val = answers[currentQuestion.id]
-    if (!currentQuestion.required) return true
     if (currentQuestion.type === 'multi') return Array.isArray(val) && val.length > 0
     if (currentQuestion.type === 'bmi') {
       const v = val as { weight_kg?: number; height_cm?: number; age?: number; gender?: string } | undefined
