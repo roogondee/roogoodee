@@ -329,11 +329,16 @@ def validate_content(html: str, plan: dict) -> list[str]:
     if "line" not in lower and "roogondee" not in lower:
         issues.append("ขาด CTA (ไม่พบ LINE หรือ roogondee)")
 
-    # 10. Focus keyword relevance — at least first keyword appears in body
+    # 10. Focus keyword relevance — every token of the first keyword must appear
+    # in the body. Tokens are checked individually so connectors like "สำหรับ"/"ใน"
+    # between "glp-1" and "ผู้หญิง" don't break the match.
     focus = (plan.get("focus_kw") or "").split(",")
     first_kw = focus[0].strip().lower() if focus else ""
-    if first_kw and first_kw not in plain.lower():
-        issues.append(f"ไม่พบ focus keyword หลัก '{first_kw}' ในเนื้อหา")
+    if first_kw:
+        plain_lower = plain.lower()
+        missing = [tok for tok in first_kw.split() if len(tok) >= 2 and tok not in plain_lower]
+        if missing:
+            issues.append(f"ไม่พบ focus keyword หลัก '{first_kw}' ในเนื้อหา (ขาด: {', '.join(missing)})")
 
     return issues
 
@@ -365,9 +370,12 @@ Meta Description: {plan.get('meta_desc', '')}
 เขียนบทความ HTML ให้ครบ 900-1,200 คำ"""
 
     def _call():
+        # Thai chars consume ~1.5–3 tokens each, so a 900–1,200-word HTML article
+        # routinely exceeds 4k output tokens and gets truncated mid-sentence
+        # (which then cascades into <ul> imbalance + missing CTA at end).
         return client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=4096,
+            max_tokens=8192,
             messages=[{"role": "user", "content": user_prompt}],
             system=system_prompt,
         )
@@ -382,6 +390,8 @@ Meta Description: {plan.get('meta_desc', '')}
             time.sleep(2 ** attempt)
     else:
         raise last_err if last_err else RuntimeError("Claude call failed")
+    if getattr(msg, "stop_reason", None) == "max_tokens":
+        print("  ⚠️ Claude หยุดเพราะ max_tokens — เนื้อหาอาจถูกตัดท้าย")
     text = msg.content[0].text.strip()
     # Strip markdown code fences if Claude wrapped output in ```html ... ```
     if text.startswith("```"):
