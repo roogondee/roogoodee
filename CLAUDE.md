@@ -31,7 +31,9 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 
 ## Tracking
 - GA4 via `NEXT_PUBLIC_GA_ID` (in `src/app/layout.tsx`)
-- **Meta Pixel** via `NEXT_PUBLIC_META_PIXEL_ID` (just installed) — fires `PageView`, `Lead`, `CompleteRegistration`
+- **Meta Pixel** via `NEXT_PUBLIC_META_PIXEL_ID` — fires `PageView`, `Lead`, `CompleteRegistration`
+- **TikTok Pixel** via `NEXT_PUBLIC_TIKTOK_PIXEL_ID` — fires `page()`, `InitiateCheckout` (quiz start), `SubmitForm` + `CompleteRegistration` (quiz success)
+- **TikTok Events API** (server-side) via `TIKTOK_ACCESS_TOKEN` in `src/lib/tiktok-events.ts`, called from `src/app/api/quiz/route.ts` after voucher issued. `event_id = voucher.code` so client and server dedup. Captures `ttclid` (URL → 30d cookie) and `_ttp` cookie, hashes email/phone (E.164) with SHA-256.
 - Custom events: `quiz_start`, `quiz_complete`, `voucher_sent`, `quiz_progress`
 - reCAPTCHA v3 on quiz submit (`NEXT_PUBLIC_RECAPTCHA_SITE_KEY`)
 
