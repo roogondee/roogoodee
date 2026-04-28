@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
 import MediaBlock from '@/components/ui/MediaBlock'
+import ArticleQuiz from '@/components/quiz/ArticleQuiz'
 import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
@@ -140,6 +141,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
         {/* Article content */}
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
+
+        {/* Inline lite quiz — auto-embedded for all articles based on service */}
+        <ArticleQuiz service={post.service} slug={post.slug} />
 
         <BlogServiceCTA service={post.service} />
 
