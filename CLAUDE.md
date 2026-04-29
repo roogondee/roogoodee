@@ -23,6 +23,14 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - `src/lib/quiz/voucher.ts` — voucher code generation
 - Multi-select options with `exclusive: true` (or value `'none'`) clear other selections when picked
 
+## Article quiz (lite, embedded in blog posts)
+- `src/lib/quiz/article-quiz.ts` — 3-question lite definitions per service (glp1/ckd/std)
+- `src/lib/quiz/article-scoring.ts` — ratio scoring → tier `'high' | 'medium' | 'low'` (separate from `LeadTier`)
+- `src/components/quiz/ArticleQuiz.tsx` — embed component, no DB writes, just engagement
+- Auto-rendered in `src/app/blog/[slug]/page.tsx` after article content for any post with `service ∈ {glp1,ckd,std}` (foreign skipped)
+- CTA links to full `/quiz/{service}` with `utm_source=article&utm_medium=article_quiz&utm_campaign={slug}` for funnel attribution
+- Tracks `article_quiz_view` / `article_quiz_progress` / `article_quiz_complete` to GA4 + Meta Pixel
+
 ## Brand & UI
 - Site name: "รู้ก่อนดี(รู้งี้)" / Roogondee / RuGonDee
 - Mint green (`#52B788`) primary, forest green (`#1B4332`) base
@@ -57,6 +65,7 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - `docs/partner-agreement.md` — pre-existing partner doc
 
 ## Recent decisions
+- 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug
 - 2026-04-26: `toggleMulti` enforces exclusivity for `value='none'` and `option.exclusive: true` — fixes the "เลือกไม่มีพร้อมตัวอื่น" bug reported by Pornpat
 - 2026-04-26: STD risk_types `'no_say'` marked exclusive
 - 2026-04-26: needlestick label changed to "เข็มตำโดยอุบัติเหตุ (Needlestick)"
