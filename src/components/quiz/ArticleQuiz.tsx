@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Service } from '@/types'
-import { getArticleQuiz, type ArticleQuizDefinition, type ArticleQuizTier } from '@/lib/quiz/article-quiz'
+import { getArticleQuiz, type ArticleQuizTier } from '@/lib/quiz/article-quiz'
 import { scoreArticleQuiz } from '@/lib/quiz/article-scoring'
+import ShareButtons from '@/components/ui/ShareButtons'
 
 declare global {
   interface Window {
@@ -21,6 +22,7 @@ function track(name: string, params: Record<string, unknown> = {}) {
 interface Props {
   service: Service
   slug?: string
+  articleTitle?: string
 }
 
 const TIER_STYLE: Record<ArticleQuizTier, { ring: string; chip: string; label: string }> = {
@@ -29,7 +31,7 @@ const TIER_STYLE: Record<ArticleQuizTier, { ring: string; chip: string; label: s
   low:    { ring: 'ring-emerald-300 bg-emerald-50',chip: 'bg-emerald-100 text-emerald-700',label: 'ความเสี่ยงต่ำ' },
 }
 
-export default function ArticleQuiz({ service, slug }: Props) {
+export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
   const quiz = getArticleQuiz(service)
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
@@ -99,6 +101,7 @@ export default function ArticleQuiz({ service, slug }: Props) {
     const fullCta = slug
       ? `${quiz.ctaHref}?utm_source=article&utm_medium=article_quiz&utm_campaign=${slug}`
       : `${quiz.ctaHref}?utm_source=article&utm_medium=article_quiz`
+    const shareUrl = slug ? `https://roogondee.com/blog/${slug}` : undefined
     return (
       <ResultCard
         ring={style.ring}
@@ -109,6 +112,9 @@ export default function ArticleQuiz({ service, slug }: Props) {
         ctaLabel={quiz.ctaLabel}
         ctaHref={fullCta}
         onReset={reset}
+        shareUrl={shareUrl}
+        shareTitle={articleTitle}
+        onShare={() => track('article_quiz_share_click', { service, slug, tier: result.tier })}
       />
     )
   }
@@ -195,6 +201,9 @@ function ResultCard(props: {
   ctaLabel: string
   ctaHref: string
   onReset: () => void
+  shareUrl?: string
+  shareTitle?: string
+  onShare?: () => void
 }) {
   return (
     <section className="my-10 not-prose">
@@ -220,6 +229,11 @@ function ResultCard(props: {
             ทำใหม่
           </button>
         </div>
+        {props.shareUrl && (
+          <div className="mt-5 pt-4 border-t border-forest/10" onClick={props.onShare}>
+            <ShareButtons url={props.shareUrl} title={props.shareTitle || 'รู้ก่อนดี — แบบประเมินสุขภาพ'} />
+          </div>
+        )}
         <p className="text-[11px] text-muted/70 mt-4">
           ผลคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัย หากมีข้อสงสัยควรปรึกษาแพทย์
         </p>

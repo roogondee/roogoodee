@@ -143,7 +143,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
 
         {/* Inline lite quiz — auto-embedded for all articles based on service */}
-        <ArticleQuiz service={post.service} slug={post.slug} />
+        <ArticleQuiz service={post.service} slug={post.slug} articleTitle={post.title} />
 
         <BlogServiceCTA service={post.service} />
 
