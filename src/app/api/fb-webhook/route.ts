@@ -136,12 +136,15 @@ export async function POST(req: NextRequest) {
           await sendFBMessage(senderId, aiReply)
         }
 
-        // Notify LINE group (non-blocking)
-        void notifyLineGroup({
-          service,
-          source: 'Facebook Messenger',
-          note: text,
-        })
+        // Notify staff group only when message hits a service keyword — prevents
+        // chitchat from flooding the team room. Lead is still saved above.
+        if (service !== 'general') {
+          void notifyLineGroup({
+            service,
+            source: 'Facebook Messenger',
+            note: text,
+          })
+        }
       }
     }
 

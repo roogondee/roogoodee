@@ -237,7 +237,6 @@ def main() -> int:
         print(f"✅ Facebook post: {fb_post_id}")
 
         mark_fb_posted(post["id"], fb_post_id, caption)
-        send_line(f"📘 รู้ก่อนดี โพสต์ Facebook: {title}\n{link}")
         return 0
 
     except Exception as e:
