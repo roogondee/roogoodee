@@ -8,6 +8,7 @@ export const maxDuration = 60
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
+const LINE_BOT_USER_ID = process.env.LINE_BOT_USER_ID || ''
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 function verifySignature(body: string, signature: string): boolean {
@@ -157,11 +158,29 @@ async function handleEvent(event: any): Promise<void> {
 
   if (event.type !== 'message' || event.message?.type !== 'text') return
 
-  // Only reply to 1:1 chat (not group messages)
-  if (event.source?.type !== 'user') return
-
+  const sourceType: string | undefined = event.source?.type
   const text: string = event.message.text || ''
   const replyToken: string = event.replyToken
+
+  // In groups/rooms: stay silent unless the bot is explicitly @mentioned.
+  // No lead-saving and no group notify — the group IS the audience.
+  if (sourceType === 'group' || sourceType === 'room') {
+    const mentionees: Array<{ userId?: string; type?: string }> =
+      event.message?.mention?.mentionees || []
+    const mentioned =
+      !!LINE_BOT_USER_ID &&
+      mentionees.some(m => m.type === 'user' && m.userId === LINE_BOT_USER_ID)
+    if (!mentioned) return
+
+    const aiReply = await askClaude(text)
+    if (replyToken && aiReply) {
+      await replyToLine(replyToken, aiReply)
+    }
+    return
+  }
+
+  if (sourceType !== 'user') return
+
   const userId: string = event.source?.userId || ''
 
   // Voucher code linkage: if the message is a voucher code,
@@ -220,12 +239,16 @@ async function handleEvent(event: any): Promise<void> {
     await replyToLine(replyToken, aiReply)
   }
 
-  // Notify staff group (non-blocking)
-  void notifyLineGroup({
-    service,
-    source: 'LINE Bot',
-    note: text,
-  })
+  // Notify staff group only when message hits a service keyword — prevents
+  // "สวัสดี/ขอบคุณ" chitchat from flooding the team room. General chat is
+  // still saved as a lead above for analytics.
+  if (service !== 'general') {
+    void notifyLineGroup({
+      service,
+      source: 'LINE Bot',
+      note: text,
+    })
+  }
 }
 
 export async function GET() {
