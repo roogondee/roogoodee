@@ -11,7 +11,9 @@ import crypto from 'crypto'
 const TIKTOK_API_URL = 'https://business-api.tiktok.com/open_api/v1.3/event/track/'
 
 const PIXEL_CODE = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
+const PIXEL_CODE_MENS = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID_MENS
 const ACCESS_TOKEN = process.env.TIKTOK_ACCESS_TOKEN
+const ACCESS_TOKEN_MENS = process.env.TIKTOK_ACCESS_TOKEN_MENS
 // Optional — copy from TikTok Events Manager → Test Events tab to verify
 // payloads land before going live.
 const TEST_EVENT_CODE = process.env.TIKTOK_TEST_EVENT_CODE
@@ -49,6 +51,10 @@ export interface TikTokEventInput {
     currency?: string
     [key: string]: unknown
   }
+  // Service vertical — when 'mens' and the mens-specific pixel/token are set,
+  // route to the isolated pixel so a flagged mens campaign cannot affect
+  // the main account that GLP-1/STD/CKD/Foreign rely on.
+  service?: string
   page?: {
     url?: string
     referrer?: string
@@ -67,12 +73,18 @@ function normalizePhoneE164(phone: string): string {
 }
 
 export async function sendTikTokEvent(input: TikTokEventInput): Promise<void> {
-  if (!PIXEL_CODE || !ACCESS_TOKEN) return
+  // Pick mens-specific credentials only when both mens pixel + mens token are
+  // configured; otherwise mens events fire NOTHING (safer than reusing the
+  // shared pixel — see Pixels.tsx for matching client-side behavior).
+  const useMens = input.service === 'mens'
+  const pixelCode = useMens ? PIXEL_CODE_MENS : PIXEL_CODE
+  const accessToken = useMens ? (ACCESS_TOKEN_MENS || ACCESS_TOKEN) : ACCESS_TOKEN
+  if (!pixelCode || !accessToken) return
 
   const u = input.user
   const body = {
     event_source: 'web',
-    event_source_id: PIXEL_CODE,
+    event_source_id: pixelCode,
     ...(TEST_EVENT_CODE ? { test_event_code: TEST_EVENT_CODE } : {}),
     data: [
       {
@@ -99,7 +111,7 @@ export async function sendTikTokEvent(input: TikTokEventInput): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Token': ACCESS_TOKEN,
+        'Access-Token': accessToken,
       },
       body: JSON.stringify(body),
     })

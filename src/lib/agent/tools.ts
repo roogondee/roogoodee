@@ -7,7 +7,7 @@ import { sendLeadNotification } from '@/lib/email'
 // long copy goes into blog posts and is retrieved via search_blog_posts.
 
 const SERVICE_INFO: Record<
-  'std' | 'glp1' | 'ckd' | 'foreign',
+  'std' | 'glp1' | 'ckd' | 'foreign' | 'mens',
   { label: string; summary: string; offerings: string[]; pricing?: string; location: string }
 > = {
   std: {
@@ -62,6 +62,21 @@ const SERVICE_INFO: Record<
     pricing: 'เริ่มต้น 500 บาท/คน (กลุ่มได้ส่วนลด)',
     location: 'W Medical Hospital, Samut Sakhon',
   },
+  mens: {
+    label: 'สุขภาพชายวัย 40+',
+    summary:
+      'ดูแลสุขภาพชายวัย 40+ — Andropause (วัยทอง) และสุขภาพชายโดยรวม ภายใต้การดูแลของแพทย์',
+    offerings: [
+      'ปรึกษาแพทย์เฉพาะทาง (ครอบคลุมในโครงการ)',
+      'ตรวจประเมินสาเหตุของอาการ — พลังงาน อารมณ์ ฮอร์โมน',
+      'แผนการดูแลเฉพาะบุคคล',
+      'ติดตามผลโดยแพทย์',
+    ],
+    pricing:
+      'ค่าธรรมเนียมแพทย์ฟรีในโครงการ — ค่าตรวจ lab และค่ายา (ถ้ามี) ตามดุลยพินิจของแพทย์ ' +
+      'และคิดตามโครงสร้างราคา รพ.',
+    location: 'W Medical Hospital, Samut Sakhon',
+  },
 }
 
 // ─── Tool definitions (sent to Claude) ───────────────────────────────────
@@ -82,7 +97,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         },
         service: {
           type: 'string',
-          enum: ['std', 'glp1', 'ckd', 'foreign'],
+          enum: ['std', 'glp1', 'ckd', 'foreign', 'mens'],
           description: 'Optional: narrow results to one service line.',
         },
         limit: {
@@ -103,7 +118,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
       properties: {
         service: {
           type: 'string',
-          enum: ['std', 'glp1', 'ckd', 'foreign'],
+          enum: ['std', 'glp1', 'ckd', 'foreign', 'mens'],
           description: 'Which service line.',
         },
       },
@@ -126,7 +141,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         },
         service: {
           type: 'string',
-          enum: ['std', 'glp1', 'ckd', 'foreign', 'general'],
+          enum: ['std', 'glp1', 'ckd', 'foreign', 'mens', 'general'],
           description: 'Which service the lead is interested in.',
         },
         note: {
@@ -150,7 +165,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         phone: { type: 'string', description: 'Thai phone, starts with 0, 9–10 digits.' },
         service: {
           type: 'string',
-          enum: ['std', 'glp1', 'ckd', 'foreign', 'general'],
+          enum: ['std', 'glp1', 'ckd', 'foreign', 'mens', 'general'],
         },
         preferred_date: {
           type: 'string',
@@ -245,7 +260,7 @@ async function handleCreateLead(
     return { output: { ok: false, error: 'invalid_name: ask the user for their name.' } }
   }
 
-  const service = ['std', 'glp1', 'ckd', 'foreign', 'general'].includes(input.service)
+  const service = ['std', 'glp1', 'ckd', 'foreign', 'mens', 'general'].includes(input.service)
     ? input.service
     : 'general'
 

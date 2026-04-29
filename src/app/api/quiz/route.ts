@@ -55,6 +55,28 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // IP rate limit — protect against bot/scraper exhausting the monthly
+    // service quota. Counts vouchers issued from the same IP within the last
+    // 24 hours; threshold is generous (10/day) since multiple family members
+    // may legitimately share an IP. Fails OPEN on `leads.client_ip` column
+    // missing so existing deployments without the column don't break.
+    const clientIp = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+    if (clientIp) {
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count: ipCount, error: ipErr } = await supabaseAdmin
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_ip', clientIp)
+        .gte('created_at', dayAgo)
+      if (!ipErr && (ipCount ?? 0) >= 10) {
+        console.warn('quiz: ip rate limit exceeded', { clientIp, ipCount })
+        return NextResponse.json(
+          { error: 'ระบบตรวจพบคำขอจาก IP นี้มากเกินไป กรุณาลองใหม่ในวันพรุ่งนี้ หรือติดต่อ LINE @roogondee' },
+          { status: 429 },
+        )
+      }
+    }
+
     // Spec §5.2: 1 voucher / service / person — check by phone+service
     const { data: existingVoucher } = await supabaseAdmin
       .from('vouchers')
@@ -114,6 +136,7 @@ export async function POST(req: NextRequest) {
         assigned_at:   assignee ? new Date().toISOString() : null,
         consent_pdpa:  true,
         consent_at:    body.consent_at || new Date().toISOString(),
+        client_ip:     clientIp || null,
         source:        'quiz',
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
@@ -162,11 +185,12 @@ export async function POST(req: NextRequest) {
     // TikTok Events API — fire SubmitForm with event_id = voucher.code so it
     // dedupes against the client-side ttq.track('SubmitForm', …, { event_id })
     // call in QuizRunner.
-    const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || undefined
+    const ip = clientIp || undefined
     const userAgent = req.headers.get('user-agent') || undefined
     void sendTikTokEvent({
       event_name: 'SubmitForm',
       event_id: voucher.code,
+      service: body.service,
       user: {
         email: inserted.email || undefined,
         phone: inserted.phone,
