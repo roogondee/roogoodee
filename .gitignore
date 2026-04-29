@@ -4,3 +4,4 @@ node_modules/
 *.log
 .vercel
 scripts/__pycache__/
+tsconfig.tsbuildinfo
