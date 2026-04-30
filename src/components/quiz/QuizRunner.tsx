@@ -9,7 +9,12 @@ import { useTranslation } from '@/lib/i18n/context'
 declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
-    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    fbq?: (
+      command: 'track' | 'trackCustom',
+      name: string,
+      params?: Record<string, unknown>,
+      options?: { eventID?: string },
+    ) => void
     ttq?: {
       track: (name: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void
       page?: () => void
@@ -223,6 +228,11 @@ export default function QuizRunner({ definition }: Props) {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
       const ttclid = readCookie('ttclid')
       const ttp = readCookie('_ttp')
+      // _fbc/_fbp are set by the Meta Pixel base code on page load. Forward
+      // them so the server-side CAPI Lead event in /api/quiz can include
+      // them in user_data for higher EMQ attribution.
+      const fbc = readCookie('_fbc')
+      const fbp = readCookie('_fbp')
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,6 +254,9 @@ export default function QuizRunner({ definition }: Props) {
           recaptcha_token: recaptchaToken,
           ttclid,
           ttp,
+          fbc,
+          fbp,
+          event_source_url: typeof window !== 'undefined' ? window.location.href : undefined,
         }),
       })
       const data = await res.json()
@@ -261,9 +274,21 @@ export default function QuizRunner({ definition }: Props) {
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
       track('voucher_sent', { service: definition.service, code: data.voucher.code })
+      // Meta Pixel — pass eventID = voucher.code so it dedupes against the
+      // server-side `Lead` fired by /api/quiz via meta-capi.ts.
       try {
-        window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
-        window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+        window.fbq?.(
+          'track',
+          'Lead',
+          { content_category: definition.service, value: data.score, currency: 'THB' },
+          { eventID: data.voucher.code },
+        )
+        window.fbq?.(
+          'track',
+          'CompleteRegistration',
+          { content_category: definition.service },
+          { eventID: data.voucher.code },
+        )
       } catch {}
       // TikTok standard events — event_id = voucher code so the server-side
       // Events API call from /api/quiz dedupes against this client-side fire.

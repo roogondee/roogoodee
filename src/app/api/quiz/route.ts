@@ -10,12 +10,16 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendMetaCAPIEvent } from '@/lib/meta-capi'
 import type { QuizSubmission, Service } from '@/types'
 
 type QuizPayload = Partial<QuizSubmission> & {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbc?: string
+  fbp?: string
+  event_source_url?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens']
@@ -187,6 +191,8 @@ export async function POST(req: NextRequest) {
     // call in QuizRunner.
     const ip = clientIp || undefined
     const userAgent = req.headers.get('user-agent') || undefined
+    const fbc = req.cookies.get('_fbc')?.value || body.fbc
+    const fbp = req.cookies.get('_fbp')?.value || body.fbp
     void sendTikTokEvent({
       event_name: 'SubmitForm',
       event_id: voucher.code,
@@ -208,6 +214,38 @@ export async function POST(req: NextRequest) {
         currency: 'THB',
         lead_score: scoring.tier,
         vertical: body.service,
+      },
+    })
+
+    // Meta Conversions API — server-side `Lead` event with event_id =
+    // voucher.code. The browser-side `fbq('track', 'Lead', …, { eventID })`
+    // in QuizRunner uses the same id so Meta dedupes the pair (recovers
+    // events lost to iOS/ad-blockers without inflating the count).
+    // No drug names or clinical fields appear in the payload (sanitizer
+    // double-checks). content_category is the vertical code, never a
+    // treatment name.
+    void sendMetaCAPIEvent({
+      event_name: 'Lead',
+      event_id: voucher.code,
+      service: body.service,
+      event_source_url: body.event_source_url,
+      user: {
+        email: inserted.email,
+        phone: inserted.phone,
+        first_name: inserted.first_name,
+        last_name: inserted.last_name,
+        external_id: voucher.code,
+        ip,
+        user_agent: userAgent,
+        fbc,
+        fbp,
+      },
+      custom_data: {
+        content_category: body.service,
+        content_name: `${body.service.toUpperCase()} Voucher`,
+        value: scoring.score,
+        currency: 'THB',
+        lead_tier: scoring.tier,
       },
     })
 

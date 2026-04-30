@@ -9,7 +9,12 @@ import ShareButtons from '@/components/ui/ShareButtons'
 declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
-    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    fbq?: (
+      command: 'track' | 'trackCustom',
+      name: string,
+      params?: Record<string, unknown>,
+      options?: { eventID?: string },
+    ) => void
   }
 }
 
