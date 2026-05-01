@@ -39,7 +39,9 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 
 ## Tracking
 - GA4 via `NEXT_PUBLIC_GA_ID` (in `src/app/layout.tsx`)
-- **Meta Pixel** via `NEXT_PUBLIC_META_PIXEL_ID` — fires `PageView`, `Lead`, `CompleteRegistration`
+- **Meta Pixel** via `NEXT_PUBLIC_META_PIXEL_ID` — fires `PageView`, `Lead`, `CompleteRegistration`. Quiz `Lead`/`CompleteRegistration` pass `eventID = voucher.code` for CAPI dedup.
+- **Meta Conversions API** (server-side) via `META_CAPI_ACCESS_TOKEN` in `src/lib/meta-capi.ts`, called from `src/app/api/quiz/route.ts` after voucher issued. `event_id = voucher.code` so client `fbq` and server dedup. Captures `_fbc`/`_fbp` cookies, hashes email/phone/name (phone E.164 no `+`, e.g. `66812345678`) with SHA-256. `sanitizeCustomData` strips drug names (Ozempic/Wegovy/Saxenda/Mounjaro/Rybelsus/semaglutide/tirzepatide/liraglutide) + clinical fields (BMI/weight/HbA1c/FBS/etc.) per Meta Health & Wellness policy. Mens vertical routes to `META_CAPI_ACCESS_TOKEN_MENS` + `NEXT_PUBLIC_META_PIXEL_ID_MENS` when set; otherwise mens fires NOTHING (matches Pixels.tsx + tiktok-events.ts isolation). Optional `META_TEST_EVENT_CODE` for staging-only Test Events tab verification.
+- **Generic CAPI relay** at `/api/track/conversion` (`src/app/api/track/conversion/route.ts`) + browser wrapper `src/lib/meta-pixel.ts#trackMetaEvent` for ad-hoc events outside the quiz flow. Browser wrapper gates on `hasConsent()` from `@/lib/analytics/consent`.
 - **TikTok Pixel** via `NEXT_PUBLIC_TIKTOK_PIXEL_ID` — fires `page()`, `InitiateCheckout` (quiz start), `SubmitForm` + `CompleteRegistration` (quiz success)
 - **TikTok Events API** (server-side) via `TIKTOK_ACCESS_TOKEN` in `src/lib/tiktok-events.ts`, called from `src/app/api/quiz/route.ts` after voucher issued. `event_id = voucher.code` so client and server dedup. Captures `ttclid` (URL → 30d cookie) and `_ttp` cookie, hashes email/phone (E.164) with SHA-256.
 - Custom events: `quiz_start`, `quiz_complete`, `voucher_sent`, `quiz_progress`
@@ -65,6 +67,7 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - `docs/partner-agreement.md` — pre-existing partner doc
 
 ## Recent decisions
+- 2026-04-30: Meta CAPI added (`src/lib/meta-capi.ts`) — server-side `Lead` event from `/api/quiz` with `event_id = voucher.code` for browser/server dedup. Browser wrapper `src/lib/meta-pixel.ts` + relay `/api/track/conversion` for ad-hoc events. Drug names + clinical fields stripped before send (Health & Wellness compliance). Mens vertical isolated via `META_CAPI_ACCESS_TOKEN_MENS`.
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug
 - 2026-04-26: `toggleMulti` enforces exclusivity for `value='none'` and `option.exclusive: true` — fixes the "เลือกไม่มีพร้อมตัวอื่น" bug reported by Pornpat
 - 2026-04-26: STD risk_types `'no_say'` marked exclusive
