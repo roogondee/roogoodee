@@ -134,7 +134,11 @@ def build_flex(post: dict, caption: str) -> dict:
     # truncate title to fit Flex layout safely
     title = (post.get("title") or "")[:80]
     image_url = post["image_url"]
-    blog_url = f"{SITE_BASE}/blog/{post.get('slug','')}"
+    # Percent-encode the slug — Thai/space/'?' characters in legacy slugs
+    # produce a URL that LINE rejects with "Invalid action URI" → 400.
+    slug = post.get("slug", "") or ""
+    slug_path = urllib.parse.quote(slug, safe="-_~")
+    blog_url = f"{SITE_BASE}/blog/{slug_path}"
     # Use the direct site URL for the CTA. The previous liff.line.me/<id>
     # deep-link surfaced "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ" inside LINE when
     # the LIFF app wasn't fully published. /lead/liff still initialises the
@@ -143,7 +147,7 @@ def build_flex(post: dict, caption: str) -> dict:
     lead_url = (
         f"{SITE_BASE}/lead/liff"
         f"?service={urllib.parse.quote(service)}"
-        f"&utm_source=line&utm_medium=broadcast&utm_campaign={urllib.parse.quote(post.get('slug','') or 'daily')}"
+        f"&utm_source=line&utm_medium=broadcast&utm_campaign={urllib.parse.quote(slug or 'daily')}"
     )
 
     return {
