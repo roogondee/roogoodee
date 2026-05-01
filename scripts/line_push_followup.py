@@ -31,7 +31,6 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 LINE_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 SITE_BASE = os.environ.get("SITE_BASE_URL", "https://roogondee.com").rstrip("/")
-LIFF_ID = os.environ.get("LIFF_ID", "").strip()
 MODEL = "claude-haiku-4-5-20251001"
 
 MIN_AGE_DAYS = 1            # อย่ารบกวน lead ที่เพิ่งเข้ามา (ทีมยังโทรอยู่)
@@ -227,13 +226,12 @@ def write_message(lead: dict, chat_text: str) -> str | None:
 def line_push(line_id: str, message: str) -> str | None:
     """Send to a single user via Messaging API push. Returns request id on
     success, None on failure (caller logs + skips marking)."""
-    # Build a Flex message with the text + a "ทักทีมเลย" follow-up button
-    # that opens the LIFF (or fallback /lead/line) so the user can confirm
-    # interest with one tap. If LIFF_ID is missing we still send plain text.
-    if LIFF_ID:
-        followup_url = f"https://liff.line.me/{LIFF_ID}?utm_source=line&utm_medium=push"
-    else:
-        followup_url = f"{SITE_BASE}/lead/line?utm_source=line&utm_medium=push"
+    # Build a Flex message with the text + a "ทักทีมเลย" follow-up button.
+    # Uses the direct /lead/liff URL rather than liff.line.me/<id>: the
+    # latter surfaced "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ" in LINE when the LIFF
+    # app wasn't fully published. The page itself still initialises the LIFF
+    # SDK via NEXT_PUBLIC_LIFF_ID for userId capture when available.
+    followup_url = f"{SITE_BASE}/lead/liff?utm_source=line&utm_medium=push"
 
     flex = {
         "type": "flex",
