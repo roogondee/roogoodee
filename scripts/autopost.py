@@ -266,6 +266,12 @@ FORBIDDEN_TAGS = ["<!doctype", "<html", "<head", "<body", "<script", "<style", "
 PLACEHOLDER_PATTERNS = ["[todo]", "lorem ipsum", "{placeholder}", "{{", "}}", "[insert", "xxxx"]
 BALANCED_TAGS = ["p", "h2", "h3", "ul", "ol", "li", "strong", "em", "blockquote"]
 
+# Inline-only tags safe to auto-balance. Block-level imbalances stay failures
+# because they signal structural truncation, not a stray closer.
+INLINE_REPAIRABLE_TAGS = {"strong", "em"}
+BLOCK_BOUNDARY_TAGS = {"p", "h2", "h3", "h4", "li", "ul", "ol", "blockquote"}
+_TAG_RE = re.compile(r"<(/?)([a-zA-Z0-9]+)(\s[^>]*)?>")
+
 def clean_content(html: str) -> str:
     """Strip zero-width chars, normalize whitespace, remove stray code fences."""
     # Zero-width / BOM
@@ -276,6 +282,41 @@ def clean_content(html: str) -> str:
     # Collapse runs of spaces (preserve newlines)
     html = "\n".join(re.sub(r" {2,}", " ", ln).rstrip() for ln in html.split("\n"))
     return html.strip()
+
+def repair_inline_tags(html: str) -> str:
+    """Auto-close orphan <strong>/<em> tags so a single missing closer doesn't
+    sink the whole post. Closes any open inline tags at block boundaries
+    (<p>, </p>, <li>, \u2026) and at EOF; drops orphan closers that match nothing
+    on the stack."""
+    out: list[str] = []
+    stack: list[str] = []
+    pos = 0
+    for m in _TAG_RE.finditer(html):
+        out.append(html[pos:m.start()])
+        is_close = bool(m.group(1))
+        name = m.group(2).lower()
+        raw = m.group(0)
+        if name in INLINE_REPAIRABLE_TAGS:
+            if is_close:
+                if name in stack:
+                    while stack and stack[-1] != name:
+                        out.append(f"</{stack.pop()}>")
+                    stack.pop()
+                    out.append(raw)
+                # else: orphan close \u2014 drop silently
+            else:
+                stack.append(name)
+                out.append(raw)
+        else:
+            if name in BLOCK_BOUNDARY_TAGS:
+                while stack:
+                    out.append(f"</{stack.pop()}>")
+            out.append(raw)
+        pos = m.end()
+    out.append(html[pos:])
+    while stack:
+        out.append(f"</{stack.pop()}>")
+    return "".join(out)
 
 def _strip_tags(html: str) -> str:
     return re.sub(r"<[^>]+>", " ", html)
@@ -573,6 +614,7 @@ def main():
             print("  🤖 กำลังสร้างเนื้อหาด้วย Claude...")
             html_content = generate_content(plan)
             html_content = clean_content(html_content)
+            html_content = repair_inline_tags(html_content)
 
             # 2a. Mens compliance gate — retry up to 3 times on failure.
             if plan["service"] == "mens":
@@ -581,7 +623,7 @@ def main():
                 attempt = 1
                 while not ok and attempt < 3:
                     print(f"  ⚠️ mens compliance fail (try {attempt}): {comp_issues}")
-                    html_content = clean_content(generate_content(plan))
+                    html_content = repair_inline_tags(clean_content(generate_content(plan)))
                     ok, comp_issues = check_mens_compliance(html_content)
                     attempt += 1
                 if not ok:
