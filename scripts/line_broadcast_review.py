@@ -19,6 +19,7 @@ no-op ถ้า LINE_CHANNEL_ACCESS_TOKEN ไม่ตั้ง
 import json
 import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -45,8 +46,13 @@ SERVICE_LABELS = {
 
 
 # ─── SUPABASE ──────────────────────────────────────────────────────────────
+# NB: do NOT include "%" in `safe`. PostgREST `ilike` patterns must use the
+# "*" wildcard syntax (which PostgREST converts to "%" server-side); a bare
+# "%" in the query string collides with URL percent-encoding and trips the
+# parser when the surrounding value contains UTF-8 bytes (e.g. Thai slugs),
+# returning HTTP 400.
 def supa_get(path: str, params: dict) -> list:
-    qs = urllib.parse.urlencode(params, safe=",.()*%")
+    qs = urllib.parse.urlencode(params, safe=",.()*")
     url = f"{SUPABASE_URL}/rest/v1/{path}?{qs}"
     req = urllib.request.Request(
         url,
@@ -63,7 +69,7 @@ def supa_get(path: str, params: dict) -> list:
 def supa_count(path: str, params: dict) -> int:
     """HEAD with Prefer: count=exact returns a Content-Range header where the
     last segment is the total count."""
-    qs = urllib.parse.urlencode(params, safe=",.()*%")
+    qs = urllib.parse.urlencode(params, safe=",.()*")
     url = f"{SUPABASE_URL}/rest/v1/{path}?{qs}"
     req = urllib.request.Request(
         url,
@@ -133,7 +139,9 @@ def count_leads_for_slug(slug: str) -> int:
     """Leads marked source='line-broadcast' and note containing utm_campaign=<slug>."""
     if not slug:
         return 0
-    pattern = f"%utm_campaign={slug}%"
+    # PostgREST: use "*" wildcards (server converts to SQL "%"). Avoids the
+    # bare "%" in URL → ambiguous percent-encoding when slug has Thai chars.
+    pattern = f"*utm_campaign={slug}*"
     return supa_count(
         "leads",
         {
@@ -248,13 +256,29 @@ def send_email(html: str, total_leads: int) -> None:
 
 
 # ─── MAIN ──────────────────────────────────────────────────────────────────
+def _fail(step: str, err: BaseException) -> int:
+    """Print a structured failure line so the cron alert excerpt is useful."""
+    detail = ""
+    if isinstance(err, urllib.error.HTTPError):
+        body = err.read().decode("utf-8", errors="ignore")
+        detail = f" code={err.code} body={body[:500]}"
+    print(
+        f"FAIL step={step} type={type(err).__name__} msg={err}{detail}",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main() -> int:
     if not LINE_TOKEN:
         print("LINE_CHANNEL_ACCESS_TOKEN not set — skipping.")
         return 0
 
     print(f"Fetching broadcasts from last {WINDOW_DAYS} days …")
-    posts = fetch_recent_broadcasts()
+    try:
+        posts = fetch_recent_broadcasts()
+    except Exception as e:  # noqa: BLE001
+        return _fail("fetch_recent_broadcasts", e)
     print(f"  posts: {len(posts)}")
     if not posts:
         print("No broadcasts to review. Skipping email.")
@@ -279,7 +303,10 @@ def main() -> int:
         # If multiple broadcasts on same day, this is a daily total — split
         # evenly across same-day posts (best-effort, no per-broadcast metric
         # without setting up customAggregationUnit which needs more setup).
-        leads = count_leads_for_slug(p.get("slug", ""))
+        try:
+            leads = count_leads_for_slug(p.get("slug", ""))
+        except Exception as e:  # noqa: BLE001
+            return _fail(f"count_leads_for_slug slug={p.get('slug','')!r}", e)
         ctr = round(100 * leads / delivered, 2) if delivered else 0
 
         rows.append({
@@ -302,7 +329,10 @@ def main() -> int:
                 r["delivered"] = split
                 r["ctr_pct"] = round(100 * r["leads"] / split, 2) if split else 0
 
-    summary = summarize(rows, follower_count)
+    try:
+        summary = summarize(rows, follower_count)
+    except Exception as e:  # noqa: BLE001
+        return _fail("summarize", e)
     print("\n" + "=" * 60)
     print(summary)
     print("=" * 60 + "\n")
