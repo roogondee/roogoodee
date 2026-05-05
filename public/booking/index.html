@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>จองนัดหมาย — รู้ก่อนดี</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-dark: #0a6e6e;
+    --teal: #0d9488;
+    --teal-light: #14b8a6;
+    --teal-pale: #ccfbf1;
+    --teal-bg: #f0fdfa;
+    --gold: #d97706;
+    --gold-light: #fbbf24;
+    --text-dark: #0f2a2a;
+    --text-mid: #2d6a6a;
+    --text-soft: #6b9e9e;
+    --white: #ffffff;
+    --shadow: 0 4px 24px rgba(10,110,110,0.12);
+    --shadow-lg: 0 8px 40px rgba(10,110,110,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    background: var(--teal-bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #0a4f4f 0%, #0d7a7a 60%, #0f9e9e 100%);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 20%;
+    width: 120px; height: 120px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .header-inner {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 24px 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .brand-logo {
+    width: 44px; height: 44px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .brand-text { display: flex; flex-direction: column; }
+  .brand-name { font-size: 18px; font-weight: 700; color: white; letter-spacing: 0.3px; }
+  .brand-sub { font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 400; }
+  .header-title { font-size: 26px; font-weight: 700; color: white; line-height: 1.3; margin-bottom: 6px; }
+  .header-desc { font-size: 14px; color: rgba(255,255,255,0.7); font-weight: 300; }
+
+  .steps-bar {
+    background: white;
+    border-bottom: 1px solid rgba(10,110,110,0.08);
+    padding: 16px 24px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .steps { display: flex; align-items: center; gap: 0; }
+  .step { display: flex; align-items: center; gap: 6px; flex: 1; position: relative; }
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
+    width: calc(100% - 28px);
+    left: 28px;
+    height: 2px;
+    background: #e2f5f3;
+    z-index: 0;
+  }
+  .step.active:not(:last-child)::after,
+  .step.done:not(:last-child)::after { background: var(--teal-light); }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    background: #e2f5f3; color: var(--text-soft);
+    flex-shrink: 0; position: relative; z-index: 1;
+    transition: all 0.3s;
+  }
+  .step.active .step-num { background: var(--teal); color: white; box-shadow: 0 0 0 4px rgba(13,148,136,0.15); }
+  .step.done .step-num { background: var(--teal-light); color: white; }
+
+  .main { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+  .screen { display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title { font-size: 16px; font-weight: 600; color: var(--text-mid); margin-bottom: 14px; text-align: center; }
+
+  .clinic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .clinic-card {
+    background: white; border-radius: 16px; padding: 20px 14px;
+    text-align: center; cursor: pointer; border: 2px solid transparent;
+    box-shadow: var(--shadow); transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .clinic-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--teal-light)); opacity: 0; transition: opacity 0.2s;
+  }
+  .clinic-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .clinic-card.selected { border-color: var(--teal); background: var(--teal-bg); }
+  .clinic-card.selected::before { opacity: 1; }
+  .clinic-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+  .clinic-name { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 3px; line-height: 1.3; }
+  .clinic-name-en { font-size: 11px; color: var(--text-soft); font-weight: 400; }
+
+  .date-section { margin-bottom: 20px; }
+  .date-label { font-size: 13px; font-weight: 600; color: var(--text-mid); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .month-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+  }
+  .month-btn {
+    width: 32px; height: 32px; border: none; background: var(--teal-bg); border-radius: 8px;
+    cursor: pointer; color: var(--teal); font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .month-btn:hover { background: var(--teal); color: white; }
+  .month-title { font-size: 15px; font-weight: 700; color: var(--text-dark); }
+  .calendar { background: white; border-radius: 16px; padding: 16px; box-shadow: var(--shadow); }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }
+  .cal-weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-soft); padding: 4px 0; }
+  .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-dark); transition: all 0.15s; font-weight: 500;
+  }
+  .cal-day:hover:not(.disabled):not(.empty) { background: var(--teal-pale); color: var(--teal-dark); }
+  .cal-day.selected { background: var(--teal); color: white; font-weight: 700; box-shadow: 0 2px 8px rgba(13,148,136,0.4); }
+  .cal-day.today { border: 2px solid var(--teal-light); color: var(--teal); font-weight: 700; }
+  .cal-day.disabled { color: #ccc; cursor: not-allowed; }
+  .cal-day.empty { cursor: default; }
+
+  .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .time-slot {
+    padding: 10px 8px; background: white; border-radius: 10px; text-align: center; cursor: pointer;
+    border: 2px solid transparent; box-shadow: 0 2px 8px rgba(10,110,110,0.08);
+    font-size: 13px; font-weight: 600; color: var(--text-mid); transition: all 0.2s;
+  }
+  .time-slot:hover:not(.full) { border-color: var(--teal-light); color: var(--teal); }
+  .time-slot.selected { background: var(--teal); color: white; border-color: var(--teal); }
+  .time-slot.full { background: #f5f5f5; color: #bbb; cursor: not-allowed; text-decoration: line-through; }
+  .time-label { font-size: 10px; font-weight: 400; display: block; margin-top: 2px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .required { color: #ef4444; }
+  .form-input {
+    width: 100%; padding: 13px 16px; border: 2px solid #e2f5f3; border-radius: 12px;
+    font-family: 'Sarabun', sans-serif; font-size: 15px; color: var(--text-dark);
+    background: white; transition: border-color 0.2s; outline: none;
+  }
+  .form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+  .form-input::placeholder { color: #aacece; }
+  select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230d9488' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer;
+  }
+
+  .summary-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+  .summary-title {
+    font-size: 14px; font-weight: 700; color: var(--teal-dark); margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--teal-pale); display: flex; align-items: center; gap: 6px;
+  }
+  .summary-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f0fdfa; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-key { font-size: 13px; color: var(--text-soft); font-weight: 500; }
+  .summary-val { font-size: 13px; color: var(--text-dark); font-weight: 600; text-align: right; max-width: 60%; }
+
+  .confirm-note {
+    background: linear-gradient(135deg, #f0fdfa, #e6faf7);
+    border: 1px solid var(--teal-pale); border-radius: 12px; padding: 14px 16px;
+    font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 20px; display: flex; gap: 10px;
+  }
+
+  .btn-primary {
+    width: 100%; padding: 16px;
+    background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+    color: white; border: none; border-radius: 14px;
+    font-family: 'Sarabun', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(13,148,136,0.35); transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(13,148,136,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    width: 100%; padding: 14px; background: white; color: var(--teal);
+    border: 2px solid var(--teal-pale); border-radius: 14px;
+    font-family: 'Sarabun', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
+  }
+  .btn-secondary:hover { border-color: var(--teal); background: var(--teal-bg); }
+  .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+  .btn-row .btn-secondary { margin-bottom: 0; flex: 1; }
+  .btn-row .btn-primary { flex: 2; }
+
+  .success-screen { text-align: center; padding: 20px 0; }
+  .success-icon {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--teal), var(--teal-light));
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 36px; margin: 0 auto 20px;
+    box-shadow: 0 8px 32px rgba(13,148,136,0.3);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-title { font-size: 22px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+  .success-sub { font-size: 14px; color: var(--text-soft); margin-bottom: 24px; line-height: 1.6; }
+  .booking-ref {
+    background: linear-gradient(135deg, var(--teal-dark), #0a5a5a);
+    color: white; border-radius: 16px; padding: 20px; margin-bottom: 24px; text-align: center;
+  }
+  .booking-ref-label { font-size: 12px; opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .booking-ref-code { font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+
+  .spacer { height: 20px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">💚</div>
+      <div class="brand-text">
+        <span class="brand-name">รู้ก่อนดี</span>
+        <span class="brand-sub">W Medical Hospital</span>
+      </div>
+    </div>
+    <div class="header-title">จองนัดหมายแพทย์</div>
+    <div class="header-desc">เลือกแผนก วัน และเวลาที่สะดวก</div>
+  </div>
+</div>
+
+<!-- STEPS -->
+<div class="steps-bar">
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div></div>
+    <div class="step" id="step2"><div class="step-num">2</div></div>
+    <div class="step" id="step3"><div class="step-num">3</div></div>
+    <div class="step" id="step4"><div class="step-num">4</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SCREEN 1: CLINIC -->
+  <div class="screen active" id="screen1">
+    <div class="section-title">เลือกแผนก / บริการ</div>
+    <div class="clinic-grid">
+      <div class="clinic-card" onclick="selectClinic(this, 'คลินิกลดน้ำหนัก', 'glp1')">
+        <span class="clinic-icon">⚖️</span>
+        <div class="clinic-name">คลินิกลดน้ำหนัก</div>
+        <div class="clinic-name-en">Weight Loss Clinic</div>
+      </div>
+      <div class="clinic-card" onclick="selectClinic(this, 'คลินิก STI/STD', 'std')">
+        <span class="clinic-icon">🩺</span>
+        <div class="clinic-name">คลินิก STI/STD</div>
+        <div class="clinic-name-en">Sexual Health Clinic</div>
+      </div>
+      <div class="clinic-card" onclick="selectClinic(this, 'คลินิกโรคไต', 'ckd')">
+        <span class="clinic-icon">🫘</span>
+        <div class="clinic-name">คลินิกโรคไต</div>
+        <div class="clinic-name-en">Nephrology Clinic</div>
+      </div>
+      <div class="clinic-card" onclick="selectClinic(this, 'คลินิกฮอร์โมนเพศชาย', 'general')">
+        <span class="clinic-icon">💪</span>
+        <div class="clinic-name">คลินิกฮอร์โมนเพศชาย</div>
+        <div class="clinic-name-en">Men's Health Clinic</div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="goTo(2)" id="btn1" disabled>ถัดไป →</button>
+  </div>
+
+  <!-- SCREEN 2: DATE & TIME -->
+  <div class="screen" id="screen2">
+    <div class="date-section">
+      <div class="date-label">📅 เลือกวันนัดหมาย</div>
+      <div class="month-nav">
+        <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="month-title" id="monthTitle"></div>
+        <button class="month-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="calendar">
+        <div class="cal-weekdays">
+          <div class="cal-weekday">อา</div>
+          <div class="cal-weekday">จ</div>
+          <div class="cal-weekday">อ</div>
+          <div class="cal-weekday">พ</div>
+          <div class="cal-weekday">พฤ</div>
+          <div class="cal-weekday">ศ</div>
+          <div class="cal-weekday">ส</div>
+        </div>
+        <div class="cal-days" id="calDays"></div>
+      </div>
+    </div>
+
+    <div id="timeSection" style="display:none">
+      <div class="date-label">🕐 เลือกเวลา</div>
+      <div class="time-grid" id="timeGrid"></div>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goTo(1)">← กลับ</button>
+      <button class="btn-primary" onclick="goTo(3)" id="btn2" disabled>ถัดไป →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: PATIENT INFO -->
+  <div class="screen" id="screen3">
+    <div class="section-title">ข้อมูลผู้นัดหมาย</div>
+
+    <div class="form-group">
+      <div class="form-label">ชื่อ-นามสกุล <span class="required">*</span></div>
+      <input type="text" class="form-input" id="fname" placeholder="กรอกชื่อ-นามสกุล" oninput="checkForm3()">
+    </div>
+    <div class="form-group">
+      <div class="form-label">เบอร์โทรศัพท์ <span class="required">*</span></div>
+      <input type="tel" class="form-input" id="fphone" placeholder="08X-XXX-XXXX" maxlength="10" oninput="checkForm3()">
+    </div>
+    <div class="form-group">
+      <div class="form-label">อายุ</div>
+      <input type="number" class="form-input" id="fage" placeholder="อายุ (ปี)" min="1" max="120">
+    </div>
+    <div class="form-group">
+      <div class="form-label">อาการเบื้องต้น / หมายเหตุ</div>
+      <textarea class="form-input" id="fnote" placeholder="ระบุอาการหรือความต้องการพิเศษ (ถ้ามี)" rows="3" style="resize:none;line-height:1.5"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goTo(2)">← กลับ</button>
+      <button class="btn-primary" onclick="goTo(4)" id="btn3" disabled>ยืนยัน →</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: CONFIRM -->
+  <div class="screen" id="screen4">
+    <div class="section-title">ยืนยันการนัดหมาย</div>
+
+    <div class="summary-card">
+      <div class="summary-title">📋 สรุปข้อมูลการนัด</div>
+      <div class="summary-row"><span class="summary-key">แผนก</span><span class="summary-val" id="sum-clinic">—</span></div>
+      <div class="summary-row"><span class="summary-key">วันที่</span><span class="summary-val" id="sum-date">—</span></div>
+      <div class="summary-row"><span class="summary-key">เวลา</span><span class="summary-val" id="sum-time">—</span></div>
+      <div class="summary-row"><span class="summary-key">ชื่อ</span><span class="summary-val" id="sum-name">—</span></div>
+      <div class="summary-row"><span class="summary-key">โทร</span><span class="summary-val" id="sum-phone">—</span></div>
+    </div>
+
+    <div class="confirm-note">
+      <span>📱</span>
+      <span>เจ้าหน้าที่จะโทรยืนยันนัดหมายภายใน 1 วันทำการ กรุณาเตรียมบัตรประชาชนในวันเข้ารับบริการ</span>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goTo(3)">← กลับ</button>
+      <button class="btn-primary" id="btnSubmit" onclick="submitBooking()">✓ ยืนยันนัด</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: SUCCESS -->
+  <div class="screen" id="screen5">
+    <div class="success-screen">
+      <div class="success-icon">✓</div>
+      <div class="success-title">นัดหมายสำเร็จ!</div>
+      <div class="success-sub">เราได้รับการจองของคุณแล้ว<br>เจ้าหน้าที่จะติดต่อยืนยันภายใน 1 วันทำการ</div>
+      <div class="booking-ref">
+        <div class="booking-ref-label">รหัสการจอง</div>
+        <div class="booking-ref-code" id="bookingRef">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-title">📋 ข้อมูลการนัด</div>
+        <div class="summary-row"><span class="summary-key">แผนก</span><span class="summary-val" id="fin-clinic">—</span></div>
+        <div class="summary-row"><span class="summary-key">วันที่</span><span class="summary-val" id="fin-date">—</span></div>
+        <div class="summary-row"><span class="summary-key">เวลา</span><span class="summary-val" id="fin-time">—</span></div>
+      </div>
+      <button class="btn-secondary" onclick="resetAll()">จองนัดหมายใหม่</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const state = {
+    clinic: '',
+    clinicService: '',
+    date: null,
+    time: '',
+    currentMonth: new Date().getMonth(),
+    currentYear: new Date().getFullYear(),
+  };
+
+  const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+  const times = [
+    { t: '09:00', label: 'เช้า' }, { t: '09:30', label: 'เช้า' },
+    { t: '10:00', label: 'เช้า' }, { t: '10:30', label: 'เช้า' },
+    { t: '11:00', label: 'เช้า' }, { t: '11:30', label: 'เช้า' },
+    { t: '13:00', label: 'บ่าย' }, { t: '13:30', label: 'บ่าย' },
+    { t: '14:00', label: 'บ่าย' }, { t: '14:30', label: 'บ่าย' },
+    { t: '15:00', label: 'บ่าย' }, { t: '15:30', label: 'บ่าย' },
+    { t: '16:00', label: 'บ่าย' }, { t: '16:30', label: 'บ่าย' },
+    { t: '17:00', label: 'เย็น' }, { t: '17:30', label: 'เย็น' },
+    { t: '18:00', label: 'เย็น' }, { t: '18:30', label: 'เย็น' },
+    { t: '19:00', label: 'เย็น' }, { t: '19:30', label: 'เย็น' },
+    { t: '20:00', label: 'เย็น' },
+  ];
+
+  const fullSlots = [];
+
+  function selectClinic(el, name, service) {
+    document.querySelectorAll('.clinic-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    state.clinic = name;
+    state.clinicService = service;
+    const btn = document.getElementById('btn1');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+
+  function goTo(n) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen' + n).classList.add('active');
+    document.querySelectorAll('.step').forEach((s, i) => {
+      s.classList.remove('active', 'done');
+      if (i + 1 < n) s.classList.add('done');
+      if (i + 1 === n) s.classList.add('active');
+    });
+    if (n === 2) renderCalendar();
+    if (n === 4) fillSummary();
+    window.scrollTo(0, 0);
+  }
+
+  function changeMonth(d) {
+    state.currentMonth += d;
+    if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
+    if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+    state.date = null;
+    state.time = '';
+    document.getElementById('timeSection').style.display = 'none';
+    const btn2 = document.getElementById('btn2');
+    btn2.disabled = true; btn2.style.opacity = '0.4';
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const yr = state.currentYear, mo = state.currentMonth;
+    document.getElementById('monthTitle').textContent = thMonths[mo] + ' ' + (yr + 543);
+    const first = new Date(yr, mo, 1).getDay();
+    const days = new Date(yr, mo + 1, 0).getDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+    let html = '';
+    for (let i = 0; i < first; i++) html += '<div class="cal-day empty"></div>';
+    for (let d = 1; d <= days; d++) {
+      const date = new Date(yr, mo, d);
+      const isPast = date < today;
+      const isSun = date.getDay() === 0;
+      const isToday = date.toDateString() === today.toDateString();
+      const isSel = state.date && state.date.toDateString() === date.toDateString();
+      let cls = 'cal-day';
+      if (isPast || isSun) cls += ' disabled';
+      if (isToday) cls += ' today';
+      if (isSel) cls += ' selected';
+      const onclick = (isPast || isSun) ? '' : `onclick="selectDate(${yr},${mo},${d})"`;
+      html += `<div class="${cls}" ${onclick}>${d}</div>`;
+    }
+    document.getElementById('calDays').innerHTML = html;
+  }
+
+  function selectDate(y, m, d) {
+    state.date = new Date(y, m, d);
+    state.time = '';
+    const btn2 = document.getElementById('btn2');
+    btn2.disabled = true; btn2.style.opacity = '0.4';
+    renderCalendar();
+    renderTimes();
+    document.getElementById('timeSection').style.display = 'block';
+  }
+
+  function renderTimes() {
+    let html = '';
+    times.forEach(t => {
+      const isFull = fullSlots.includes(t.t);
+      const isSel = state.time === t.t;
+      let cls = 'time-slot';
+      if (isFull) cls += ' full';
+      if (isSel) cls += ' selected';
+      const onclick = isFull ? '' : `onclick="selectTime('${t.t}')"`;
+      html += `<div class="${cls}" ${onclick}>${t.t}<span class="time-label">${isFull ? 'เต็ม' : t.label}</span></div>`;
+    });
+    document.getElementById('timeGrid').innerHTML = html;
+  }
+
+  function selectTime(t) {
+    state.time = t;
+    renderTimes();
+    const btn2 = document.getElementById('btn2');
+    btn2.disabled = false; btn2.style.opacity = '1';
+  }
+
+  function checkForm3() {
+    const name = document.getElementById('fname').value.trim();
+    const phone = document.getElementById('fphone').value.trim();
+    const btn3 = document.getElementById('btn3');
+    const ok = name.length > 2 && phone.length >= 9;
+    btn3.disabled = !ok;
+    btn3.style.opacity = ok ? '1' : '0.4';
+  }
+
+  function fillSummary() {
+    const dateStr = state.date
+      ? `${thDays[state.date.getDay()]}ที่ ${state.date.getDate()} ${thMonths[state.date.getMonth()]} ${state.date.getFullYear() + 543}`
+      : '—';
+    document.getElementById('sum-clinic').textContent = state.clinic;
+    document.getElementById('sum-date').textContent = dateStr;
+    document.getElementById('sum-time').textContent = state.time + ' น.';
+    document.getElementById('sum-name').textContent = document.getElementById('fname').value;
+    document.getElementById('sum-phone').textContent = document.getElementById('fphone').value;
+  }
+
+  async function submitBooking() {
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.textContent = 'กำลังส่ง...';
+
+    const ref = 'RGD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    const isoDate = state.date
+      ? `${state.date.getFullYear()}-${String(state.date.getMonth() + 1).padStart(2, '0')}-${String(state.date.getDate()).padStart(2, '0')}`
+      : '';
+    const dateStr = state.date
+      ? `${state.date.getDate()} ${thMonths[state.date.getMonth()]} ${state.date.getFullYear() + 543}`
+      : '—';
+
+    const name  = document.getElementById('fname').value.trim();
+    const phone = document.getElementById('fphone').value.trim();
+    const age   = document.getElementById('fage').value.trim();
+    const note  = document.getElementById('fnote').value.trim();
+
+    const noteFull = [
+      `รหัสจอง: ${ref}`,
+      age  ? `อายุ: ${age} ปี` : '',
+      note ? `อาการ: ${note}` : '',
+    ].filter(Boolean).join(' | ');
+
+    try {
+      await fetch('/api/booking-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          phone,
+          service: state.clinicService,
+          date: isoDate,
+          time: state.time,
+          note: noteFull,
+          source: 'booking-page',
+        }),
+      });
+    } catch (err) {
+      console.error('booking-notify error:', err);
+    }
+
+    document.getElementById('bookingRef').textContent = ref;
+    document.getElementById('fin-clinic').textContent = state.clinic;
+    document.getElementById('fin-date').textContent = dateStr;
+    document.getElementById('fin-time').textContent = state.time + ' น.';
+    goTo(5);
+    document.querySelectorAll('.step').forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
+  }
+
+  function resetAll() {
+    state.clinic = ''; state.clinicService = ''; state.date = null; state.time = '';
+    state.currentMonth = new Date().getMonth();
+    state.currentYear = new Date().getFullYear();
+    document.querySelectorAll('.clinic-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('fname').value = '';
+    document.getElementById('fphone').value = '';
+    document.getElementById('fage').value = '';
+    document.getElementById('fnote').value = '';
+    document.getElementById('btn1').disabled = true;
+    document.getElementById('btn1').style.opacity = '0.4';
+    goTo(1);
+  }
+
+  renderCalendar();
+</script>
+</body>
+</html>
