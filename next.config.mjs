@@ -3,6 +3,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      { source: '/booking', destination: '/booking/index.html' },
+    ];
+  },
   images: {
     remotePatterns: [
       {
