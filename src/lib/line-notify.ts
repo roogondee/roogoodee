@@ -6,6 +6,7 @@ const SERVICE_LABELS: Record<string, string> = {
   glp1: 'GLP-1 ลดน้ำหนัก',
   ckd: 'CKD โรคไต',
   foreign: 'แรงงานต่างด้าว',
+  annual: 'ตรวจสุขภาพประจำปี',
   general: 'ทั่วไป',
   'chat-widget': 'Chat Widget',
 }
