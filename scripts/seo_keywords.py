@@ -17,8 +17,10 @@ Run: ทุกวันจันทร์ 09:30 Bangkok (02:30 UTC)
 
 import json
 import os
+import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -252,19 +254,51 @@ C) Slug ที่มีอยู่แล้วใน pipeline (ห้ามใ�
 - focus_kw ต้องเป็น keyword จริงจากลิสต์ A เท่านั้น"""
 
 
+_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?(.*?)\n?```\s*$", re.DOTALL | re.IGNORECASE)
+
+
+def _extract_json(raw: str) -> str:
+    """Best-effort strip of markdown fences / preamble around a JSON object.
+    Claude Haiku occasionally wraps JSON in ```json …``` even when told not to,
+    or prepends a sentence. Be tolerant."""
+    s = raw.strip()
+    m = _FENCE_RE.match(s)
+    if m:
+        s = m.group(1).strip()
+    # If there's still preamble before the object, slice from the first { to
+    # the matching last } — JSON we want is always a single object.
+    if not s.startswith("{"):
+        i = s.find("{")
+        if i != -1:
+            s = s[i:]
+    j = s.rfind("}")
+    if j != -1:
+        s = s[: j + 1]
+    return s.strip()
+
+
 def run_claude(prompt: str) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=2500,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text[4:].strip()
-    return json.loads(text)
+    raw = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    text = _extract_json(raw)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        # Surface the raw response so the cron-alert log excerpt is actionable
+        # instead of just "Expecting value: line 1 column 1".
+        stop = getattr(resp, "stop_reason", "?")
+        print(
+            f"Claude JSON parse failed: {e} (stop_reason={stop})",
+            file=sys.stderr,
+        )
+        print(f"--- raw response head ---\n{raw[:400]}", file=sys.stderr)
+        print(f"--- raw response tail ---\n{raw[-400:]}", file=sys.stderr)
+        raise
 
 
 def queue_briefs(briefs: list, existing_slugs: set) -> list:
@@ -362,6 +396,22 @@ def send_email(report: dict, accepted: list, kw_count: int) -> None:
         print(f"Email send failed: {e}", file=sys.stderr)
 
 
+def _fail(step: str, err: BaseException) -> int:
+    """Print a structured failure line so the cron alert excerpt is useful."""
+    detail = ""
+    if isinstance(err, urllib.error.HTTPError):
+        try:
+            body = err.read().decode("utf-8", errors="ignore")
+        except Exception:  # noqa: BLE001
+            body = ""
+        detail = f" code={err.code} body={body[:500]}"
+    print(
+        f"FAIL step={step} type={type(err).__name__} msg={err}{detail}",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main() -> int:
     print("Gathering Google Suggest keywords …")
     kw_by_service = gather_keywords()
@@ -372,21 +422,30 @@ def main() -> int:
         print("Too few suggestions — possible network issue. Skipping.")
         return 0
 
-    published = fetch_published_titles()
+    try:
+        published = fetch_published_titles()
+    except Exception as e:  # noqa: BLE001
+        return _fail("fetch_published_titles", e)
     print(f"  published posts (exclusion): {len(published)}")
 
-    existing_slugs = fetch_existing_slugs()
+    try:
+        existing_slugs = fetch_existing_slugs()
+    except Exception as e:  # noqa: BLE001
+        return _fail("fetch_existing_slugs", e)
     print(f"  existing slugs (exclusion): {len(existing_slugs)}")
 
     try:
         report = run_claude(build_prompt(kw_by_service, published, existing_slugs))
     except Exception as e:  # noqa: BLE001
-        print(f"Claude returned non-JSON or failed: {e}", file=sys.stderr)
-        return 1
+        return _fail("run_claude", e)
 
     briefs = report.get("briefs") or []
     print(f"  briefs proposed by Claude: {len(briefs)}")
-    accepted = queue_briefs(briefs, existing_slugs)
+
+    try:
+        accepted = queue_briefs(briefs, existing_slugs)
+    except Exception as e:  # noqa: BLE001
+        return _fail("queue_briefs", e)
     print(f"  briefs accepted + inserted into content_plan: {len(accepted)}")
 
     print("\n" + "=" * 60)
