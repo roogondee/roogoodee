@@ -1,0 +1,2 @@
+Thai fonts (Sarabun) are downloaded at runtime by fb_story.py to avoid committing binary blobs.
+Source: Google Fonts — https://fonts.google.com/specimen/Sarabun (SIL Open Font License 1.1)
