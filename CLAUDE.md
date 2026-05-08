@@ -49,10 +49,23 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - **App:** "RooGonDee AutoPost" — App ID `1840096433337980`
 - **Page ID:** `1042552638945974`
 - **Permissions granted:** `pages_manage_posts`, `pages_read_engagement` (for autopost)
-- **Permissions PENDING App Review:** `pages_messaging`, `pages_messaging_subscriptions` (for bot)
-- **Webhook:** `/api/fb-webhook` (`src/app/api/fb-webhook/route.ts`) — Claude Haiku 4.5, multilingual, HMAC signature verified via `FB_APP_SECRET`
+- **Permissions PENDING App Review:** `pages_messaging`, `pages_messaging_subscriptions`, `instagram_basic`, `instagram_manage_messages`, `instagram_manage_comments` (for bot + IG)
+- **Webhook:** `/api/fb-webhook` (`src/app/api/fb-webhook/route.ts`) — Claude Haiku 4.5, multilingual, HMAC signature verified via `FB_APP_SECRET`. Single endpoint handles `object: 'page'` (Messenger DM + feed comments) AND `object: 'instagram'` (IG Direct + IG comments).
 - **Pixel ID:** ❌ not yet provided — required for ad optimization
 - Page Access Token: stored in Vercel env only — never commit; user accidentally pasted in chat 2026-04-26 → should rotate
+
+## Social bot (Messenger + IG DM + comment auto-reply)
+- `src/lib/social-bot.ts` — shared logic: `SYSTEM_PROMPT` (sales-oriented, MUST close every reply with quiz/contact CTA), `detectService`, `askClaude`, plus Graph helpers `sendDM` / `replyToComment` / `sendPrivateReplyFromComment` / `publicCommentHandoff`
+- `src/app/api/fb-webhook/route.ts` — single endpoint, four event types:
+  1. **FB Messenger DM** (`object: 'page'`, `entry.messaging[]`) → AI sales reply via `sendDM('fb', …)`
+  2. **FB Page comment** (`object: 'page'`, `entry.changes[].field === 'feed'`, `item: 'comment'`, `verb: 'add'`) → short canned `publicCommentHandoff` public reply + AI `sendPrivateReplyFromComment` to pull commenter into Messenger
+  3. **IG Direct DM** (`object: 'instagram'`, `entry.messaging[]`) → AI sales reply via `sendDM('ig', …)`
+  4. **IG comment** (`object: 'instagram'`, `entry.changes[].field === 'comments'`) → public reply (`POST /{ig-comment-id}/replies`) + private DM
+- Skips own page/IG comments via `FB_PAGE_ID` / `IG_BUSINESS_ID` env (loop guard) and `is_echo` messages
+- Dedup via `processed_webhook_events` table (atomic insert on `event_id`); keys: `fb-msg-{mid}`, `fb-comment-{comment_id}`, `ig-msg-{mid}`, `ig-comment-{id}`
+- All inbound (DM + comment) saved as leads with sources: `facebook-bot`, `facebook-comment`, `instagram-bot`, `instagram-comment`. Service-keyword matches also notify W Medical LINE group.
+- IG Direct uses same Graph endpoint `/me/messages` as Messenger; token defaults to `FB_PAGE_ACCESS_TOKEN` (linked-IG case) but `IG_PAGE_ACCESS_TOKEN` env override is supported
+- Required env: `FB_PAGE_ACCESS_TOKEN`, `FB_VERIFY_TOKEN`, `FB_APP_SECRET`, `FB_PAGE_ID`, `IG_BUSINESS_ID` (optional, only needed for self-comment loop guard)
 
 ## Branches
 - Active dev branch: `claude/new-session-CoTUt` → PR #22
