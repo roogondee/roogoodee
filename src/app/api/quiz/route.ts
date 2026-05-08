@@ -16,6 +16,10 @@ type QuizPayload = Partial<QuizSubmission> & {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbclid?: string
+  fbp?: string
+  utm_term?: string
+  utm_content?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens']
@@ -141,6 +145,10 @@ export async function POST(req: NextRequest) {
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
         utm_campaign:  body.utm_campaign || null,
+        utm_term:      body.utm_term || null,
+        utm_content:   body.utm_content || null,
+        fbclid:        body.fbclid || null,
+        fbp:           body.fbp || null,
         status:        'new',
       }])
       .select()

@@ -131,6 +131,8 @@ export default function QuizRunner({ definition }: Props) {
     utm_source:   searchParams?.get('utm_source')   || undefined,
     utm_medium:   searchParams?.get('utm_medium')   || undefined,
     utm_campaign: searchParams?.get('utm_campaign') || undefined,
+    utm_term:     searchParams?.get('utm_term')     || undefined,
+    utm_content:  searchParams?.get('utm_content')  || undefined,
   }), [searchParams])
 
   // Spec §7.2: fire quiz_start on mount + TikTok InitiateCheckout standard event
@@ -148,11 +150,20 @@ export default function QuizRunner({ definition }: Props) {
     } catch {}
   }, [definition.service])
 
-  // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
+  // Persist click IDs into cookies so they survive across the multi-step quiz.
+  //   ttclid (TikTok)         — 30 days, used by TikTok Events API server-side
+  //   fbclid (Facebook/Meta)  — 90 days, used by FB Conversion API for ROAS
+  // _fbp (Meta first-party pixel cookie) is set by fbq itself — we just read it
+  // at submit time. Without these the ad platforms can't dedupe client+server
+  // events and ROAS attribution gets lost (especially on iOS 17+).
   useEffect(() => {
     const ttclid = searchParams?.get('ttclid')
     if (ttclid && typeof document !== 'undefined') {
       document.cookie = `ttclid=${encodeURIComponent(ttclid)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    }
+    const fbclid = searchParams?.get('fbclid')
+    if (fbclid && typeof document !== 'undefined') {
+      document.cookie = `fbclid=${encodeURIComponent(fbclid)}; max-age=${60 * 60 * 24 * 90}; path=/; SameSite=Lax`
     }
   }, [searchParams])
 
@@ -223,6 +234,8 @@ export default function QuizRunner({ definition }: Props) {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
       const ttclid = readCookie('ttclid')
       const ttp = readCookie('_ttp')
+      const fbclid = readCookie('fbclid')
+      const fbp = readCookie('_fbp')
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -241,9 +254,13 @@ export default function QuizRunner({ definition }: Props) {
           utm_source:   utm.utm_source,
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
+          utm_term:     utm.utm_term,
+          utm_content:  utm.utm_content,
           recaptcha_token: recaptchaToken,
           ttclid,
           ttp,
+          fbclid,
+          fbp,
         }),
       })
       const data = await res.json()

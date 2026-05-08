@@ -9,6 +9,9 @@ import {
   replyToComment,
   sendPrivateReplyFromComment,
   publicCommentHandoff,
+  serviceFromRef,
+  referralOpener,
+  rateLimitReply,
 } from '@/lib/social-bot'
 
 export const maxDuration = 60
@@ -102,23 +105,97 @@ interface MessagingEvent {
     mid?: string
     text?: string
     is_echo?: boolean
+    referral?: AdReferral
+  }
+  postback?: {
+    payload?: string
+    title?: string
+    referral?: AdReferral
+  }
+  referral?: AdReferral
+}
+
+interface AdReferral {
+  ref?: string
+  source?: string                 // 'ADS' | 'SHORTLINK' | 'CUSTOMER_CHAT_PLUGIN' | …
+  type?: string                   // 'OPEN_THREAD' | …
+  ads_context_data?: {
+    ad_title?: string
+    photo_url?: string
+    video_url?: string
+    post_id?: string
+    ad_id?: string
   }
 }
 
+// Per-sender rate limit. Counts inbound bot messages over the last hour and
+// short-circuits the AI call if exceeded — avoids runaway Anthropic spend
+// when ads bring in a wave of traffic + bots/scrapers piggyback. Threshold
+// is generous (15/hr) so legitimate fast typers don't trip it.
+const RATE_LIMIT_PER_HOUR = 15
+
+async function isRateLimited(platform: Platform, senderId: string): Promise<boolean> {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count, error } = await supabaseAdmin
+    .from('bot_message_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('platform', platform)
+    .eq('sender_id', senderId)
+    .gte('created_at', oneHourAgo)
+  if (error) {
+    // Fail open on missing table / DB hiccup — better to over-respond than
+    // silently drop legit users.
+    console.error('[fb-webhook] rate limit check error:', error)
+    return false
+  }
+  return (count ?? 0) >= RATE_LIMIT_PER_HOUR
+}
+
+async function logBotMessage(platform: Platform, senderId: string) {
+  const { error } = await supabaseAdmin
+    .from('bot_message_log')
+    .insert({ platform, sender_id: senderId })
+  if (error) console.error('[fb-webhook] bot log insert error:', error)
+}
+
 async function handleMessagingEvent(platform: Platform, event: MessagingEvent) {
-  const text = event.message?.text
   const senderId = event.sender?.id
-  const mid = event.message?.mid
+  if (!senderId) return
 
   // Skip echoes of our own outbound messages — otherwise the bot replies to itself.
   if (event.message?.is_echo) return
-  if (!text || !senderId) return
+
+  // Click-to-Messenger ad click. Three shapes Meta delivers a referral in:
+  //   1. event.referral — pure m.me/?ref click, no message yet
+  //   2. event.postback.referral — Get Started button click from an ad
+  //   3. event.message.referral — first message that came with referral context
+  // Any of these means the user landed from an ad, so open the conversation
+  // with a service-specific qualifying question + direct quiz link.
+  const referral = event.referral || event.postback?.referral || event.message?.referral
+  if (referral?.ref) {
+    await handleAdReferral(platform, senderId, referral, event.message?.text)
+    // Fall through if there's also a message text so we still answer it after
+    // sending the opener — but skip the duplicate AI call we'd do below.
+    if (!event.message?.text) return
+  }
+
+  const text = event.message?.text
+  const mid = event.message?.mid
+  if (!text) return
 
   // Dedup: Meta retries the same delivery on 5xx. mid is unique per message.
   if (mid) {
     const won = await claimEvent(`${platform}-msg-${mid}`, `${platform}-msg`)
     if (!won) return
   }
+
+  // Rate limit BEFORE the Anthropic call — the whole point is to cap spend.
+  if (await isRateLimited(platform, senderId)) {
+    console.warn('[fb-webhook] rate limited:', { platform, senderId })
+    await sendDM(platform, senderId, rateLimitReply())
+    return
+  }
+  void logBotMessage(platform, senderId)
 
   const service = detectService(text)
   const aiReply = await askClaude(text)
@@ -145,6 +222,48 @@ async function handleMessagingEvent(platform: Platform, event: MessagingEvent) {
       note: text,
     })
   }
+}
+
+async function handleAdReferral(
+  platform: Platform,
+  senderId: string,
+  referral: AdReferral,
+  inboundText: string | undefined,
+) {
+  const ref = referral.ref || ''
+  const adId = referral.ads_context_data?.ad_id || null
+
+  // Dedup the opener so reconnects/back-out-back-in don't double-blast it.
+  // Key off (sender, ref, ad_id) — same user can legitimately hit the same
+  // ad twice in different campaigns, but we still throttle to once per ref.
+  const claimKey = `${platform}-ref-${senderId}-${ref}-${adId || 'na'}`
+  const won = await claimEvent(claimKey, `${platform}-referral`)
+  if (!won) return
+
+  const service = serviceFromRef(ref)
+  const opener = referralOpener(service)
+
+  void supabaseAdmin.from('leads').insert([{
+    first_name: platform === 'ig' ? 'IG Ad Click' : 'FB Ad Click',
+    phone: senderId,
+    service,
+    note: `referral.ref=${ref}${inboundText ? ` · "${inboundText.slice(0, 200)}"` : ''}`,
+    source: platform === 'ig' ? 'instagram-ad-click' : 'facebook-ad-click',
+    referral_ref: ref,
+    ad_id: adId,
+    utm_source: platform === 'ig' ? 'instagram' : 'facebook',
+    utm_medium: 'click-to-message',
+    utm_campaign: ref || null,
+    status: 'new',
+  }])
+
+  await sendDM(platform, senderId, opener)
+
+  void notifyLineGroup({
+    service: service === 'general' ? 'general' : service,
+    source: platform === 'ig' ? 'Instagram Ad Click' : 'Facebook Ad Click',
+    note: `ref=${ref}`,
+  })
 }
 
 interface ChangeEvent {
