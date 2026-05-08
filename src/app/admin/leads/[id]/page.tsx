@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import NoteEditor from '@/components/admin/NoteEditor'
 import AssigneeSelect from '@/components/admin/AssigneeSelect'
+import LeadQuickActions from '@/components/admin/LeadQuickActions'
 
 export const revalidate = 0
 
@@ -32,10 +33,11 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
   const me = await getSessionUser()
   if (!me) redirect('/admin/login')
 
-  const [{ data: lead }, { data: vouchers }, { data: accessLog }] = await Promise.all([
+  const [{ data: lead }, { data: vouchers }, { data: accessLog }, { data: contactLog }] = await Promise.all([
     supabaseAdmin.from('leads').select('*').eq('id', params.id).maybeSingle(),
     supabaseAdmin.from('vouchers').select('*').eq('lead_id', params.id).order('issued_at', { ascending: false }),
     supabaseAdmin.from('lead_access_log').select('*').eq('lead_id', params.id).order('created_at', { ascending: false }).limit(50),
+    supabaseAdmin.from('lead_contact_log').select('*').eq('lead_id', params.id).order('created_at', { ascending: false }).limit(20),
   ])
 
   if (!lead) notFound()
@@ -105,6 +107,31 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           <NoteEditor id={lead.id} initial={lead.note || ''} />
         </div>
       </section>
+
+      <section>
+        <LeadQuickActions
+          leadId={lead.id}
+          initialAttempts={lead.contact_attempts || 0}
+          initialNextFollowup={lead.next_followup_at}
+          initialOutcome={lead.last_outcome}
+        />
+      </section>
+
+      {contactLog && contactLog.length > 0 && (
+        <section className="bg-white rounded-xl border border-gray-100 p-5">
+          <h2 className="font-semibold text-gray-700 mb-3 text-sm">ประวัติการติดต่อ ({contactLog.length})</h2>
+          <div className="space-y-2 text-sm">
+            {contactLog.map(row => (
+              <div key={row.id} className="flex items-start gap-3 border-b border-gray-50 pb-2 last:border-0">
+                <span className="text-xs text-gray-400 w-32 shrink-0">{fmt(row.created_at)}</span>
+                <span className="text-xs font-mono uppercase text-forest w-20 shrink-0">{row.channel}</span>
+                <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700 shrink-0">{row.outcome}</span>
+                {row.notes && <span className="text-xs text-gray-600 flex-1">{row.notes}</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="bg-white rounded-xl border border-gray-100 p-5">
         <h2 className="font-semibold text-gray-700 mb-3 text-sm flex items-center gap-2">
