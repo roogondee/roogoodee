@@ -54,18 +54,37 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - **Pixel ID:** ❌ not yet provided — required for ad optimization
 - Page Access Token: stored in Vercel env only — never commit; user accidentally pasted in chat 2026-04-26 → should rotate
 
-## Social bot (Messenger + IG DM + comment auto-reply)
-- `src/lib/social-bot.ts` — shared logic: `SYSTEM_PROMPT` (sales-oriented, MUST close every reply with quiz/contact CTA), `detectService`, `askClaude`, plus Graph helpers `sendDM` / `replyToComment` / `sendPrivateReplyFromComment` / `publicCommentHandoff`
-- `src/app/api/fb-webhook/route.ts` — single endpoint, four event types:
+## Social bot (Messenger + IG DM + comment auto-reply + ad referral)
+- `src/lib/social-bot.ts` — shared logic: `SYSTEM_PROMPT` (sales-oriented, MUST close every reply with quiz/contact CTA), `detectService`, `askClaude`, Graph helpers `sendDM` / `replyToComment` / `sendPrivateReplyFromComment` / `publicCommentHandoff`, plus Click-to-Messenger helpers `serviceFromRef` / `referralOpener` and rate-limit fallback `rateLimitReply`
+- `src/app/api/fb-webhook/route.ts` — single endpoint, five event types:
   1. **FB Messenger DM** (`object: 'page'`, `entry.messaging[]`) → AI sales reply via `sendDM('fb', …)`
   2. **FB Page comment** (`object: 'page'`, `entry.changes[].field === 'feed'`, `item: 'comment'`, `verb: 'add'`) → short canned `publicCommentHandoff` public reply + AI `sendPrivateReplyFromComment` to pull commenter into Messenger
   3. **IG Direct DM** (`object: 'instagram'`, `entry.messaging[]`) → AI sales reply via `sendDM('ig', …)`
   4. **IG comment** (`object: 'instagram'`, `entry.changes[].field === 'comments'`) → public reply (`POST /{ig-comment-id}/replies`) + private DM
+  5. **Click-to-Messenger ad referral** (`event.referral` / `event.postback.referral` / `event.message.referral` with `ref` payload) → service-specific `referralOpener` opener DM, lead saved with `source='facebook-ad-click'`/`'instagram-ad-click'` + `referral_ref` + `ad_id` + `utm_*='click-to-message'`
 - Skips own page/IG comments via `FB_PAGE_ID` / `IG_BUSINESS_ID` env (loop guard) and `is_echo` messages
-- Dedup via `processed_webhook_events` table (atomic insert on `event_id`); keys: `fb-msg-{mid}`, `fb-comment-{comment_id}`, `ig-msg-{mid}`, `ig-comment-{id}`
-- All inbound (DM + comment) saved as leads with sources: `facebook-bot`, `facebook-comment`, `instagram-bot`, `instagram-comment`. Service-keyword matches also notify W Medical LINE group.
+- **Rate limit**: 15 messages/hour/sender — exceeded senders get `rateLimitReply` canned response (still pushes quiz link) instead of an Anthropic call. Caps spend during ad-launch traffic spikes. Tracked in `bot_message_log` table.
+- Dedup via `processed_webhook_events` (atomic insert); keys: `fb-msg-{mid}`, `fb-comment-{comment_id}`, `ig-msg-{mid}`, `ig-comment-{id}`, `fb-ref-{sender}-{ref}-{ad}`, `ig-ref-{sender}-{ref}-{ad}`
+- All inbound (DM + comment + ad click) saved as leads with sources: `facebook-bot`, `facebook-comment`, `facebook-ad-click`, `instagram-bot`, `instagram-comment`, `instagram-ad-click`. Service-keyword matches also notify W Medical LINE group.
 - IG Direct uses same Graph endpoint `/me/messages` as Messenger; token defaults to `FB_PAGE_ACCESS_TOKEN` (linked-IG case) but `IG_PAGE_ACCESS_TOKEN` env override is supported
 - Required env: `FB_PAGE_ACCESS_TOKEN`, `FB_VERIFY_TOKEN`, `FB_APP_SECRET`, `FB_PAGE_ID`, `IG_BUSINESS_ID` (optional, only needed for self-comment loop guard)
+
+## FB Lead Ads webhook (Meta "Lead generation" campaign type)
+- `src/app/api/fb-leadgen/route.ts` — separate endpoint so `leadgen` subscription toggles independently of messaging. Handles `object: 'page'` + `changes.field === 'leadgen'`. Steps:
+  1. Atomic claim on `event_id = fb-leadgen-{leadgen_id}` (dedup Meta retries)
+  2. `GET /v19.0/{leadgen_id}?fields=field_data,form_id,ad_id,adset_id,campaign_id` with `FB_PAGE_ACCESS_TOKEN`
+  3. Map `field_data` → phone/name/email/line_id (normalize `+66…` → `0…`)
+  4. Resolve service via `FB_LEADGEN_FORM_MAP` env (format: `form_id_1:glp1,form_id_2:std`); default `glp1`
+  5. Insert lead with `source='facebook-leadgen'` + `ad_id`/`adset_id`/`campaign_id` + `consent_pdpa=true` (Lead Ads form forces consent), round-robin assign
+  6. Issue voucher (`issueVoucher`), notify W Medical LINE group with full voucher card via `notifyLeadToSale`
+  7. If phone is invalid/missing, still saves lead but sends LINE alert "manual follow-up needed"
+- Required env: `FB_PAGE_ACCESS_TOKEN` (must include `leads_retrieval` scope), `FB_LEADGEN_FORM_MAP`
+- FB App Dashboard → Webhooks → Page object → subscribe field `leadgen`. App Review permission: `leads_retrieval`
+
+## Ad attribution columns on leads
+- Migration `add_ad_attribution_to_leads.sql` adds: `fbclid`, `fbp` (Meta), `utm_term`, `utm_content`, `ad_id`, `adset_id`, `campaign_id`, `referral_ref`
+- `QuizRunner.tsx` captures `fbclid` from URL → 90-day cookie + reads `_fbp` cookie set by Meta Pixel + `utm_term`/`utm_content` from URL → forwarded to `/api/quiz`
+- `/api/quiz/route.ts` saves all of the above on lead row → admin can break ROAS down by `campaign_id`/`ad_id` and (PR #59) FB Conversion API can dedup against client `Lead` event using `fbclid`/`_fbp`
 
 ## Branches
 - Active dev branch: `claude/new-session-CoTUt` → PR #22

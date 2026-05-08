@@ -147,3 +147,39 @@ export function publicCommentHandoff(service: string): string {
   }
   return `ขอบคุณที่สนใจค่ะ 💚 ทักแชทเข้ามาที่ Inbox ได้เลย เรา${cta[service] || cta.general}ให้ทันทีค่ะ`
 }
+
+// First-touch opener for Click-to-Messenger ads. The `ref` param on m.me URLs
+// (e.g. m.me/roogondee?ref=glp1_voucher) lands here so the bot can open with a
+// service-specific qualifying question + direct quiz link instead of waiting
+// for the user to type. Higher conversion than letting AI improvise on a blank
+// thread because we already know what the ad promised.
+const REFERRAL_OPENERS: Record<string, string> = {
+  glp1:    'สวัสดีค่ะ 💚 สนใจตรวจฟรี FBS+HbA1c (มูลค่า 500฿) + voucher GLP-1 ลดน้ำหนักใช่มั้ยคะ?\n\nบอกหน่อยค่ะ น้ำหนัก/ส่วนสูงประมาณเท่าไหร่ และเคยลองลดน้ำหนักด้วยวิธีไหนมาบ้าง?\n\nหรือกดทำแบบประเมิน 1 นาทีรับ voucher ตรวจฟรีทันที 👉 https://roogondee.com/quiz/glp1',
+  std:     'สวัสดีค่ะ 💚 สนใจตรวจ HIV+Syphilis ฟรี รู้ผลใน 1 ชม. ใช่มั้ยคะ?\n\nที่ W Medical สมุทรสาคร — ปลอดภัย เป็นความลับ ไม่ตัดสิน\n\nกดทำแบบประเมิน 1 นาทีรับ voucher 👉 https://roogondee.com/quiz/std',
+  ckd:     'สวัสดีค่ะ 💚 สนใจตรวจ urine protein ฟรี ดูแลไตใช่มั้ยคะ?\n\nเหมาะมากถ้าเป็นเบาหวาน/ความดัน/อายุ 40+ — รู้ก่อนชะลอการเสื่อมของไตได้\n\nกดทำแบบประเมิน 1 นาทีรับ voucher 👉 https://roogondee.com/quiz/ckd',
+  foreign: 'สวัสดีค่ะ 💚 บริการตรวจสุขภาพแรงงานต่างด้าว Work Permit\n\nรองรับเป็นกลุ่ม (B2B) สำหรับ HR/factory สมุทรสาคร — ใบรับรอง สบส. 001/2569 + LA 7044P/2568\n\nติดต่อทีมขายโดยตรง 👉 https://roogondee.com/contact?service=foreign',
+  general: 'สวัสดีค่ะ ยินดีต้อนรับสู่ รู้ก่อนดี (รู้งี้) 💚\n\nสนใจบริการอะไรเป็นพิเศษคะ?\n• 💉 ลดน้ำหนัก GLP-1\n• 🧪 ตรวจ STD/HIV ฟรี\n• 🫘 ดูแลไต CKD\n\nหรือทำแบบประเมิน 1 นาทีรับ voucher 👉 https://roogondee.com/quiz/glp1',
+}
+
+// Map ad ref payload to a service. Marketing sets `ref` in the ad config;
+// we look at the prefix so values like `glp1_voucher`, `glp1_aug26`, `glp1`
+// all route to the GLP-1 opener.
+export function serviceFromRef(ref: string | undefined | null): string {
+  if (!ref) return 'general'
+  const lower = ref.toLowerCase()
+  if (lower.startsWith('glp')) return 'glp1'
+  if (lower.startsWith('std') || lower.startsWith('hiv') || lower.startsWith('prep')) return 'std'
+  if (lower.startsWith('ckd') || lower.startsWith('kidney')) return 'ckd'
+  if (lower.startsWith('foreign') || lower.startsWith('worker') || lower.startsWith('hr')) return 'foreign'
+  return 'general'
+}
+
+export function referralOpener(service: string): string {
+  return REFERRAL_OPENERS[service] || REFERRAL_OPENERS.general
+}
+
+// Canned reply when a sender exceeds the per-hour rate limit. We still want
+// to keep them in the funnel (link to quiz) instead of going completely silent.
+export function rateLimitReply(): string {
+  return 'ขอโทษค่ะ ตอนนี้คนทักเยอะมาก เดี๋ยวทีมดูแลจะตอบกลับโดยตรงค่ะ 💚\n\nระหว่างนี้กดทำแบบประเมิน 1 นาทีเพื่อรับ voucher ตรวจฟรีทันทีได้ที่ 👉 https://roogondee.com/quiz/glp1'
+}
