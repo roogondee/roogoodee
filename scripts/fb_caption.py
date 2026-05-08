@@ -94,6 +94,23 @@ def _strip_html(html: str) -> str:
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
+# Thai compound nouns where Claude has been seen hallucinating new words.
+# A caption that mentions one of these prefixes must use a phrase that also
+# appears in the source article — otherwise it's almost certainly invented.
+_GROUNDING_PREFIXES = ("มะเร็ง", "โรค", "วัคซีน", "ไวรัส", "เชื้อ", "ฮอร์โมน", "เซลล์")
+
+def _check_caption_grounding(caption: str, source_plain: str) -> list[str]:
+    """Detect specialized Thai compound nouns in `caption` whose full phrase
+    is absent from `source_plain` — a strong signal of hallucination.
+    """
+    issues: list[str] = []
+    for prefix in _GROUNDING_PREFIXES:
+        for m in re.finditer(rf"{prefix}[ก-๙]+", caption):
+            phrase = m.group(0)
+            if phrase not in source_plain:
+                issues.append(f"'{phrase}' ไม่มีในบทความ — น่าจะเป็นคำที่แต่งใหม่")
+    return issues
+
 def generate_caption(post: dict, link: str) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
@@ -112,7 +129,9 @@ def generate_caption(post: dict, link: str) -> str:
         "- ลงท้ายด้วย CTA อ่านต่อที่ลิงก์ + ติดต่อ LINE @roogondee\n"
         "- จบด้วย hashtag ที่เกี่ยวข้อง 3-5 อัน\n"
         "- ห้ามใช้ Markdown เช่น ** หรือ ##\n"
-        "- ห้ามใส่ emoji เกิน 4 ตัวในทั้ง caption"
+        "- ห้ามใส่ emoji เกิน 4 ตัวในทั้ง caption\n"
+        "- ห้ามแต่งศัพท์การแพทย์ใหม่ที่ไม่ปรากฏในบทความต้นฉบับ "
+        "เช่น ชื่อโรค ชื่อยา ชื่ออวัยวะ ต้องสะกดให้ตรงกับต้นฉบับ ห้ามทับศัพท์มั่ว"
     )
     if is_mens:
         system_prompt += (
@@ -147,7 +166,23 @@ Hashtag แนะนำ: {tags}
         )
         return msg.content[0].text.strip()
 
+    # plain-text version of source article body for grounding checks
+    source_plain = _strip_html(post.get("content", "")) + " " + (post.get("title", "") or "") + " " + (post.get("meta_desc", "") or "")
+
     caption = _call_claude()
+
+    # Hallucination guardrail — Claude has been seen inventing Thai medical terms
+    # like "มะเร็งเกดาษ" instead of "มะเร็งปากมดลูก". Retry up to 2 times if any
+    # specialized medical compound noun in the caption is not present in the source.
+    grounding_issues = _check_caption_grounding(caption, source_plain)
+    g_attempt = 1
+    while grounding_issues and g_attempt < 3:
+        print(f"  ⚠️ caption grounding fail (try {g_attempt}): {grounding_issues}")
+        caption = _call_claude()
+        grounding_issues = _check_caption_grounding(caption, source_plain)
+        g_attempt += 1
+    if grounding_issues:
+        raise RuntimeError(f"caption grounding ไม่ผ่าน: {' | '.join(grounding_issues)}")
 
     # Mens compliance gate — retry up to 3 times if forbidden words detected.
     if is_mens:
