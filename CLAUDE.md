@@ -75,7 +75,20 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
+## Instagram (daily feed + story autopost)
+- `scripts/ig_post.py` + `.github/workflows/ig_post.yml` — cron 03:00 UTC = 10:00 BKK (เลื่อนจาก FB Story 1 ชม.)
+- โพสต์ **ทั้ง feed (1080x1080) + story (1080x1920)** ในรอบเดียว — service rotation เดียวกับ FB Story (`glp1/std/ckd`, mens opt-in `IG_INCLUDE_MENS=1`, foreign ข้าม)
+- Caption gen: Claude Haiku 4.5 → JSON `{headline, subline, feed_caption, story_caption, cta}` — feed caption ≤500 ตัวอักษร + ชุด hashtag มาตรฐานต่อท้ายอัตโนมัติ; story_caption ≤140
+- Image composer reuse Sarabun + FLUX/gradient logic จาก `fb_story.py` (มี `compose_feed` 1:1 และ `compose_story` 9:16 แยกกัน)
+- Graph API v19 (Instagram): `POST /{ig-user-id}/media` (with `media_type=STORIES` สำหรับ story) → poll `status_code=FINISHED` → `POST /{ig-user-id}/media_publish`
+- ต้องใช้ permission **`instagram_basic` + `instagram_content_publish`** (ผ่าน App Review เหมือน `pages_messaging`); IG account ต้องเป็น Business/Creator + connected to FB Page `1042552638945974`
+- Required env: `IG_USER_ID` (IG Business Account ID, ≠ FB Page ID), `IG_ACCESS_TOKEN` (มักจะ token เดียวกับ `FB_PAGE_ACCESS_TOKEN` ที่ขอ scope IG เพิ่ม)
+- Tracked in `ig_posts` table with unique `(posted_date, service, media_type)` index → safe to re-run + รองรับโพสต์ feed/story แยกกัน
+- Manual: `workflow_dispatch` accepts `service`/`skip_feed`/`skip_story`/`dry_run`
+- IG Stories จาก API ไม่รองรับ stickers/polls/swipe-up — caption ใต้สตอรี่เป็น text overlay เท่านั้น
+
 ## Recent decisions
+- 2026-05-09: Instagram feed+story daily autopost shipped — `scripts/ig_post.py` + `ig_posts` table; reuse FB Story rotation/caption pipeline. Pending App Review for `instagram_content_publish` (test ใน Dev mode ได้ก่อน)
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug
