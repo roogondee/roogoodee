@@ -174,23 +174,37 @@ FB_API = "https://graph.facebook.com/v19.0"
 
 def post_to_facebook(caption: str, link: str, image_url: str | None) -> str:
     """
-    โพสต์ไปยัง Facebook Page แบบ Link Preview
-    ใช้ /feed + link เสมอ → Facebook ดึง OG image/title จาก URL
-    ผู้ใช้กดที่การ์ดหรือรูปแล้วเข้าสู่บทความได้โดยตรง
+    โพสต์ไปยัง Facebook Page
+    - ถ้ามี image_url → /photos (upload รูปตรงๆ) → รูปโชว์ใหญ่เต็มเสมอ + reach สูงกว่า
+    - ถ้าไม่มี → fallback /feed + link (FB scrape OG image จาก URL)
+    Caption บรรจุลิงก์อยู่แล้ว (generate_caption ตรวจให้) → ผู้ใช้กดลิงก์เข้าบทความได้
     คืนค่า fb_post_id
     """
     if not FB_PAGE_ID or not FB_PAGE_TOKEN:
         raise RuntimeError("ขาด FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN")
 
-    resp = requests.post(
-        f"{FB_API}/{FB_PAGE_ID}/feed",
-        data={
-            "message":       caption,
-            "link":          link,
-            "access_token":  FB_PAGE_TOKEN,
-        },
-        timeout=60,
-    )
+    if image_url:
+        print(f"  📸 photo post (image: {image_url[:60]}...)")
+        resp = requests.post(
+            f"{FB_API}/{FB_PAGE_ID}/photos",
+            data={
+                "url":          image_url,
+                "caption":      caption,
+                "access_token": FB_PAGE_TOKEN,
+            },
+            timeout=60,
+        )
+    else:
+        print("  🔗 link post (no image_url — fallback to /feed)")
+        resp = requests.post(
+            f"{FB_API}/{FB_PAGE_ID}/feed",
+            data={
+                "message":      caption,
+                "link":         link,
+                "access_token": FB_PAGE_TOKEN,
+            },
+            timeout=60,
+        )
 
     if resp.status_code >= 400:
         raise RuntimeError(f"Facebook API error {resp.status_code}: {resp.text[:300]}")
