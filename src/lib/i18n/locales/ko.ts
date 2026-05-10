@@ -473,7 +473,7 @@ const ko = {
   cQ4: 'Foods to avoid?', cA4: 'High potassium, phosphorus, sodium.',
   fQ1: 'Required tests?', fA1: 'X-ray, blood, urine, physical exam.',
   fQ2: 'Nationalities?', fA2: 'Myanmar, Cambodia, Laos, Vietnam.',
-  fQ3: 'How long?', fA3: 'Walk-in 1-2 hours. Group same day.',
+  fQ3: 'How long?', fA3: '≤10 people: 1–2 hrs / 11–50: same day / >50: next day (rush available on advance notice)',
   fQ4: 'B2B service?', fA4: 'From 5 workers. Onsite available.',
   },
     notFound: {
