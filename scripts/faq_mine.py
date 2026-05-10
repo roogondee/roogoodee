@@ -18,6 +18,7 @@ Run: GitHub Actions ทุกวันอาทิตย์ 09:00 Bangkok (02:00
 
 import json
 import os
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -231,19 +232,39 @@ content brief 6 ชิ้น
 กฎ: slug ต้องไม่ซ้ำลิสต์ C, title ห้ามเหมือนลิสต์ B"""
 
 
+_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?(.*?)\n?```\s*$", re.DOTALL | re.IGNORECASE)
+
+
+def _extract_json(raw: str) -> str:
+    s = raw.strip()
+    m = _FENCE_RE.match(s)
+    if m:
+        s = m.group(1).strip()
+    if not s.startswith("{"):
+        i = s.find("{")
+        if i != -1:
+            s = s[i:]
+    j = s.rfind("}")
+    if j != -1:
+        s = s[: j + 1]
+    return s.strip()
+
+
 def run_claude(prompt: str) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=2500,
+        max_tokens=8192,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text[4:].strip()
-    return json.loads(text)
+    raw = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    try:
+        return json.loads(_extract_json(raw))
+    except json.JSONDecodeError:
+        head = raw[:400].replace("\n", "\\n")
+        tail = raw[-400:].replace("\n", "\\n")
+        print(f"FAIL step=run_claude type=JSONDecodeError head={head} tail={tail}", file=sys.stderr)
+        raise
 
 
 def render_email(report: dict, accepted: list, q_count: int) -> str:
