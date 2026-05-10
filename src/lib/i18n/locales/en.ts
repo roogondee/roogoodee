@@ -183,7 +183,7 @@ const en = {
     cQ4: 'What foods to avoid?', cA4: 'Watch high potassium, phosphorus, sodium. Dietitian creates personalized plan.',
     fQ1: 'What tests are required?', fA1: 'Chest X-ray, blood tests, urine test, physical exam per Thai labor law.',
     fQ2: 'How many nationalities?', fA2: 'Myanmar, Cambodia, Laos, Vietnam. Interpreters and local-language documents available.',
-    fQ3: 'How long does it take?', fA3: 'Walk-in 1-2 hours. Group B2B results same day.',
+    fQ3: 'How long does it take?', fA3: '≤10 people: 1–2 hrs / 11–50: same day / >50: next day (rush available on advance notice)',
     fQ4: 'How does B2B work?', fA4: 'From 5 workers up. Onsite service available. Special group rates.',
   },
   about: {
