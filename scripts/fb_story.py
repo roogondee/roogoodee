@@ -225,10 +225,18 @@ def generate_caption(service: str, story_type: str) -> dict:
 - ใช้น้ำเสียงคุยกันเป็นกันเอง
 - ส่งคืน JSON ตาม schema เท่านั้น"""
 
+    from compliance import (
+        check_caption_compliance,
+        check_thai_language,
+        review_thai_with_llm,
+    )
+
     last_err: Exception | None = None
+    last_data: dict | None = None
+    client = _client()
     for attempt in range(3):
         try:
-            msg = _client().messages.create(
+            msg = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=900,
                 messages=[{"role": "user", "content": user}],
@@ -244,11 +252,26 @@ def generate_caption(service: str, story_type: str) -> dict:
                 data[key] = data[key].strip()
 
             if service == "mens":
-                from compliance import check_caption_compliance
                 blob = "\n".join([data["headline"], data["subline"], data["caption"]])
                 ok, issues = check_caption_compliance(blob, "mens")
                 if not ok:
                     raise ValueError(f"mens compliance fail: {issues}")
+
+            # Thai language QA on every visible field (headline + subline + caption).
+            blob = "\n".join([data["headline"], data["subline"], data["caption"]])
+            ok1, issues1 = check_thai_language(blob)
+            if not ok1:
+                raise ValueError(f"Thai language blocklist fail: {issues1}")
+
+            ok2, issues2 = review_thai_with_llm(blob, anthropic_client=client)
+            if not ok2:
+                # Advisory — record but keep trying for a cleaner caption.
+                # On the final attempt we accept it (Layer 1 cleared).
+                print(f"  ⚠️ Thai language LLM review (try {attempt + 1}): {issues2}")
+                last_data = data
+                if attempt < 2:
+                    raise ValueError(f"Thai language LLM review: {issues2}")
+                print(f"  ℹ️ ใช้ caption รอบสุดท้าย (Layer 2 ทักแต่ผ่าน Layer 1)")
 
             return data
         except Exception as e:
@@ -256,6 +279,9 @@ def generate_caption(service: str, story_type: str) -> dict:
             print(f"  ↻ caption attempt {attempt + 1} failed: {e}")
             time.sleep(2 ** attempt)
 
+    if last_data is not None:
+        # All 3 attempts cleared Layer 1 but Layer 2 kept flagging — publish anyway.
+        return last_data
     raise RuntimeError(f"generate_caption failed: {last_err}")
 
 
