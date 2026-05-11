@@ -147,11 +147,16 @@ Hashtag แนะนำ: {tags}
         )
         return msg.content[0].text.strip()
 
+    from compliance import (
+        check_caption_compliance,
+        check_thai_language,
+        review_thai_with_llm,
+    )
+
     caption = _call_claude()
 
     # Mens compliance gate — retry up to 3 times if forbidden words detected.
     if is_mens:
-        from compliance import check_caption_compliance
         ok, issues = check_caption_compliance(caption, service)
         attempt = 1
         while not ok and attempt < 3:
@@ -161,6 +166,30 @@ Hashtag แนะนำ: {tags}
             attempt += 1
         if not ok:
             raise RuntimeError(f"mens caption compliance ไม่ผ่าน: {' | '.join(issues)}")
+
+    # Thai language QA — retry on hallucinated/misspelled words.
+    # Layer 1 (blocklist) is mandatory: blocks publish on every retry.
+    # Layer 2 (LLM) is advisory: triggers a retry but does NOT block publish
+    # if every attempt clears Layer 1.
+    for attempt in range(3):
+        ok1, issues1 = check_thai_language(caption)
+        if not ok1:
+            print(f"  ⚠️ Thai language blocklist fail (try {attempt + 1}): {issues1}")
+            caption = _call_claude()
+            continue
+
+        ok2, issues2 = review_thai_with_llm(caption, anthropic_client=client)
+        if ok2:
+            break  # both layers happy
+        print(f"  ⚠️ Thai language LLM review fail (try {attempt + 1}): {issues2}")
+        if attempt == 2:
+            print(f"  ℹ️ ใช้ caption รอบสุดท้าย (Layer 2 ทักแต่ผ่าน Layer 1)")
+            break
+        caption = _call_claude()
+
+    ok_final, issues_final = check_thai_language(caption)
+    if not ok_final:
+        raise RuntimeError(f"Thai language QA ไม่ผ่าน: {' | '.join(issues_final)}")
 
     # ensure link is present
     if link not in caption:

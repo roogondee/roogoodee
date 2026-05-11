@@ -7,8 +7,15 @@ before it gets published, to comply with Thai medical advertising law:
 - พ.ร.บ.ยา 2510 ม.88, 89, 90(4)  — no drug names, no give-away framing
 - พ.ร.บ.สถานพยาบาล 2541 ม.38     — no exaggerated claims
 - ข้อบังคับแพทยสภา (โฆษณา)        — no testimonials, no cure claims
+
+Also exposes Thai-language QA (check_thai_language / review_thai_with_llm)
+to catch hallucinated/malformed Thai words from the caption-gen model
+before they hit the FB Page or Page Stories.
 """
 
+import json
+import os
+import re
 from typing import Iterable, Tuple
 
 # Drug brand/generic names that cannot appear in consumer-facing content.
@@ -124,6 +131,133 @@ def check_caption_compliance(caption: str, service: str) -> Tuple[bool, list[str
             issues.append(f"caption: พบคำแจกยา {phrase}")
 
     return len(issues) == 0, issues
+
+
+# ─── THAI LANGUAGE QA ─────────────────────────────────────────────────────────
+#
+# Two-layer check for caption/story text before publishing:
+#   (1) SUSPICIOUS_THAI_WORDS — fast deterministic blocklist of Thai
+#       hallucinations / typos the caption model has produced. Add to this
+#       list when a new bad word is spotted in production.
+#   (2) review_thai_with_llm() — optional second-pass Claude review that
+#       flags malformed Thai words. Use when blocklist isn't sure.
+#
+# Examples of the bug class this catches:
+#   2026-05-11 — Haiku produced "ดักแจง" in a CKD caption (Pornpat reported).
+#                Correct word: "ดักจับ" / "ตรวจเจอ" / "รู้ทัน".
+
+SUSPICIOUS_THAI_WORDS: tuple[str, ...] = (
+    "ดักแจง",     # 2026-05-11 CKD caption — should be ดักจับ/ตรวจเจอ
+)
+
+
+def check_thai_language(text: str) -> Tuple[bool, list[str]]:
+    """
+    Layer 1 — fast deterministic check.
+
+    Flags:
+      - Empty text
+      - Any token in SUSPICIOUS_THAI_WORDS
+      - Thai char ratio < 30% (Thai post should be majority Thai)
+
+    Medical jargon (CKD, eGFR, GLP-1, HIV…) is NOT flagged — only words
+    that have been observed as Claude hallucinations.
+    """
+    if not text or not text.strip():
+        return False, ["text ว่าง"]
+
+    issues: list[str] = []
+    for bad in SUSPICIOUS_THAI_WORDS:
+        if bad in text:
+            issues.append(f"พบคำเพี้ยน/สะกดผิด: {bad}")
+
+    thai = sum(1 for c in text if "฀" <= c <= "๿")
+    latin = sum(1 for c in text if c.isascii() and c.isalpha())
+    if thai + latin >= 40 and thai / (thai + latin) < 0.30:
+        issues.append(f"อักษรไทยน้อยเกินไป (ไทย {thai} / ลาติน {latin})")
+
+    return len(issues) == 0, issues
+
+
+def review_thai_with_llm(text: str, anthropic_client=None) -> Tuple[bool, list[str]]:
+    """
+    Layer 2 — Claude Haiku second-pass review.
+
+    Asks Haiku to flag Thai words that are clearly misspelled or aren't
+    real Thai words. Returns (ok, issues). Whitelists common medical/brand
+    English (CKD, eGFR, GLP-1, HIV, LINE, roogondee, W Medical, …) so we
+    don't false-positive on jargon.
+
+    Cost: ~$0.0005 per caption. Skipped entirely if ANTHROPIC_API_KEY missing
+    or anthropic SDK can't be imported — returns ok=True so caller doesn't
+    block on a non-essential check.
+    """
+    if not text or not text.strip():
+        return False, ["text ว่าง"]
+
+    try:
+        if anthropic_client is None:
+            import anthropic
+            key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+            if not key:
+                return True, []
+            anthropic_client = anthropic.Anthropic(api_key=key)
+    except Exception:
+        return True, []
+
+    system = (
+        "คุณเป็นบรรณาธิการพิสูจน์อักษรภาษาไทย ตรวจคำที่สะกดผิดหรือคำที่ไม่มีอยู่จริง "
+        "ในภาษาไทย เช่นคำที่ AI ประดิษฐ์ขึ้นเอง (hallucination) "
+        "ห้าม flag คำทับศัพท์/ศัพท์แพทย์ที่เป็นภาษาอังกฤษ "
+        "เช่น CKD, eGFR, GLP-1, HIV, LINE, roogondee, Stage, W Medical, creatinine, "
+        "Syphilis, FBS, HbA1c — คำพวกนี้ถือว่าถูกต้อง "
+        "ห้าม flag ชื่อยี่ห้อ ชื่อจังหวัด ชื่อคน "
+        "ตอบเป็น JSON เท่านั้น schema: "
+        '{"ok": true|false, "bad_words": ["คำ1", "คำ2"]} '
+        "ถ้าไม่มีคำผิดให้ตอบ {\"ok\": true, \"bad_words\": []}"
+    )
+    user = f"ตรวจข้อความนี้ว่ามีคำไทยที่สะกดผิดหรือไม่มีอยู่จริงไหม:\n\n{text}"
+
+    try:
+        msg = anthropic_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            messages=[{"role": "user", "content": user}],
+            system=system,
+        )
+        raw = msg.content[0].text.strip()
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```\s*$", "", raw)
+        data = json.loads(raw)
+    except Exception as e:
+        # LLM review is best-effort — if Haiku returns garbage, don't block.
+        print(f"  ⚠️ review_thai_with_llm failed (skip): {e}")
+        return True, []
+
+    bad = [w for w in data.get("bad_words", []) if isinstance(w, str) and w.strip()]
+    bad = [w for w in bad if w in text]  # only trust words that actually appear
+
+    if data.get("ok") and not bad:
+        return True, []
+    if not bad:
+        return True, []  # ok=False but no concrete words — don't block
+    return False, [f"LLM ทักว่าคำเพี้ยน: {w}" for w in bad]
+
+
+def check_caption_language(text: str, use_llm: bool = True) -> Tuple[bool, list[str]]:
+    """
+    Combined caption language gate.
+
+    Layer 1 (blocklist) always runs.
+    Layer 2 (LLM) runs only if Layer 1 passes and use_llm=True.
+    Layer 2 failures are advisory — caller decides whether to retry.
+    """
+    ok1, issues1 = check_thai_language(text)
+    if not ok1:
+        return False, issues1
+    if not use_llm:
+        return True, []
+    return review_thai_with_llm(text)
 
 
 # CLI for standalone testing: python scripts/compliance.py path/to/content.txt
