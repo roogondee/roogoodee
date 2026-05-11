@@ -75,7 +75,22 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
+## FB Page Reels (daily AI video autopost — prototype)
+- `scripts/fb_reel.py` + `.github/workflows/fb_reel.yml` — cron 04:00 UTC = 11:00 BKK (หลัง Story 2 ชม.)
+- Rotates `glp1 → std → ckd` by day-of-year (skip foreign + mens — Reels เน้น consumer)
+- Reel type cycles `lifestyle → clinic_visit → before_after_mood → voucher_promo` (4-day)
+- Script gen: Claude Haiku 4.5 → JSON `{visual_prompt(EN), headline(TH), caption(TH), cta(TH)}`
+- Video: **Seedance 1.5 Pro** ผ่าน kie.ai (`bytedance/seedance-1.5-pro`) — 9:16, 8s, 1080p, native audio
+  - createTask → poll `/recordInfo` until `state=success` → ดาวน์โหลด mp4
+  - cost ~$0.01/sec → 8s = ~$0.08/clip = **~$2.40/เดือน** (1 reel/วัน)
+- Posts via Graph API v19 resumable upload (3 phase): `start` → `upload` (file_url จาก Supabase storage) → wait 30s → `finish&video_state=PUBLISHED`
+- Tracked in `fb_reels` table (migration: `create_fb_reels.sql`) — unique `(posted_date, service)` index → safe re-run
+- Required new secret: **`KIE_API_KEY`** (kie.ai) — เพิ่มจาก 5 secrets เดิมของ Story
+- Manual dispatch: `service` override + `duration` (4/8/12) + `resolution` + `dry_run` (skip ทั้ง Seedance+FB) + `local_only` (gen แต่ไม่โพสต์ — artifact upload เป็น mp4 preview)
+- ⚠️ Thai lip-sync ของ Seedance ไม่ได้อยู่ในลิสต์ภาษาหลัก → prompt ใช้ ambient music + no dialogue, ข้อความไทยอยู่ใน FB caption
+
 ## Recent decisions
+- 2026-05-09: FB Page Reels autopost prototype — Seedance 1.5 Pro ผ่าน kie.ai ($0.08/clip, ~$2.40/เดือน), cron 11:00 BKK, 9:16/8s/1080p พร้อม native audio. ต้องเพิ่ม `KIE_API_KEY` secret + apply `create_fb_reels.sql` migration ก่อน enable cron.
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug
