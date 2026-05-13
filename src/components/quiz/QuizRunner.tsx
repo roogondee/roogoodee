@@ -50,6 +50,32 @@ function track(name: string, params: Record<string, unknown> = {}) {
   try { window.ttq?.track(name, params) } catch {}
 }
 
+// Server-side funnel tracking — feeds /admin/quiz-funnel drop-off dashboard.
+// Fire-and-forget; never blocks the UI and never throws.
+function trackFunnel(payload: Record<string, unknown>) {
+  if (typeof window === 'undefined') return
+  try {
+    fetch('/api/quiz/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {}
+}
+
+function newSessionId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+  } catch {}
+  // RFC4122-ish fallback
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 interface Props {
   definition: QuizDefinition
 }
@@ -101,21 +127,29 @@ export default function QuizRunner({ definition }: Props) {
 
   const startedRef = useRef(false)
   const lastProgressRef = useRef(-1)
+  const completeFiredRef = useRef(false)
+  const sessionIdRef = useRef<string>('')
   const storageKey = `rgd-quiz-${definition.service}-v${STORAGE_VERSION}`
 
-  // Restore saved progress on mount
+  // Restore saved progress + session id on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
-        const { step: s, answers: a } = JSON.parse(saved) as { step: number; answers: Record<string, unknown> }
+        const { step: s, answers: a, session_id } = JSON.parse(saved) as {
+          step: number; answers: Record<string, unknown>; session_id?: string
+        }
         if (typeof s === 'number' && s > 0) {
           setStep(s)
           setAnswers(a || {})
           setResumed(true)
         }
+        if (typeof session_id === 'string' && session_id) {
+          sessionIdRef.current = session_id
+        }
       }
     } catch {}
+    if (!sessionIdRef.current) sessionIdRef.current = newSessionId()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -123,7 +157,9 @@ export default function QuizRunner({ definition }: Props) {
   useEffect(() => {
     if (step === 0 && Object.keys(answers).length === 0) return
     try {
-      localStorage.setItem(storageKey, JSON.stringify({ step, answers }))
+      localStorage.setItem(storageKey, JSON.stringify({
+        step, answers, session_id: sessionIdRef.current,
+      }))
     } catch {}
   }, [step, answers, storageKey])
 
@@ -138,6 +174,16 @@ export default function QuizRunner({ definition }: Props) {
     if (startedRef.current) return
     startedRef.current = true
     track('quiz_start', { service: definition.service })
+    trackFunnel({
+      session_id: sessionIdRef.current,
+      service: definition.service,
+      event: 'start',
+      total_questions: definition.questions.length,
+      utm_source: utm.utm_source,
+      utm_medium: utm.utm_medium,
+      utm_campaign: utm.utm_campaign,
+      referrer: typeof document !== 'undefined' ? document.referrer : undefined,
+    })
     try {
       window.ttq?.track('InitiateCheckout', {
         content_id: `quiz-${definition.service}`,
@@ -146,7 +192,7 @@ export default function QuizRunner({ definition }: Props) {
         currency: 'THB',
       })
     } catch {}
-  }, [definition.service])
+  }, [definition.service, definition.questions.length, utm])
 
   // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
   useEffect(() => {
@@ -261,6 +307,12 @@ export default function QuizRunner({ definition }: Props) {
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
       track('voucher_sent', { service: definition.service, code: data.voucher.code })
+      trackFunnel({
+        session_id: sessionIdRef.current,
+        service: definition.service,
+        event: 'submit_success',
+        total_questions: definition.questions.length,
+      })
       try {
         window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
         window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
@@ -297,8 +349,26 @@ export default function QuizRunner({ definition }: Props) {
         step: step + 1,
         total: definition.questions.length,
       })
+      trackFunnel({
+        session_id: sessionIdRef.current,
+        service: definition.service,
+        event: 'progress',
+        question_id: definition.questions[step]?.id,
+        question_index: step,
+        total_questions: definition.questions.length,
+      })
     }
-  }, [step, definition.questions.length, definition.service])
+    // Fire 'complete' once the user reaches the contact step (passed all questions)
+    if (step === definition.questions.length && !completeFiredRef.current) {
+      completeFiredRef.current = true
+      trackFunnel({
+        session_id: sessionIdRef.current,
+        service: definition.service,
+        event: 'complete',
+        total_questions: definition.questions.length,
+      })
+    }
+  }, [step, definition.questions, definition.service])
 
   // ── Success screen ────────────────────────────────────────────────
   if (result) {
@@ -389,7 +459,13 @@ export default function QuizRunner({ definition }: Props) {
       <span>{tq.resumeBanner} {step + 1})</span>
       <button
         type="button"
-        onClick={() => { setStep(0); setAnswers({}); setResumed(false); try { localStorage.removeItem(storageKey) } catch {} }}
+        onClick={() => {
+          setStep(0); setAnswers({}); setResumed(false)
+          sessionIdRef.current = newSessionId()
+          completeFiredRef.current = false
+          lastProgressRef.current = -1
+          try { localStorage.removeItem(storageKey) } catch {}
+        }}
         className="underline opacity-60 hover:opacity-100"
       >
         {tq.restartLink}
