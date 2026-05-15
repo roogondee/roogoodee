@@ -14,6 +14,16 @@ const FAQS = [
   { q: 'รองรับแรงงานสัญชาติอะไรบ้าง?', a: 'รองรับ 4 สัญชาติ: พม่า กัมพูชา ลาว เวียดนาม ทีมงานสื่อสารได้หลายภาษา' },
 ]
 
+const HOSPITAL_STEPS = [
+  { num: '1', title: 'ลงทะเบียน + ตรวจเอกสาร', desc: 'หนังสือเดินทาง (Passport) + เอกสารนายจ้าง' },
+  { num: '2', title: 'ตรวจสุขภาพทั่วไป', desc: 'น้ำหนัก / ส่วนสูง / ความดันโลหิต / ชีพจร โดยแพทย์' },
+  { num: '3', title: 'คัดกรอง 6 โรคต้องห้าม', desc: 'เรื้อน, วัณโรค, เท้าช้าง, ติดยา, สุราเรื้อรัง, ซิฟิลิสระยะ 3' },
+  { num: '4', title: 'ตรวจห้องปฏิบัติการ', desc: 'ปัสสาวะ + เลือด — ห้องแล็บรับรอง LA 7044P/2568' },
+  { num: '5', title: 'เอกซเรย์ปอด', desc: 'Chest X-ray คัดกรองวัณโรค' },
+  { num: '6', title: 'สแกนม่านตา + Facial Recognition', desc: 'ยืนยันตัวตนตามมาตรฐานกรมควบคุมโรค — ทีมผ่านการอบรมและได้รับประกาศนียบัตร', highlight: true },
+  { num: '7', title: 'รับใบรับรองแพทย์', desc: 'รอผลประมาณ 1.5–2 ชั่วโมง (กลุ่ม ≥ 50 คน อาจรับวันรุ่งขึ้น)' },
+]
+
 export default function ForeignClient() {
   const { t } = useTranslation()
   const f = t.foreign
@@ -82,6 +92,34 @@ export default function ForeignClient() {
                 <p className="text-white/55 text-sm leading-relaxed">{s.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">ขั้นตอนการตรวจที่โรงพยาบาล</p>
+          <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">7 ขั้นตอนตรวจสุขภาพแรงงานต่างด้าว</h2>
+          <p className="text-muted text-sm md:text-base mb-10 max-w-2xl">ลำดับการตรวจที่ W Medical สมุทรสาคร — รพ. ที่ได้รับอนุญาตตามประกาศกระทรวงสาธารณสุข พ.ศ. 2567</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {HOSPITAL_STEPS.map(s => (
+              <div key={s.num} className={`relative rounded-2xl p-5 border ${s.highlight ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200' : 'bg-cream border-mint/15'}`}>
+                {s.highlight && (
+                  <span className="absolute -top-2 right-4 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider">ใหม่</span>
+                )}
+                <div className="flex items-start gap-3">
+                  <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${s.highlight ? 'bg-amber-500 text-white' : 'bg-mint/15 text-mint'}`}>{s.num}</span>
+                  <div>
+                    <h3 className="font-semibold text-forest text-sm mb-1 leading-snug">{s.title}</h3>
+                    <p className="text-muted text-xs leading-relaxed">{s.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 bg-mint/5 border border-mint/15 rounded-2xl p-5 text-xs text-muted leading-relaxed">
+            <strong className="text-forest">ใบรับรองและมาตรฐาน:</strong> ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569 · ห้องแล็บรับรอง LA 7044P/2568 (กรมวิทยาศาสตร์การแพทย์) · ทีมงานผ่านการอบรม Iris Scan & Facial Recognition จากอธิบดีกรมควบคุมโรค ·{' '}
+            <a href="https://mrd.hss.moph.go.th/mrd1_hss/?p=12942" target="_blank" rel="noopener noreferrer" className="text-mint hover:underline">ตรวจสอบรายชื่อ รพ. ที่ได้รับอนุญาต</a>
           </div>
         </div>
       </section>
