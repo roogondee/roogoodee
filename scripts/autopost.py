@@ -357,10 +357,23 @@ def validate_content(html: str, plan: dict) -> list[str]:
 
 # ─── CLAUDE AI ─────────────────────────────────────────────────────────────────
 
+_FOREIGN_TIE_IN_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "docs", "foreign-worker-tiein.md"
+)
+
+def _load_foreign_tie_in() -> str:
+    try:
+        with open(_FOREIGN_TIE_IN_PATH, encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        print(f"  ⚠️ load foreign tie-in failed: {e}")
+        return ""
+
 def generate_content(plan: dict) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     is_mens = plan.get("service") == "mens"
+    is_foreign = plan.get("service") == "foreign"
     mens_compliance_block = """
 
 ⚠️ COMPLIANCE สำหรับ Men's Health (บังคับ — ห้ามฝ่าฝืน):
@@ -392,6 +405,21 @@ def generate_content(plan: dict) -> str:
     if is_mens:
         system_prompt += mens_compliance_block
 
+    foreign_source_block = ""
+    if is_foreign:
+        tie_in = _load_foreign_tie_in()
+        if tie_in:
+            system_prompt += """
+
+⚠️ AUTHORITATIVE SOURCE สำหรับ Foreign Worker (บังคับ — ห้ามใช้ข้อมูลจาก memory ที่ขัดแย้ง):
+- 6 โรคต้องห้าม (ประกาศกระทรวงสาธารณสุข พ.ศ. 2567): เรื้อน, วัณโรคระยะอันตราย, เท้าช้าง, ติดยาเสพติด, พิษสุราเรื้อรัง, ซิฟิลิสระยะที่ 3 — ห้ามเขียนผิดหรือเพิ่มโรคอื่น
+- ห้ามระบุว่า HIV เป็นเหตุปฏิเสธ work permit — ผิดกฎหมายไทย (HIV ไม่อยู่ในรายชื่อโรคต้องห้าม)
+- ต้องอ้างพาร์ทเนอร์ "W Medical Hospital สมุทรสาคร" พร้อมใบอนุญาต สบส. (สมุทรสาคร) 001/2569 + LA 7044P/2568 + Iris Scan & Facial Recognition cert
+- ขั้นตอนตรวจให้ใช้ 7 ขั้นตอนตาม source (รวม Iris Scan + Facial Recognition)
+- ราคา/อายุใบ/ภาษาบริการ ให้ยึดตาม source: เริ่มต้น 500 บาท, ใบใช้ได้ 90 วัน, บริการเมียนมา/จีน/อังกฤษ
+- หน่วยงานที่อนุญาต = สบส. (กรมสนับสนุนบริการสุขภาพ กระทรวงสาธารณสุข) ไม่ใช่ Ministry of Labour"""
+            foreign_source_block = f"\n\n--- AUTHORITATIVE SOURCE (foreign-worker-tiein.md) ---\n{tie_in}\n--- END SOURCE ---\n"
+
     user_prompt = f"""เขียนบทความสำหรับหัวข้อ:
 
 ชื่อเรื่อง: {plan['title']}
@@ -399,7 +427,7 @@ def generate_content(plan: dict) -> str:
 Focus Keyword: {plan.get('focus_kw', '')}
 เนื้อหาหลัก: {plan.get('seed', '')}
 Meta Description: {plan.get('meta_desc', '')}
-
+{foreign_source_block}
 เขียนบทความ HTML ให้ครบ 900-1,200 คำ"""
 
     def _call():
