@@ -1,22 +1,22 @@
 """
 roogondee-autopost: fb_story.py
 รู้ก่อนดี (RuGonDee) — Facebook Page Story daily poster
-หมุน 4 verticals (glp1/std/ckd/+optional mens), gen caption + 9:16 cover ทุกวัน
+หมุน 5 verticals (glp1/std/ckd/mens/andro), gen caption + 9:16 cover ทุกวัน
 แล้วโพสต์เป็น Facebook Page Story (24-hour ephemeral) ผ่าน Graph API.
 
 Required env:
   ANTHROPIC_API_KEY
-  TOGETHER_API_KEY                  (optional — ถ้าว่างจะใช้ gradient background)
+  TOGETHER_API_KEY                          (optional — ถ้าว่างจะใช้ gradient background)
   NEXT_PUBLIC_SUPABASE_URL
   SUPABASE_SECRET
   FB_PAGE_ID
-  FB_PAGE_ACCESS_TOKEN              ต้องมี pages_manage_posts
-  SITE_BASE_URL                     (default https://www.roogondee.com)
+  FB_PAGE_ACCESS_TOKEN                      ต้องมี pages_manage_posts
+  SITE_BASE_URL                             (default https://www.roogondee.com)
 
 Optional env:
-  STORY_INCLUDE_MENS=1              เปิด mens vertical (default ปิด)
-  STORY_FORCE_SERVICE=glp1|std|ckd  override การหมุนวัน (สำหรับ workflow_dispatch)
-  STORY_DRY_RUN=1                   ทำทุกขั้น ยกเว้นยิง Graph API
+  STORY_EXCLUDE=mens,andro                  ปิด vertical ที่ระบุ (csv, default ไม่ปิดอะไร)
+  STORY_FORCE_SERVICE=glp1|std|ckd|mens|andro  override การหมุนวัน (สำหรับ workflow_dispatch)
+  STORY_DRY_RUN=1                           ทำทุกขั้น ยกเว้นยิง Graph API
 """
 
 import os
@@ -46,7 +46,7 @@ FB_PAGE_ID     = os.environ.get("FB_PAGE_ID", "").strip()
 FB_PAGE_TOKEN  = os.environ.get("FB_PAGE_ACCESS_TOKEN", "").strip()
 SITE_BASE      = os.environ.get("SITE_BASE_URL", "https://www.roogondee.com").rstrip("/")
 
-INCLUDE_MENS   = os.environ.get("STORY_INCLUDE_MENS", "0") == "1"
+EXCLUDE        = {s.strip().lower() for s in os.environ.get("STORY_EXCLUDE", "").split(",") if s.strip()}
 FORCE_SERVICE  = os.environ.get("STORY_FORCE_SERVICE", "").strip().lower()
 DRY_RUN        = os.environ.get("STORY_DRY_RUN", "0") == "1"
 
@@ -60,9 +60,9 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 # ─── SERVICE ROTATION ──────────────────────────────────────────────────────────
 
 # foreign B2B vertical ไม่เหมาะกับ Stories (target HR องค์กร ไม่ใช่ผู้บริโภค)
-ROTATION = ["glp1", "std", "ckd"]
-if INCLUDE_MENS:
-    ROTATION.append("mens")
+# mens = สุขภาพชาย 40+ ฮอร์โมน/พลังงาน  |  andro = andrology ตรวจฮอร์โมน+คัดกรอง STD ในผู้ชาย
+_ALL_SERVICES = ["glp1", "std", "ckd", "mens", "andro"]
+ROTATION = [s for s in _ALL_SERVICES if s not in EXCLUDE]
 
 SERVICE_META: dict[str, dict] = {
     "glp1": {
@@ -101,10 +101,20 @@ SERVICE_META: dict[str, dict] = {
                            "professional lifestyle, fully clothed, no shirtless, no couples, vertical 9:16 framing, "
                            "professional photo, no text, no logos"),
     },
+    "andro": {
+        "label":         "สุขภาพทางเพศชาย",
+        "voucher_hint":  "ปรึกษาแพทย์เฉพาะทาง + ตรวจคัดกรอง ภายใต้การดูแลของแพทย์",
+        "color_top":     (52, 73, 102),
+        "color_bottom":  (20, 28, 46),
+        "image_prompt":  ("Thai man in his 30s in clean shirt sitting calmly in modern consultation office, "
+                           "doctor's stethoscope and laptop on desk, soft teal and slate tones, "
+                           "educational healthcare setting, fully clothed, no shirtless, no couples, no suggestive poses, "
+                           "vertical 9:16 framing, professional photo, no text, no logos"),
+    },
 }
 
-# วน 5 รูปแบบเรื่อง — แต่ละแบบให้ headline สไตล์ต่างกัน
-STORY_TYPES = ["fact", "question", "tip", "voucher", "myth"]
+# 6 รูปแบบเรื่อง — เลือกให้ coprime กับ ROTATION (5) เพื่อให้คู่ service×type ไม่ลอคกัน
+STORY_TYPES = ["fact", "question", "tip", "voucher", "myth", "compare"]
 
 STORY_TYPE_BRIEF = {
     "fact":     "บอกข้อเท็จจริงสุขภาพที่หลายคนไม่รู้ พร้อมตัวเลข/สถิติเป็นจุดเริ่มสะดุดตา",
@@ -112,6 +122,7 @@ STORY_TYPE_BRIEF = {
     "tip":      "แนะนำเทคนิค/พฤติกรรมง่าย ๆ ที่ทำได้วันนี้",
     "voucher":  "เน้นโปรของวอเชอร์ฟรี ชวนทักไลน์รับโค้ด",
     "myth":     "ชนความเชื่อผิด ๆ ที่พบบ่อยในเรื่องสุขภาพนั้น แล้วแก้ให้ถูกต้อง",
+    "compare":  "เปรียบเทียบ 2 ทางเลือก (เช่น 'ตรวจเลย vs รอ', 'รู้ก่อน vs รู้ตอนสาย') ให้เห็นต่างชัด",
 }
 
 
@@ -181,6 +192,20 @@ MENS_COMPLIANCE_BLOCK = """
 - tone: ให้ความรู้ ไม่ตัดสิน ไม่ขายของ
 - มีประโยค "ภายใต้การดูแลของแพทย์ที่ W Medical Hospital" อย่างน้อย 1 ครั้งในใน caption"""
 
+ANDRO_COMPLIANCE_BLOCK = """
+
+⚠️ COMPLIANCE สุขภาพทางเพศชาย — andrology (บังคับ — caption + headline + subline ทุกตัว):
+- ห้ามใช้คำ ED / แข็งตัว / สมรรถภาพทางเพศ / เพิ่มขนาด / ขยายขนาด / อึด / ทน X นาที / ปลุกเซ็กส์
+- ห้ามใช้คำพรรณนาเชิงเร้าอารมณ์ / promise ความสัมพันธ์ดีขึ้น / รับประกันผลลัพธ์
+- ห้ามระบุชื่อยา (sildenafil, tadalafil, Viagra, Cialis, Nebido, Sustanon, testosterone gel)
+- ห้ามใช้ 'รักษาหายขาด' / '100%' / 'การันตี' / 'แจกยา' / 'ยาฟรี'
+- เน้นเชิงให้ความรู้ / การคัดกรองสุขภาพ / ปรึกษาแพทย์ — ไม่ใช่การโปรโมตการใช้ยา
+- หัวข้อที่อนุญาต: ฮอร์โมนเพศชาย (testosterone) ในเชิงการตรวจคัดกรอง, ความเหนื่อยล้า/พลังงานลดลง,
+  สุขภาพต่อมลูกหมาก, การคัดกรอง HIV/ซิฟิลิส/หนองในในผู้ชาย, การปรึกษาแพทย์
+- tone: ให้ความรู้สุภาพ ไม่ตัดสิน ไม่ judgemental — เหมือนคุณหมอคุยกับคนไข้
+- ต้องมีประโยค "ภายใต้การดูแลของแพทย์" หรือ "ปรึกษาแพทย์ที่ W Medical Hospital" อย่างน้อย 1 ครั้งใน caption
+- ภาพลักษณ์: ผู้ชายแต่งกายสุภาพในคลินิก/ห้องตรวจ ไม่ใช่ในห้องนอน/คู่รัก"""
+
 SYSTEM_PROMPT = """คุณเป็นแอดมินเพจสุขภาพ "รู้ก่อนดี (รู้งี้)" / roogondee.com
 โดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 เขียน Facebook Story ภาษาไทย กระชับ คล้ายเพื่อนคุยให้ฟัง — ไม่แข็ง ไม่ขายตรง
@@ -205,6 +230,11 @@ def _client():
     return anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
 
+def std_audience_today(d: date) -> str:
+    """STD vertical สลับ audience ทุกวัน (ทั่วไป → ชาย → หญิง → 3 วัน)."""
+    return ["ทั่วไป", "ผู้ชาย", "ผู้หญิง"][d.toordinal() % 3]
+
+
 def generate_caption(service: str, story_type: str) -> dict:
     meta = SERVICE_META[service]
     brief = STORY_TYPE_BRIEF[story_type]
@@ -212,9 +242,16 @@ def generate_caption(service: str, story_type: str) -> dict:
     system = SYSTEM_PROMPT
     if service == "mens":
         system += MENS_COMPLIANCE_BLOCK
+    elif service == "andro":
+        system += ANDRO_COMPLIANCE_BLOCK
+
+    audience_note = ""
+    if service == "std":
+        aud = std_audience_today(TODAY)
+        audience_note = f"\nกลุ่มเป้าหมายวันนี้: {aud} (ปรับ tone/ตัวอย่างให้เข้ากับกลุ่มนี้)"
 
     user = f"""วันนี้สร้าง Facebook Story สำหรับ vertical: {meta['label']}
-สไตล์: {story_type} — {brief}
+สไตล์: {story_type} — {brief}{audience_note}
 
 ข้อมูลโปร: {meta['voucher_hint']}
 สถานที่ตรวจ: W Medical Hospital สมุทรสาคร
@@ -251,11 +288,11 @@ def generate_caption(service: str, story_type: str) -> dict:
                     raise ValueError(f"missing/empty field: {key}")
                 data[key] = data[key].strip()
 
-            if service == "mens":
+            if service in ("mens", "andro"):
                 blob = "\n".join([data["headline"], data["subline"], data["caption"]])
-                ok, issues = check_caption_compliance(blob, "mens")
+                ok, issues = check_caption_compliance(blob, service)
                 if not ok:
-                    raise ValueError(f"mens compliance fail: {issues}")
+                    raise ValueError(f"{service} compliance fail: {issues}")
 
             # Thai language QA on every visible field (headline + subline + caption).
             blob = "\n".join([data["headline"], data["subline"], data["caption"]])
