@@ -150,6 +150,33 @@ SUSPICIOUS_THAI_WORDS: tuple[str, ...] = (
     "ดักแจง",     # 2026-05-11 CKD caption — should be ดักจับ/ตรวจเจอ
 )
 
+# Medical/marketing jargon that confuses consumer readers. Flagged in
+# any caption (not just mens) so the retry loop forces Claude to rewrite
+# in plain Thai. 2026-05-16: Pornpat circled "กลุ่มเมตาบอลิก/กลุ่มNCDs"
+# in a LINE broadcast preview — readers don't know the term.
+JARGON_TERMS: tuple[str, ...] = (
+    "เมตาบอลิก",
+    "metabolic syndrome",
+    "comorbidity",
+    "comorbidities",
+)
+
+
+def check_jargon(text: str) -> Tuple[bool, list[str]]:
+    """
+    Flag medical jargon that consumer readers don't understand. Returns
+    (ok, issues). Used as a retry trigger in caption-gen pipelines —
+    not a hard publish block (Claude usually fixes on retry).
+    """
+    if not text:
+        return True, []
+    issues: list[str] = []
+    text_lower = text.lower()
+    for term in JARGON_TERMS:
+        if term.lower() in text_lower:
+            issues.append(f"พบศัพท์แพทย์ยาก: {term}")
+    return len(issues) == 0, issues
+
 
 def check_thai_language(text: str) -> Tuple[bool, list[str]]:
     """

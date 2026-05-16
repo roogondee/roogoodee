@@ -227,6 +227,7 @@ def generate_caption(service: str, story_type: str) -> dict:
 
     from compliance import (
         check_caption_compliance,
+        check_jargon,
         check_thai_language,
         review_thai_with_llm,
     )
@@ -262,6 +263,15 @@ def generate_caption(service: str, story_type: str) -> dict:
             ok1, issues1 = check_thai_language(blob)
             if not ok1:
                 raise ValueError(f"Thai language blocklist fail: {issues1}")
+
+            ok_j, issues_j = check_jargon(blob)
+            if not ok_j:
+                # Advisory — retry to get plain Thai. Accept on final attempt.
+                print(f"  ⚠️ jargon (try {attempt + 1}): {issues_j}")
+                last_data = data
+                if attempt < 2:
+                    raise ValueError(f"jargon: {issues_j}")
+                print(f"  ℹ️ ใช้ caption รอบสุดท้ายแม้ยังพบ jargon")
 
             ok2, issues2 = review_thai_with_llm(blob, anthropic_client=client)
             if not ok2:
