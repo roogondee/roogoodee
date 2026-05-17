@@ -27,6 +27,7 @@ const SYSTEM_PROMPT = `คุณคือผู้ช่วยสุขภาพ
 - GLP-1 ลดน้ำหนัก: ยา Semaglutide, Liraglutide สำหรับผู้ที่ BMI เกิน
 - CKD Clinic: ดูแลโรคไตเรื้อรัง ชะลอการเสื่อมของไต
 - ตรวจสุขภาพแรงงานต่างด้าว: ใบรับรองแพทย์ บริการ B2B สำหรับโรงงาน
+- ตรวจสุขภาพประจำปี: แพ็กเกจตรวจสุขภาพประจำปีที่ W Medical Hospital สมุทรสาคร (ครอบคลุมเลือด ปัสสาวะ เอ็กซเรย์ และอื่นๆ ตามแพ็กเกจที่เลือก)
 
 CRITICAL LANGUAGE RULE:
 - Detect the language the user writes in and ALWAYS reply in that SAME language.
@@ -41,6 +42,7 @@ Important rules:
    - GLP-1 → https://roogondee.com/contact?service=glp1
    - CKD → https://roogondee.com/contact?service=ckd
    - Workers → https://roogondee.com/contact?service=foreign
+   - ตรวจสุขภาพประจำปี → https://roogondee.com/contact
 4. Never diagnose or prescribe — always recommend seeing a doctor.
 5. End with "💚 Free consultation, no judgment" (in the user's language).`
 
@@ -49,6 +51,7 @@ const SERVICE_KEYWORDS: Record<string, string[]> = {
   glp1:    ['glp', 'ozempic', 'saxenda', 'ลดน้ำหนัก', 'อ้วน', 'bmi', 'ยาฉีด', 'เบาหวาน'],
   ckd:     ['ไต', 'ckd', 'ครีเอตินิน', 'creatinine', 'egfr', 'ล้างไต', 'โรคไต'],
   foreign: ['แรงงาน', 'ต่างด้าว', 'myanmar', 'เมียนมา', 'กัมพูชา', 'ลาว', 'เวียดนาม', 'ใบรับรองแพทย์', 'work permit'],
+  annual:  ['ประจำปี', 'ตรวจประจำปี', 'แพ็กเกจตรวจ', 'ตรวจร่างกาย', 'health check', 'checkup', 'check up', 'ตรวจสุขภาพประจำ'],
 }
 
 function detectService(text: string): string {
