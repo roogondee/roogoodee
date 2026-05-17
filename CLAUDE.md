@@ -67,15 +67,19 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 
 ## FB Page Stories (daily autopost)
 - `scripts/fb_story.py` + `.github/workflows/fb_story.yml` — cron 02:00 UTC = 09:00 BKK
-- Rotates `glp1 → std → ckd` by day-of-year (skip `foreign` B2B; `mens` opt-in via `STORY_INCLUDE_MENS=1`)
-- Story type cycles `fact → question → tip → voucher → myth` (5-day cycle)
-- Caption gen: Claude Haiku 4.5 → JSON `{headline, subline, caption, cta}`; mens compliance gate reuses `compliance.check_caption_compliance`
+- Rotates `glp1 → std → ckd → mens → andro` by day-of-year (5-day cycle; `foreign` B2B skipped — wrong audience for Stories)
+- Story type cycles `fact → question → tip → voucher → myth → compare` (6 types — coprime w/ 5 services = 30-day pair coverage)
+- `std` vertical alternates audience daily (ทั่วไป → ผู้ชาย → ผู้หญิง) so STD content covers male-focused angles 1/3 of std days
+- `mens` = สุขภาพชาย 40+ (ฮอร์โมน/พลังงาน/อารมณ์) — strict compliance, no ED/drug-name terms
+- `andro` = สุขภาพทางเพศชาย เชิงให้ความรู้ (ตรวจฮอร์โมน, ต่อมลูกหมาก, STD screening for men) — strict compliance, andrology consultation framing only
+- Caption gen: Claude Haiku 4.5 → JSON `{headline, subline, caption, cta}`; mens & andro both gated via `compliance.check_caption_compliance`
 - Image: 1080x1920 composed with Pillow + Sarabun (SIL OFL, downloaded at runtime, cached in `scripts/fonts/`); FLUX background optional, gradient fallback if `TOGETHER_API_KEY` absent
 - Posts via Graph API v19: `POST /{page-id}/photos?published=false` → `POST /{page-id}/photo_stories?photo_id=…` (uses existing `pages_manage_posts`)
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
-- Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
+- Manual: `workflow_dispatch` accepts `service` override, `dry_run` (skip Graph API, save preview to `/tmp`), and `exclude` csv (e.g. `andro,mens` to pause those verticals)
 
 ## Recent decisions
+- 2026-05-15: Added `andro` vertical (สุขภาพทางเพศชาย — andrology) to FB Story rotation + flipped `mens` to always-on. Rotation now 5 services × 6 story types = 30-day unique coverage. `std` audience alternates daily (general → male → female). All male-health captions gated through `compliance.check_caption_compliance` — no ED/drug-name/performance terms.
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug

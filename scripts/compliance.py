@@ -104,8 +104,11 @@ def check_caption_compliance(caption: str, service: str) -> Tuple[bool, list[str
     """
     Lighter check for FB/social captions — required phrase not enforced
     (caption too short to fit). Forbidden words still blocked.
+
+    Applies to both `mens` (สุขภาพชาย 40+ — ฮอร์โมน/พลังงาน) and `andro`
+    (andrology — สุขภาพทางเพศชายเชิงให้ความรู้). Other services skip the gate.
     """
-    if service != "mens":
+    if service not in ("mens", "andro"):
         return True, []
 
     if not caption:
