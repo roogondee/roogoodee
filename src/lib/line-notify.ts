@@ -72,6 +72,14 @@ export async function pushVoucherToUser(userId: string, params: {
   await pushLine(userId, text)
 }
 
+// Raw-text variant for system alerts that need full control over formatting
+// (e.g. rolled-up overdue lead lists). notifyLineGroup formats around a single
+// lead and slices notes to 100 chars; this just pushes the string verbatim.
+export async function notifyLineGroupRaw(text: string) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+  await pushLine(LINE_NOTIFY_GROUP_ID, text)
+}
+
 export async function notifyLineGroup(params: NotifyParams) {
   if (!LINE_NOTIFY_GROUP_ID) return
 

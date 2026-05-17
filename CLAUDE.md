@@ -75,6 +75,19 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
+## CRM follow-up (salesperson workflow)
+Salesperson-facing tooling on top of the existing `leads` table. Migration
+`add_followup_to_leads.sql` adds `next_followup_at`, `last_contacted_at`,
+`contact_attempts`, `last_outcome` to leads + creates `lead_contact_log`.
+
+- **`/admin/my-tasks`** (`src/app/admin/my-tasks/page.tsx`) — priority queue per salesperson. Three buckets: 🚨 overdue (next_followup_at ≤ now), 📞 untouched (status='new', last_contacted_at IS NULL), 🗓 upcoming. Sales role sees own assignments; manager sees all. Closed states (customer/lost) filtered out.
+- **`LeadQuickActions` component** (`src/components/admin/LeadQuickActions.tsx`) — wired into `/admin/leads/[id]`. Buttons: 📞 รับสาย / 📵 ไม่รับ / 📨 ฝากข้อความ / 💬 ส่ง LINE + 🗓 นัดโทรกลับ datetime picker. Each click POSTs to `/api/admin/leads/[id]/contact`. Auto-suggests `next_followup_at` based on outcome (no_answer→4h, voicemail→24h, line_sent→24h, answered→48h).
+- **`/api/admin/leads/[id]/contact`** — POST endpoint. Inserts a `lead_contact_log` row + increments `contact_attempts` + updates `last_contacted_at`/`last_outcome`/`next_followup_at`. Auto-promotes status from 'new' → 'contacted' for outcomes `answered` and `scheduled` (never demotes booked/qualified leads).
+- **Overdue alert cron** `/api/cron/overdue-leads`, triggered by GitHub Actions `.github/workflows/overdue_alert.yml` (`0,30 1-12 * * *` = every 30 min 08:00–19:30 BKK). Vercel Hobby tier blocks sub-daily crons so this runs from GitHub Actions and curls the endpoint with `Authorization: Bearer $CRON_SECRET`. Sends rolled-up LINE message to W Medical group when:
+  1. New leads >4h old never contacted, OR
+  2. `next_followup_at <= now()` and status NOT IN customer/lost.
+  Uses new `notifyLineGroupRaw` (raw text, no 100-char truncation like `notifyLineGroup`).
+
 ## Recent decisions
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
