@@ -24,6 +24,10 @@ FB_PAGE_TOKEN     = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
 LINE_TOKEN        = os.environ.get("LINE_NOTIFY_TOKEN", "")
 SITE_BASE         = os.environ.get("SITE_BASE_URL", "https://www.roogondee.com").rstrip("/")
 
+IG_AUTOPOST       = os.environ.get("IG_AUTOPOST", "1") == "1"
+IG_BUSINESS_ID    = os.environ.get("IG_BUSINESS_ACCOUNT_ID", "").strip()
+IG_TOKEN          = os.environ.get("IG_SYSTEM_USER_TOKEN", "").strip()
+
 BKK_TZ    = ZoneInfo("Asia/Bangkok")
 TODAY_STR = date.today().strftime("%Y-%m-%d")
 
@@ -85,6 +89,15 @@ def mark_fb_posted(post_id: str, fb_post_id: str, caption: str) -> None:
         "fb_posted_at": datetime.now(BKK_TZ).isoformat(),
         "fb_post_id":   fb_post_id,
         "fb_caption":   caption,
+    }).eq("id", post_id).execute()
+
+
+def mark_ig_posted(post_id: str, ig_post_id: str, caption: str) -> None:
+    sb = get_sb()
+    sb.table("posts").update({
+        "ig_posted_at": datetime.now(BKK_TZ).isoformat(),
+        "ig_post_id":   ig_post_id,
+        "ig_caption":   caption,
     }).eq("id", post_id).execute()
 
 # ─── CAPTION GENERATION (CLAUDE) ──────────────────────────────────────────────
@@ -201,6 +214,49 @@ Hashtag แนะนำ: {tags}
 
 FB_API = "https://graph.facebook.com/v19.0"
 
+def build_ig_caption(fb_caption: str, link: str) -> str:
+    """แปลง FB caption สำหรับ IG: ลบลิงก์ (IG feed ไม่ทำให้ URL คลิกได้) → แทนด้วย link-in-bio."""
+    cap = fb_caption.replace(link, "").strip()
+    cap = re.sub(r"\n{3,}", "\n\n", cap)
+    cap += "\n\n🔗 ลิงก์อยู่ใน bio | roogondee.com"
+    # IG caption hard limit: 2200 chars
+    return cap[:2200]
+
+
+def post_to_instagram(caption: str, image_url: str) -> str:
+    """โพสต์ IG Feed ผ่าน Content Publishing API (System User token จาก Business Portfolio).
+    คืนค่า IG media_id; raise ถ้า fail (ให้ caller จัดการ).
+    """
+    if not IG_BUSINESS_ID or not IG_TOKEN:
+        raise RuntimeError("ขาด IG_BUSINESS_ACCOUNT_ID หรือ IG_SYSTEM_USER_TOKEN")
+    if not image_url:
+        raise RuntimeError("IG feed post ต้องมี image_url (ต้องเป็น HTTPS public)")
+
+    create = requests.post(
+        f"{FB_API}/{IG_BUSINESS_ID}/media",
+        data={
+            "image_url":    image_url,
+            "caption":      caption,
+            "access_token": IG_TOKEN,
+        },
+        timeout=60,
+    )
+    if create.status_code >= 400:
+        raise RuntimeError(f"IG /media {create.status_code}: {create.text[:300]}")
+    creation_id = create.json().get("id")
+    if not creation_id:
+        raise RuntimeError(f"IG /media missing id: {create.text[:300]}")
+
+    publish = requests.post(
+        f"{FB_API}/{IG_BUSINESS_ID}/media_publish",
+        data={"creation_id": creation_id, "access_token": IG_TOKEN},
+        timeout=60,
+    )
+    if publish.status_code >= 400:
+        raise RuntimeError(f"IG /media_publish {publish.status_code}: {publish.text[:300]}")
+    return publish.json().get("id", "")
+
+
 def post_to_facebook(caption: str, link: str, image_url: str | None) -> str:
     """
     โพสต์ไปยัง Facebook Page แบบ Link Preview
@@ -266,6 +322,24 @@ def main() -> int:
         print(f"✅ Facebook post: {fb_post_id}")
 
         mark_fb_posted(post["id"], fb_post_id, caption)
+
+        if IG_AUTOPOST and IG_BUSINESS_ID and IG_TOKEN:
+            if not image:
+                print("⏭  IG: ข้าม — บทความไม่มี image_url (IG feed บังคับมีรูป)")
+            else:
+                print("📤 กำลังโพสต์ไปยัง Instagram (Business Portfolio System User)...")
+                try:
+                    ig_caption = build_ig_caption(caption, link)
+                    ig_post_id = post_to_instagram(ig_caption, image)
+                    print(f"✅ Instagram post: {ig_post_id}")
+                    mark_ig_posted(post["id"], ig_post_id, ig_caption)
+                except Exception as ig_err:
+                    # FB succeeded — don't fail the whole run
+                    print(f"⚠️ IG post failed (FB already posted): {ig_err}")
+                    send_line(f"⚠️ รู้ก่อนดี IG post failed: {title}\n{str(ig_err)[:300]}")
+        elif IG_AUTOPOST:
+            print("⏭  IG: ข้าม — ขาด IG_BUSINESS_ACCOUNT_ID หรือ IG_SYSTEM_USER_TOKEN")
+
         return 0
 
     except Exception as e:

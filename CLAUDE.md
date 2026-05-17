@@ -94,7 +94,17 @@ Webhook handlers stay platform-specific (signature, event shape, send-reply API)
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
+## IG autopost (Feed + Stories)
+- Same workflows as FB — IG step runs after FB step in `scripts/fb_story.py` and `scripts/fb_caption.py`. One cron, atomic dedup.
+- **Auth = Meta Business Portfolio System User token** (NOT FB Page token). System User tokens don't expire and live in the Business Portfolio, not on a personal FB account. Generate at business.facebook.com → System Users → Generate Token with permissions `instagram_basic`, `instagram_content_publish`, `pages_read_engagement`; assign the IG asset + the linked FB Page to the System User first.
+- Env vars: `IG_BUSINESS_ACCOUNT_ID` (IG-User ID; fetch via `GET /{FB_PAGE_ID}?fields=instagram_business_account&access_token=…`), `IG_SYSTEM_USER_TOKEN`. Toggle via `IG_AUTOPOST=0` to disable.
+- IG Story (`fb_story.py`): reuses the same 1080x1920 image already uploaded to Supabase Storage + same caption. Two-step Graph API: `POST /{ig-user-id}/media?media_type=STORIES&image_url=…&caption=…` → `POST /{ig-user-id}/media_publish?creation_id=…`. Logged to `fb_stories.ig_media_id` / `ig_status` / `ig_error`.
+- IG Feed (`fb_caption.py`): reuses `posts.image_url` (must be HTTPS public; 4:5 to 1.91:1 aspect). FB caption is rewritten via `build_ig_caption()` — strips the clickable URL (IG feed captions don't render links) and appends "🔗 ลิงก์อยู่ใน bio | roogondee.com". Logged to `posts.ig_post_id` / `ig_posted_at` / `ig_caption`.
+- IG failures don't fail the workflow — FB has already succeeded by then; warning is logged to Discord/Slack/LINE and `ig_status='failed'` is recorded.
+- Schema: `supabase/migrations/add_ig_to_autopost.sql` adds `ig_*` columns to both `fb_stories` and `posts`.
+
 ## Recent decisions
+- 2026-05-17: IG autopost (Feed + Stories) shipped — extends fb_story.yml + fb_caption.yml, uses Meta Business Portfolio System User token (`IG_SYSTEM_USER_TOKEN`), mirrors FB content (story = same image, feed = same article with link-in-bio rewrite)
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug
