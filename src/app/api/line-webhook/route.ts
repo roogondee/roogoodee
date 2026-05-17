@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { notifyLineGroup } from '@/lib/line-notify'
-import Anthropic from '@anthropic-ai/sdk'
+import { generateReply } from '@/lib/chatbot/reply'
+import { detectService, extractVoucherCode } from '@/lib/chatbot/service-detect'
+import { captureBotLead } from '@/lib/chatbot/lead'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -9,7 +10,6 @@ export const maxDuration = 60
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
 const LINE_BOT_USER_ID = process.env.LINE_BOT_USER_ID || ''
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 function verifySignature(body: string, signature: string): boolean {
   if (!LINE_CHANNEL_SECRET) return true // skip if not configured
@@ -18,56 +18,6 @@ function verifySignature(body: string, signature: string): boolean {
     .update(body)
     .digest('base64')
   return hash === signature
-}
-
-const SYSTEM_PROMPT = `คุณคือผู้ช่วยสุขภาพของ "รู้ก่อนดี(รู้งี้)" (roogondee.com) บริการของบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
-
-บริการของเรา:
-- STD & PrEP HIV: ตรวจโรคติดต่อทางเพศสัมพันธ์ ยา PrEP/PEP ป้องกัน HIV
-- GLP-1 ลดน้ำหนัก: ยา Semaglutide, Liraglutide สำหรับผู้ที่ BMI เกิน
-- CKD Clinic: ดูแลโรคไตเรื้อรัง ชะลอการเสื่อมของไต
-- ตรวจสุขภาพแรงงานต่างด้าว: ใบรับรองแพทย์ บริการ B2B สำหรับโรงงาน
-
-CRITICAL LANGUAGE RULE:
-- Detect the language the user writes in and ALWAYS reply in that SAME language.
-- Thai → Thai, English → English, Burmese → Burmese, Lao → Lao, Khmer → Khmer,
-  Chinese → Chinese, Vietnamese → Vietnamese, Hindi → Hindi, Japanese → Japanese, Korean → Korean
-
-Important rules:
-1. Reply in the SAME language as the user. Be concise, friendly, non-judgmental.
-2. Keep answers short — max 5 sentences, suitable for LINE chat.
-3. For service inquiries, recommend consulting specialists with links:
-   - STD/PrEP → https://roogondee.com/contact?service=std
-   - GLP-1 → https://roogondee.com/contact?service=glp1
-   - CKD → https://roogondee.com/contact?service=ckd
-   - Workers → https://roogondee.com/contact?service=foreign
-4. Never diagnose or prescribe — always recommend seeing a doctor.
-5. End with "💚 Free consultation, no judgment" (in the user's language).`
-
-const SERVICE_KEYWORDS: Record<string, string[]> = {
-  std:     ['std', 'hiv', 'prep', 'pep', 'ซิฟิลิส', 'หนองใน', 'เริม', 'ตรวจเลือด', 'ตรวจโรค', 'เพศสัมพันธ์'],
-  glp1:    ['glp', 'ozempic', 'saxenda', 'ลดน้ำหนัก', 'อ้วน', 'bmi', 'ยาฉีด', 'เบาหวาน'],
-  ckd:     ['ไต', 'ckd', 'ครีเอตินิน', 'creatinine', 'egfr', 'ล้างไต', 'โรคไต'],
-  foreign: ['แรงงาน', 'ต่างด้าว', 'myanmar', 'เมียนมา', 'กัมพูชา', 'ลาว', 'เวียดนาม', 'ใบรับรองแพทย์', 'work permit'],
-}
-
-function detectService(text: string): string {
-  const lower = text.toLowerCase()
-  for (const [service, keywords] of Object.entries(SERVICE_KEYWORDS)) {
-    if (keywords.some(k => lower.includes(k))) return service
-  }
-  return 'general'
-}
-
-async function askClaude(question: string): Promise<string> {
-  const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 512,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: question }],
-  })
-  const block = msg.content[0]
-  return block.type === 'text' ? block.text : ''
 }
 
 async function replyToLine(replyToken: string, message: string) {
@@ -172,7 +122,7 @@ async function handleEvent(event: any): Promise<void> {
       mentionees.some(m => m.type === 'user' && m.userId === LINE_BOT_USER_ID)
     if (!mentioned) return
 
-    const aiReply = await askClaude(text)
+    const aiReply = await generateReply(text)
     if (replyToken && aiReply) {
       await replyToLine(replyToken, aiReply)
     }
@@ -185,9 +135,8 @@ async function handleEvent(event: any): Promise<void> {
 
   // Voucher code linkage: if the message is a voucher code,
   // match to a lead and save line_user_id for future push.
-  const codeMatch = text.trim().toUpperCase().match(/RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}/)
-  if (codeMatch && userId) {
-    const code = codeMatch[0]
+  const code = extractVoucherCode(text)
+  if (code && userId) {
     const { data: voucher } = await supabaseAdmin
       .from('vouchers')
       .select('code, service, expires_at, redeemed_at, lead_id, lead:leads(first_name, line_user_id)')
@@ -222,32 +171,12 @@ async function handleEvent(event: any): Promise<void> {
 
   // Fallback: AI chat assistant
   const service = detectService(text)
-  const aiReply = await askClaude(text)
+  const aiReply = await generateReply(text)
 
-  // Save as lead (non-blocking)
-  void supabaseAdmin.from('leads').insert([{
-    first_name: 'LINE Bot',
-    phone: userId,
-    service,
-    note: text.slice(0, 500),
-    source: 'line-bot',
-    status: 'new',
-  }])
+  await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
 
-  // Reply with AI answer
   if (replyToken && aiReply) {
     await replyToLine(replyToken, aiReply)
-  }
-
-  // Notify staff group only when message hits a service keyword — prevents
-  // "สวัสดี/ขอบคุณ" chitchat from flooding the team room. General chat is
-  // still saved as a lead above for analytics.
-  if (service !== 'general') {
-    void notifyLineGroup({
-      service,
-      source: 'LINE Bot',
-      note: text,
-    })
   }
 }
 

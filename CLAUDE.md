@@ -45,14 +45,33 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Custom events: `quiz_start`, `quiz_complete`, `voucher_sent`, `quiz_progress`
 - reCAPTCHA v3 on quiz submit (`NEXT_PUBLIC_RECAPTCHA_SITE_KEY`)
 
-## Facebook integration (status as of 2026-04-26)
+## Messaging bots (FB / LINE / IG)
+All three platforms share `src/lib/chatbot/`:
+- `anthropic.ts` — singleton Anthropic client, `CHATBOT_MODEL = 'claude-haiku-4-5-20251001'`
+- `system-prompt.ts` — Thai multilingual system prompt (auto-detects user language)
+- `service-detect.ts` — `detectService()` keywords + `extractVoucherCode()` for `RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}`
+- `reply.ts` — `generateReply(userText)` calls Haiku with shared prompt
+- `lead.ts` — `captureBotLead({platform, userId, service, rawText})` inserts to `leads` + fires `notifyLineGroup` for service hits
+
+Webhook handlers stay platform-specific (signature, event shape, send-reply API) and delegate the rest to the shared module.
+
+### Facebook Messenger (status as of 2026-04-26)
 - **App:** "RooGonDee AutoPost" — App ID `1840096433337980`
 - **Page ID:** `1042552638945974`
 - **Permissions granted:** `pages_manage_posts`, `pages_read_engagement` (for autopost)
-- **Permissions PENDING App Review:** `pages_messaging`, `pages_messaging_subscriptions` (for bot)
-- **Webhook:** `/api/fb-webhook` (`src/app/api/fb-webhook/route.ts`) — Claude Haiku 4.5, multilingual, HMAC signature verified via `FB_APP_SECRET`
+- **Permissions PENDING App Review:** `pages_messaging`, `pages_messaging_subscriptions` (for bot) — verify status at developers.facebook.com/apps/1840096433337980/app-review/
+- **Webhook:** `/api/fb-webhook` (`src/app/api/fb-webhook/route.ts`) — HMAC via `FB_APP_SECRET`, source = `facebook-bot`
 - **Pixel ID:** ❌ not yet provided — required for ad optimization
 - Page Access Token: stored in Vercel env only — never commit; user accidentally pasted in chat 2026-04-26 → should rotate
+
+### Instagram DM
+- **IG Business** linked to FB Page `1042552638945974` — reuses Meta App `1840096433337980`
+- **Webhook:** `/api/ig-webhook` (`src/app/api/ig-webhook/route.ts`) — HMAC via `FB_APP_SECRET`, source = `instagram-bot`
+- **Webhook field:** `instagram` → subscribe to `messages`, `messaging_postbacks`; callback URL = `https://roogondee.com/api/ig-webhook`
+- **Permissions to submit for App Review:** `instagram_basic`, `instagram_manage_messages`
+- **Env vars:** `IG_PAGE_ACCESS_TOKEN` (or reuses `FB_PAGE_ACCESS_TOKEN`), `IG_VERIFY_TOKEN` (or reuses `FB_VERIFY_TOKEN`)
+- Dedup via `processed_webhook_events.event_id = mid`; skips `is_echo` messages
+- IG user ID stored in `leads.instagram_user_id` for future push (migration `add_instagram_to_leads.sql`)
 
 ## Branches
 - Active dev branch: `claude/new-session-CoTUt` → PR #22
