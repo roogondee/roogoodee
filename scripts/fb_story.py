@@ -17,6 +17,11 @@ Optional env:
   STORY_INCLUDE_MENS=1              เปิด mens vertical (default ปิด)
   STORY_FORCE_SERVICE=glp1|std|ckd  override การหมุนวัน (สำหรับ workflow_dispatch)
   STORY_DRY_RUN=1                   ทำทุกขั้น ยกเว้นยิง Graph API
+  IG_AUTOPOST=1                     โพสต์ IG Story ด้วย (default 1)
+  IG_BUSINESS_ACCOUNT_ID            IG-User ID ที่ link กับ FB Page (จาก Meta Business Portfolio)
+  IG_SYSTEM_USER_TOKEN              System User token จาก Meta Business Portfolio
+                                    (permissions: instagram_basic, instagram_content_publish,
+                                    pages_read_engagement) — ใช้แทน Page token เพราะไม่หมดอายุ
 """
 
 import os
@@ -49,6 +54,10 @@ SITE_BASE      = os.environ.get("SITE_BASE_URL", "https://www.roogondee.com").rs
 INCLUDE_MENS   = os.environ.get("STORY_INCLUDE_MENS", "0") == "1"
 FORCE_SERVICE  = os.environ.get("STORY_FORCE_SERVICE", "").strip().lower()
 DRY_RUN        = os.environ.get("STORY_DRY_RUN", "0") == "1"
+
+IG_AUTOPOST    = os.environ.get("IG_AUTOPOST", "1") == "1"
+IG_BUSINESS_ID = os.environ.get("IG_BUSINESS_ACCOUNT_ID", "").strip()
+IG_TOKEN       = os.environ.get("IG_SYSTEM_USER_TOKEN", "").strip()
 
 BKK_TZ    = ZoneInfo("Asia/Bangkok")
 TODAY     = datetime.now(BKK_TZ).date()
@@ -527,6 +536,40 @@ def fb_upload_unpublished_photo(image_url: str) -> str:
     return photo_id
 
 
+def ig_post_story(image_url: str, caption: str) -> str:
+    """โพสต์ IG Story ผ่าน Content Publishing API (System User token จาก Business Portfolio).
+    Two-step: create container → publish.
+    คืนค่า IG media_id; raise ถ้า fail (ให้ caller จัดการ).
+    """
+    if not IG_BUSINESS_ID or not IG_TOKEN:
+        raise RuntimeError("ขาด IG_BUSINESS_ACCOUNT_ID หรือ IG_SYSTEM_USER_TOKEN")
+
+    create = requests.post(
+        f"{FB_API}/{IG_BUSINESS_ID}/media",
+        data={
+            "image_url":    image_url,
+            "media_type":   "STORIES",
+            "caption":      caption,
+            "access_token": IG_TOKEN,
+        },
+        timeout=60,
+    )
+    if create.status_code >= 400:
+        raise RuntimeError(f"IG /media {create.status_code}: {create.text[:300]}")
+    creation_id = create.json().get("id")
+    if not creation_id:
+        raise RuntimeError(f"IG /media missing id: {create.text[:300]}")
+
+    publish = requests.post(
+        f"{FB_API}/{IG_BUSINESS_ID}/media_publish",
+        data={"creation_id": creation_id, "access_token": IG_TOKEN},
+        timeout=60,
+    )
+    if publish.status_code >= 400:
+        raise RuntimeError(f"IG /media_publish {publish.status_code}: {publish.text[:300]}")
+    return publish.json().get("id", "")
+
+
 def fb_publish_photo_story(photo_id: str) -> str:
     """Step 2/2: publish photo_id เป็น Story"""
     resp = requests.post(
@@ -594,6 +637,24 @@ def main() -> int:
         story_id = fb_publish_photo_story(photo_id)
         print(f"   story_id={story_id}")
 
+        ig_media_id: str = ""
+        ig_status: str = "skipped"
+        ig_error: str | None = None
+        if IG_AUTOPOST and IG_BUSINESS_ID and IG_TOKEN:
+            print("📤 IG: publish Story via Business Portfolio System User...")
+            try:
+                ig_media_id = ig_post_story(public_url, cap["caption"])
+                ig_status = "posted"
+                print(f"   ig_media_id={ig_media_id}")
+            except Exception as e:
+                ig_status = "failed"
+                ig_error = str(e)[:500]
+                print(f"   ⚠️ IG Story failed (FB Story already posted): {ig_error}")
+        elif IG_AUTOPOST:
+            ig_status = "skipped"
+            ig_error = "missing IG_BUSINESS_ACCOUNT_ID or IG_SYSTEM_USER_TOKEN"
+            print(f"   ⏭  IG: {ig_error}")
+
         log_story({
             "posted_date": TODAY_STR,
             "service":     service,
@@ -606,11 +667,15 @@ def main() -> int:
             "image_url":   public_url,
             "link_url":    SITE_BASE,
             "status":      "posted",
+            "ig_media_id": ig_media_id or None,
+            "ig_status":   ig_status,
+            "ig_error":    ig_error,
         })
 
+        ig_line = f"  IG: {ig_status}" + (f" ({ig_media_id})" if ig_media_id else "")
         _notify(
             f"📸 รู้ก่อนดี Story โพสต์แล้ว ({SERVICE_META[service]['label']})\n"
-            f"{cap['headline']}\n{cap['subline']}\n→ story_id={story_id}"
+            f"{cap['headline']}\n{cap['subline']}\n→ story_id={story_id}\n{ig_line}"
         )
         print("✅ done")
         return 0

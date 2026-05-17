@@ -14,6 +14,10 @@ on:
         description: "Dry run (ไม่ยิง Graph API จริง)"
         required: false
         default: "false"
+      ig_autopost:
+        description: "โพสต์ IG Story ด้วย (true/false)"
+        required: false
+        default: "true"
 
 jobs:
   fb_story:
@@ -43,9 +47,12 @@ jobs:
           SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
           FB_PAGE_ID:               ${{ secrets.FB_PAGE_ID }}
           FB_PAGE_ACCESS_TOKEN:     ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          IG_BUSINESS_ACCOUNT_ID:   ${{ secrets.IG_BUSINESS_ACCOUNT_ID }}
+          IG_SYSTEM_USER_TOKEN:     ${{ secrets.IG_SYSTEM_USER_TOKEN }}
           SITE_BASE_URL:            ${{ secrets.SITE_BASE_URL }}
           STORY_FORCE_SERVICE:      ${{ inputs.service }}
           STORY_DRY_RUN:            ${{ inputs.dry_run == 'true' && '1' || '0' }}
+          IG_AUTOPOST:              ${{ inputs.ig_autopost == 'false' && '0' || '1' }}
           DISCORD_WEBHOOK_URL:        ${{ secrets.DISCORD_WEBHOOK_URL }}
           SLACK_WEBHOOK_URL:          ${{ secrets.SLACK_WEBHOOK_URL }}
           LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
