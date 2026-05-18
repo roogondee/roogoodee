@@ -1,0 +1,53 @@
+name: 📰 RuGonDee Facebook Daily Feed Post
+
+on:
+  schedule:
+    # 04:00 UTC = 11:00 Bangkok — 2 ชม. หลัง Story เพื่อไม่ชนกัน
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Override service (glp1/std/ckd/mens) — ปล่อยว่างเพื่อใช้การหมุนวัน"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run (ไม่ยิง Graph API จริง)"
+        required: false
+        default: "false"
+
+jobs:
+  fb_feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 📰 Post daily Feed image to Facebook Page
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          TOGETHER_API_KEY:         ${{ secrets.TOGETHER_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          FB_PAGE_ID:               ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN:     ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          SITE_BASE_URL:            ${{ secrets.SITE_BASE_URL }}
+          FEED_FORCE_SERVICE:       ${{ inputs.service }}
+          FEED_DRY_RUN:             ${{ inputs.dry_run == 'true' && '1' || '0' }}
+          DISCORD_WEBHOOK_URL:        ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL:          ${{ secrets.SLACK_WEBHOOK_URL }}
+          LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TARGET_ID:             ${{ secrets.LINE_TARGET_ID }}
+        run: python scripts/fb_feed.py

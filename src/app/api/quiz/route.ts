@@ -10,12 +10,16 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendFacebookEvent } from '@/lib/facebook-events'
 import type { QuizSubmission, Service } from '@/types'
 
 type QuizPayload = Partial<QuizSubmission> & {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbclid?: string
+  fbp?: string
+  fbc?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens']
@@ -141,6 +145,9 @@ export async function POST(req: NextRequest) {
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
         utm_campaign:  body.utm_campaign || null,
+        fbclid:        body.fbclid || null,
+        fbp:           body.fbp || null,
+        fbc:           body.fbc || null,
         status:        'new',
       }])
       .select()
@@ -208,6 +215,53 @@ export async function POST(req: NextRequest) {
         currency: 'THB',
         lead_score: scoring.tier,
         vertical: body.service,
+      },
+    })
+
+    // Facebook Conversions API — Lead event with event_id = voucher.code so it
+    // dedupes against the client-side fbq('track', 'Lead', …, { eventID }) call
+    // from QuizRunner. custom_data fields MUST match the Pixel call exactly.
+    const eventSourceUrl = req.headers.get('referer') || 'https://roogondee.com'
+    void sendFacebookEvent({
+      event_name: 'Lead',
+      event_id: voucher.code,
+      event_source_url: eventSourceUrl,
+      service: body.service,
+      user: {
+        email: inserted.email || undefined,
+        phone: inserted.phone,
+        external_id: voucher.code,
+        ip,
+        user_agent: userAgent,
+        fbp: body.fbp,
+        fbc: body.fbc,
+        fbclid: body.fbclid,
+      },
+      custom_data: {
+        content_category: body.service,
+        content_name: `${body.service.toUpperCase()} Voucher`,
+        content_ids: [voucher.code],
+        value: scoring.score,
+        currency: 'THB',
+      },
+    })
+    void sendFacebookEvent({
+      event_name: 'CompleteRegistration',
+      event_id: `${voucher.code}-reg`,
+      event_source_url: eventSourceUrl,
+      service: body.service,
+      user: {
+        email: inserted.email || undefined,
+        phone: inserted.phone,
+        external_id: voucher.code,
+        ip,
+        user_agent: userAgent,
+        fbp: body.fbp,
+        fbc: body.fbc,
+        fbclid: body.fbclid,
+      },
+      custom_data: {
+        content_category: body.service,
       },
     })
 

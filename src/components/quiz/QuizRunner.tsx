@@ -9,7 +9,7 @@ import { useTranslation } from '@/lib/i18n/context'
 declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
-    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>, options?: { eventID?: string }) => void
     ttq?: {
       track: (name: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void
       page?: () => void
@@ -169,6 +169,15 @@ export default function QuizRunner({ definition }: Props) {
     utm_campaign: searchParams?.get('utm_campaign') || undefined,
   }), [searchParams])
 
+  // Persist fbclid from URL into a 90-day cookie (Meta's attribution window)
+  // so it survives the multi-step quiz and a return-later flow.
+  useEffect(() => {
+    const fbclid = searchParams?.get('fbclid')
+    if (fbclid && typeof document !== 'undefined') {
+      document.cookie = `fbclid=${encodeURIComponent(fbclid)}; max-age=${60 * 60 * 24 * 90}; path=/; SameSite=Lax`
+    }
+  }, [searchParams])
+
   // Spec §7.2: fire quiz_start on mount + TikTok InitiateCheckout standard event
   useEffect(() => {
     if (startedRef.current) return
@@ -269,6 +278,9 @@ export default function QuizRunner({ definition }: Props) {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
       const ttclid = readCookie('ttclid')
       const ttp = readCookie('_ttp')
+      const fbclid = searchParams?.get('fbclid') || readCookie('fbclid') || undefined
+      const fbp = readCookie('_fbp')
+      const fbc = readCookie('_fbc') || (fbclid ? `fb.1.${Date.now()}.${fbclid}` : undefined)
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -290,6 +302,9 @@ export default function QuizRunner({ definition }: Props) {
           recaptcha_token: recaptchaToken,
           ttclid,
           ttp,
+          fbclid,
+          fbp,
+          fbc,
         }),
       })
       const data = await res.json()
@@ -313,9 +328,21 @@ export default function QuizRunner({ definition }: Props) {
         event: 'submit_success',
         total_questions: definition.questions.length,
       })
+      // Meta Pixel standard events — eventID = voucher code so the server-side
+      // Conversions API call from /api/quiz dedupes against this client fire.
       try {
-        window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
-        window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+        window.fbq?.(
+          'track',
+          'Lead',
+          { content_category: definition.service, value: data.score, currency: 'THB' },
+          { eventID: data.voucher.code },
+        )
+        window.fbq?.(
+          'track',
+          'CompleteRegistration',
+          { content_category: definition.service },
+          { eventID: `${data.voucher.code}-reg` },
+        )
       } catch {}
       // TikTok standard events — event_id = voucher code so the server-side
       // Events API call from /api/quiz dedupes against this client-side fire.
