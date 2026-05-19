@@ -10,11 +10,14 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Hosted on Vercel; cron via GitHub Actions
 
 ## Services
-4 verticals — see `src/types/index.ts`:
+7 verticals — see `src/types/index.ts`:
 - **GLP-1** — voucher `RGD-GLP1-XXXXXX`, 14-day expiry, free FBS+HbA1c (500฿) at W Medical Hospital
 - **STD/PrEP HIV** — voucher `RGD-STD-XXXXXX`, free HIV+Syphilis test, 1-hr result
 - **CKD** — voucher `RGD-CKD-XXXXXX`, free urine protein test
 - **Foreign worker** (B2B) — group health screening for HR in Samut Sakhon
+- **Men's Health 40+** (`mens`) — voucher `RGD-MENS-XXXXXX`, ปรึกษาแพทย์ฟรี (andropause/sexual wellness, doctor-led compliance)
+- **Women's Health** (`women`) — voucher `RGD-WMN-XXXXXX`, ปรึกษาสูตินรีแพทย์ฟรี + ตรวจประเมินเบื้องต้น (HPV/Pap/discharge/menstrual/menopause). Red flag = abnormal bleeding → urgent
+- **Mind & Relationships** (`mind`) — voucher `RGD-MND-XXXXXX`, ปรึกษานักจิตวิทยา/จิตแพทย์ฟรี 30 นาที (telehealth, partner-agnostic copy). **Safety gate**: `self_harm_check` ∈ {sometimes,often} → urgent + insight surfaces crisis hotline **1323** (Department of Mental Health, free 24/7). MUST NOT be relaxed downstream.
 
 ## Quiz funnel
 - `src/lib/quiz/questions.ts` — question definitions per service
@@ -27,7 +30,7 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - `src/lib/quiz/article-quiz.ts` — 3-question lite definitions per service (glp1/ckd/std)
 - `src/lib/quiz/article-scoring.ts` — ratio scoring → tier `'high' | 'medium' | 'low'` (separate from `LeadTier`)
 - `src/components/quiz/ArticleQuiz.tsx` — embed component, no DB writes, just engagement
-- Auto-rendered in `src/app/blog/[slug]/page.tsx` after article content for any post with `service ∈ {glp1,ckd,std}` (foreign skipped)
+- Auto-rendered in `src/app/blog/[slug]/page.tsx` after article content for any post with `service ∈ {glp1,ckd,std,women,mind}` (foreign/mens skipped — no lite quiz defined)
 - CTA links to full `/quiz/{service}` with `utm_source=article&utm_medium=article_quiz&utm_campaign={slug}` for funnel attribution
 - Tracks `article_quiz_view` / `article_quiz_progress` / `article_quiz_complete` to GA4 + Meta Pixel
 
@@ -95,6 +98,7 @@ Webhook handlers stay platform-specific (signature, event shape, send-reply API)
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
 ## Recent decisions
+- 2026-05-19 (PR #80): pillars 6 + 7 shipped — **women** (สุขภาพเพศหญิง — voucher = ปรึกษาสูตินรีแพทย์ + ตรวจประเมินเบื้องต้น, W Medical) and **mind** (สุขภาพจิต & ความสัมพันธ์ — voucher = ปรึกษานักจิตวิทยา 30 นาที telehealth, partner-agnostic copy). `mind` has a SAFETY GATE on `self_harm_check`: "sometimes"/"often" → urgent + insight body surfaces hotline 1323 (กรมสุขภาพจิต, free 24/7). Crisis SOP for sales team is a separate follow-up. Mental wellness partner (Ooca / iSTRONG / W Medical / other) still TBD — copy uses neutral "ผู้เชี่ยวชาญ" wording so partner can swap without code change. Pre-existing bug fixed in same PR: `chatbot/service-detect.ts` was missing `mens` keywords; `VOUCHER_REGEX` now matches `GLP1|CKD|STD|FRN|MENS|WMN|MND`. MobileNav + FooterFull now include all 7 verticals. 8 non-th/en locales fall back via loose i18n typing — translation follow-up.
 - 2026-05-08: foreign-worker tie-in pack saved at `docs/foreign-worker-tiein.md` — W Medical credentials (สบส. 001/2569, LA 7044P/2568, Iris/Facial training cert) + 9-point Work Permit checkup details + Thai copy block. Pull from this file for any next-round post/article tagged `service: 'foreign'`.
 - 2026-05-06: FB Page Stories autopost shipped — daily 9am rotating glp1/std/ckd, Sarabun-rendered 9:16 covers + AI caption, no extra FB permissions needed
 - 2026-04-29 (PR #33): article quiz auto-embeds on every blog post — drives readers from articles → full quiz with utm attribution by slug

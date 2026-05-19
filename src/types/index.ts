@@ -1,4 +1,4 @@
-export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens'
+export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women' | 'mind'
 
 export interface Post {
   id: string
@@ -140,5 +140,21 @@ export const SERVICES = {
     target: 'ผู้ชายอายุ 40-65 ปี ที่กังวลเรื่องพลังงาน อารมณ์ ฮอร์โมน',
     tone: 'ให้ความรู้ ไม่ตัดสิน ภายใต้การดูแลของแพทย์',
     cta: 'ปรึกษาแพทย์ฟรี'
+  },
+  women: {
+    name: 'สุขภาพเพศหญิง',
+    emoji: '🌸',
+    color: '#FCE7F3',
+    target: 'ผู้หญิงทุกช่วงวัย เน้น 25-55 ปี',
+    tone: 'ส่วนตัว เปิดใจ ไม่ตัดสิน ภายใต้การดูแลของแพทย์',
+    cta: 'ปรึกษาสูตินรีแพทย์ฟรี'
+  },
+  mind: {
+    name: 'สุขภาพจิต & ความสัมพันธ์',
+    emoji: '🧠',
+    color: '#EDE9FE',
+    target: 'ทุกเพศ ทุกวัย เน้น 20-50 ปี ที่กังวลเรื่องอารมณ์/ความสัมพันธ์/ความเครียด',
+    tone: 'ฟังด้วยใจ ไม่ตัดสิน Safe space ภายใต้ผู้เชี่ยวชาญ',
+    cta: 'ปรึกษานักจิตวิทยาฟรี'
   }
 } as const

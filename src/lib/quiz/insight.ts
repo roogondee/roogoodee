@@ -243,12 +243,187 @@ function insightMens(a: Answers, tier: LeadTier): HealthInsight {
   }
 }
 
+// ── Women's Sexual & Reproductive Health ────────────────────────────
+// Compliance-safe: no diagnosis, doctor-led framing, supportive tone.
+function insightWomen(a: Answers, tier: LeadTier): HealthInsight {
+  const symptoms = asArray(a.symptoms).filter(s => s !== 'none')
+  const screening = asString(a.screening_history)
+  const interest = asString(a.interest)
+  const ageRange = asString(a.age_range)
+  const risks = asArray(a.risk_factors).filter(r => r !== 'none')
+
+  if (symptoms.includes('abnormal_bleeding')) {
+    return {
+      headline: '🚨 เลือดออกผิดปกติ — ควรพบแพทย์เร็วที่สุด',
+      body: 'เลือดออกผิดปกติระหว่างรอบประจำเดือน หลังมีเพศสัมพันธ์ หรือหลังวัยทอง เป็นอาการที่ควรประเมินทันที — สาเหตุมีตั้งแต่ฮอร์โมน โพลิป จนถึงเรื่องที่ต้องตรวจให้แน่ใจ',
+      recommendation: 'ติดต่อ W Medical เพื่อนัดพบสูตินรีแพทย์โดยเร็ว — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น',
+      disclaimer: DISCLAIMER,
+      urgent: true,
+    }
+  }
+
+  if (screening === 'never' || screening === '>3y') {
+    const yearsLine = screening === 'never'
+      ? 'การไม่เคยตรวจคัดกรอง = เสี่ยงสูงสุดในการพลาดการตรวจพบมะเร็งปากมดลูกระยะเริ่มต้น'
+      : 'การเว้นช่วงตรวจ > 3 ปีในผู้หญิงวัยเจริญพันธุ์ = ช่วงที่อาจพลาดการตรวจพบการเปลี่ยนแปลงระยะแรก'
+    return {
+      headline: `${screening === 'never' ? 'ยังไม่เคย' : 'นานเกิน 3 ปีแล้ว'} ที่ตรวจคัดกรองมะเร็งปากมดลูก`,
+      body: `มะเร็งปากมดลูกเป็นหนึ่งใน "มะเร็งที่ป้องกันได้" — HPV และ Pap smear ตรวจพบการเปลี่ยนแปลงก่อนเป็นมะเร็ง 5-10 ปี ${yearsLine}`,
+      recommendation: 'voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินและคำแนะนำการตรวจคัดกรองที่เหมาะกับวัยของคุณ — รายละเอียดการตรวจเป็นไปตามดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+      urgent: tier === 'urgent' || tier === 'hot',
+    }
+  }
+
+  if (symptoms.includes('discharge') || symptoms.includes('dysuria') || symptoms.includes('painful_sex')) {
+    return {
+      headline: `อาการ ${symptoms.length} ข้อ — ควรตรวจให้แน่ใจ`,
+      body: 'ตกขาวผิดปกติ ปัสสาวะแสบ หรือเจ็บเวลามีเพศสัมพันธ์ อาจมาจากการติดเชื้อ (แบคทีเรีย / ยีสต์ / STI) ฮอร์โมน หรือสาเหตุทางกายภาพ — การวินิจฉัยจากอาการเพียงอย่างเดียวมักไม่แม่นยำ',
+      recommendation: 'ปรึกษาสูตินรีแพทย์เพื่อตรวจประเมินสาเหตุ — voucher ครอบคลุมค่าธรรมเนียมการปรึกษาเบื้องต้น',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'menopause' || ageRange === '45_54' || ageRange === '55_plus') {
+    return {
+      headline: 'วัยทอง — เปลี่ยนผ่านที่ดูแลได้',
+      body: 'อาการวัยทอง (ร้อนวูบวาบ นอนไม่หลับ อารมณ์แปรปรวน ช่องคลอดแห้ง) เกิดจากการลดลงของฮอร์โมน Estrogen — มีหลายแนวทางดูแลตั้งแต่ lifestyle จนถึงฮอร์โมนทดแทน ขึ้นกับสุขภาพแต่ละคน',
+      recommendation: 'ปรึกษาแพทย์เพื่อวางแผนการดูแลที่เหมาะกับคุณ — แผนรักษาทั้งหมดอยู่ภายใต้ดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'menstrual' || a.menstrual === 'irregular' || a.menstrual === 'painful') {
+    return {
+      headline: 'ประจำเดือนผิดปกติ — อาจสะท้อนปัญหาฮอร์โมน',
+      body: 'ประจำเดือนไม่สม่ำเสมอ มามาก หรือปวดรุนแรง อาจสัมพันธ์กับ PCOS, ไทรอยด์, เยื่อบุโพรงมดลูกเจริญผิดที่ หรือสาเหตุอื่น — การประเมินจากแพทย์จะช่วยจับสาเหตุที่แท้จริง',
+      recommendation: 'ปรึกษาสูตินรีแพทย์เพื่อตรวจประเมินและวางแผนดูแล',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'contraception') {
+    return {
+      headline: 'วางแผนคุมกำเนิด — มีหลายทางเลือก',
+      body: 'การคุมกำเนิดมีหลายแบบ (ยาเม็ด ห่วงอนามัย ยาฝัง ยาฉีด) แต่ละแบบมีข้อดี-ผลข้างเคียง-ระยะเวลาต่างกัน การเลือกที่เหมาะสุดต้องพิจารณาสุขภาพ ไลฟ์สไตล์ และแผนครอบครัวของคุณ',
+      recommendation: 'ปรึกษาแพทย์เพื่อเลือกวิธีที่เหมาะกับคุณ — voucher ครอบคลุมค่าธรรมเนียมการปรึกษา',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (risks.includes('family_cancer') || risks.includes('hpv_unvaccinated')) {
+    return {
+      headline: 'ปัจจัยเสี่ยง — ควรคัดกรองสม่ำเสมอ',
+      body: `${risks.includes('family_cancer') ? 'ประวัติครอบครัวมะเร็ง' : 'ยังไม่ได้ฉีดวัคซีน HPV'} เพิ่มความสำคัญของการตรวจคัดกรองตามวัย — การตรวจพบเร็ว = โอกาสรักษาหายสูง`,
+      recommendation: 'ปรึกษาแพทย์เพื่อวางแผนการตรวจคัดกรองและพิจารณาวัคซีน HPV ที่เหมาะกับวัยของคุณ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  return {
+    headline: 'ประเมินสุขภาพเพศหญิงเบื้องต้นเรียบร้อย',
+    body: 'ข้อมูลที่คุณกรอกอยู่ในเกณฑ์พอใช้ได้ — แต่ผู้หญิงควรพบสูตินรีแพทย์อย่างน้อยทุก 1-3 ปี ขึ้นกับวัยและประวัติ',
+    recommendation: 'ใช้ voucher ปรึกษาแพทย์ฟรี เก็บไว้เป็น baseline สุขภาพเพศหญิงของคุณ',
+    disclaimer: DISCLAIMER,
+  }
+}
+
+// ── Mental Wellness & Relationships (Mind) ──────────────────────────
+// Safety-first: self-harm flag → crisis-hotline insight regardless of
+// other inputs. Hotline 1323 is the Thai Department of Mental Health
+// crisis line (24/7, free, Thai language). Never remove the hotline
+// from the urgent branch — it's the safety net for the entire pillar.
+function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
+  const selfHarm = asString(a.self_harm_check)
+  const concerns = asArray(a.main_concerns)
+  const frequency = asString(a.frequency)
+  const duration = asString(a.duration)
+
+  if (selfHarm === 'often' || selfHarm === 'sometimes') {
+    return {
+      headline: '🚨 ขอบคุณที่บอกเรา — คุณไม่ได้อยู่คนเดียว',
+      body: 'ความคิดเหล่านี้บอกว่าคุณกำลังเจ็บปวดมาก — และเป็นสัญญาณว่าควรได้คุยกับผู้เชี่ยวชาญโดยเร็วที่สุด ✦ สายด่วนสุขภาพจิต กรมสุขภาพจิต **1323** (โทรฟรี 24 ชม. เป็นความลับ) พร้อมรับฟังคุณตอนนี้',
+      recommendation: 'กรุณาโทร **1323** ทันทีหากความคิดนี้รบกวนคุณมาก — และทีมเราจะติดต่อคุณภายในวันเพื่อนัดหมายผู้เชี่ยวชาญ (ปรึกษาฟรี ส่วนตัว)',
+      disclaimer: DISCLAIMER,
+      urgent: true,
+    }
+  }
+
+  if (concerns.includes('breakup')) {
+    return {
+      headline: 'การสูญเสีย — เป็นเรื่องที่ใจหนัก',
+      body: 'อกหัก หย่าร้าง หรือสูญเสียคนรัก เป็นความเจ็บปวดที่ไม่ควรเผชิญคนเดียว ความรู้สึกตอนนี้ปกติแต่ไม่ได้หมายความว่าต้องผ่านไปได้ด้วยตัวเอง — การมีพื้นที่ปลอดภัยให้พูดออกมาช่วยได้มาก',
+      recommendation: 'ปรึกษานักจิตวิทยา 30 นาทีฟรี (telehealth) — รับฟังโดยไม่ตัดสิน หาแนวทางที่เหมาะกับคุณ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (concerns.includes('relationship') || concerns.includes('family')) {
+    return {
+      headline: 'ปัญหาความสัมพันธ์ — ปรึกษาได้ตามแบบของคุณ',
+      body: 'ความสัมพันธ์ที่ไม่ลงตัว ไม่ว่าจะกับคู่รัก ครอบครัว หรือคนใกล้ตัว สามารถสะสมจนกระทบสุขภาพจิตและกายได้ — การมีคนกลางที่เป็นผู้เชี่ยวชาญช่วยให้มองสถานการณ์ใหม่ได้ชัดขึ้น',
+      recommendation: 'ปรึกษานักจิตวิทยาคนเดียว หรือชวนคนสำคัญของคุณมาด้วยก็ได้ — voucher ใช้ได้กับ session แรก',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  const moodAnxiety = concerns.includes('mood') || concerns.includes('anxiety')
+  const isChronicAndFrequent = (duration === '>3m' || duration === 'on_off')
+                             && (frequency === 'almost_daily' || frequency === 'most_days')
+
+  if (moodAnxiety && isChronicAndFrequent) {
+    return {
+      headline: 'อาการเรื้อรังและถี่ — ควรให้ผู้เชี่ยวชาญช่วยประเมิน',
+      body: 'อาการเศร้า/วิตกกังวลที่กินเวลานาน > 3 เดือน และเกิดบ่อย เป็นรูปแบบที่ไม่ค่อยหายเอง การได้คุยกับผู้เชี่ยวชาญช่วยจับสาเหตุและวางแผนดูแลที่เหมาะกับคุณโดยเฉพาะ',
+      recommendation: 'ปรึกษานักจิตวิทยา/จิตแพทย์ 30 นาทีฟรี — แผนการดูแลและการสั่งยา (หากจำเป็น) อยู่ภายใต้ดุลยพินิจของผู้เชี่ยวชาญ',
+      disclaimer: DISCLAIMER,
+      urgent: false,
+    }
+  }
+
+  if (concerns.includes('sleep')) {
+    return {
+      headline: 'นอนไม่หลับ — บ่อยมาคู่กับเรื่องอื่นในใจ',
+      body: 'การนอนไม่ดีต่อเนื่องส่งผลต่ออารมณ์ พลังงาน สมาธิ และระบบฮอร์โมน บางครั้งปัญหาการนอนเป็นปลายทางของความเครียดที่ยังหาทางออกไม่เจอ',
+      recommendation: 'ปรึกษาผู้เชี่ยวชาญเพื่อแยกสาเหตุ (พฤติกรรม / อารมณ์ / ฮอร์โมน) — voucher ครอบคลุม session แรก',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (concerns.includes('work_stress')) {
+    return {
+      headline: 'Burnout — ไม่ใช่แค่ "เหนื่อย"',
+      body: 'ความเครียดจากงานสะสมต่อเนื่องจน energy หมด สนใจอะไรไม่ได้ และรู้สึกแยกตัวจากเป้าหมาย เป็นภาวะที่ WHO ยอมรับว่าเป็นปัญหาสุขภาพ ไม่ใช่ลักษณะนิสัย',
+      recommendation: 'ปรึกษานักจิตวิทยาเพื่อวางแผน recovery — บ่อยครั้งแก้ที่ระบบงาน + วิธีคิด ดีกว่าฝืนต่อ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (concerns.includes('self_esteem')) {
+    return {
+      headline: 'ความรู้สึกไม่มีค่า — ไม่ใช่ความจริง',
+      body: 'ความรู้สึกแบบนี้มักมีที่มาจากประสบการณ์เก่า ความสัมพันธ์ หรือ pattern ความคิดที่สั่งสมมานาน การได้ทำงานกับนักจิตวิทยาช่วยถอดที่มา และสร้าง view ใหม่ที่เป็นกลางกว่า',
+      recommendation: 'session แรก 30 นาทีฟรี — ไม่มีคำตอบเร็ว แต่ทิศทางมีได้',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  return {
+    headline: 'ขอบคุณที่ดูแลใจตัวเอง',
+    body: 'การคิดเรื่องสุขภาพจิตเป็นจุดเริ่มต้นที่ดี — ไม่ต้องรอให้รุนแรงก่อนค่อยปรึกษา การได้คุยกับผู้เชี่ยวชาญแม้ในวันที่ "ก็โอเค" ช่วยป้องกันปัญหาในอนาคต',
+    recommendation: 'ใช้ voucher ปรึกษา 30 นาทีฟรี — ไม่จำเป็นต้องมีปัญหาใหญ่ก่อนถึงจะเริ่ม',
+    disclaimer: DISCLAIMER,
+  }
+}
+
 export function generateInsight(service: Service, answers: Answers, tier: LeadTier): HealthInsight | null {
   switch (service) {
     case 'glp1':    return insightGLP1(answers, tier)
     case 'ckd':     return insightCKD(answers, tier)
     case 'std':     return insightSTD(answers, tier)
     case 'mens':    return insightMens(answers, tier)
+    case 'women':   return insightWomen(answers, tier)
+    case 'mind':    return insightMind(answers, tier)
     case 'foreign': return null
   }
 }
