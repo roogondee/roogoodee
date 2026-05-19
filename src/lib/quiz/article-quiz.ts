@@ -193,10 +193,68 @@ const STD: ArticleQuizDefinition = {
   ctaHref: '/quiz/std',
 }
 
+const WOMEN: ArticleQuizDefinition = {
+  service: 'women',
+  intro: 'เช็กสุขภาพเพศหญิงเบื้องต้นใน 30 วินาที — ส่วนตัว ไม่ตัดสิน',
+  questions: [
+    {
+      id: 'screening',
+      type: 'radio',
+      title: 'ตรวจภายใน / Pap smear ครั้งล่าสุด?',
+      options: [
+        { value: '<1y',   label: 'ภายใน 1 ปี',     weight: 0 },
+        { value: '1-3y',  label: '1-3 ปี',          weight: 1 },
+        { value: '>3y',   label: 'มากกว่า 3 ปี',   weight: 3 },
+        { value: 'never', label: 'ไม่เคยตรวจ',     weight: 4 },
+      ],
+    },
+    {
+      id: 'symptoms',
+      type: 'multi',
+      title: 'มีอาการเหล่านี้ในช่วง 3 เดือนไหม?',
+      options: [
+        { value: 'abnormal_bleeding', label: 'เลือดออกผิดปกติ',          weight: 4 },
+        { value: 'discharge',         label: 'ตกขาวผิดปกติ',             weight: 2 },
+        { value: 'pelvic_pain',       label: 'ปวดท้องน้อยเรื้อรัง',     weight: 2 },
+        { value: 'painful_sex',       label: 'เจ็บเวลามีเพศสัมพันธ์',    weight: 2 },
+        { value: 'none',              label: 'ไม่มี',                     weight: 0, exclusive: true },
+      ],
+    },
+    {
+      id: 'risk',
+      type: 'multi',
+      title: 'มีปัจจัยเสี่ยงเหล่านี้ไหม?',
+      options: [
+        { value: 'family_cancer',    label: 'ครอบครัวมีประวัติมะเร็ง', weight: 2 },
+        { value: 'hpv_unvaccinated', label: 'ไม่ได้ฉีดวัคซีน HPV',      weight: 2 },
+        { value: 'smoking',          label: 'สูบบุหรี่',                  weight: 1 },
+        { value: 'none',             label: 'ไม่มี',                      weight: 0, exclusive: true },
+      ],
+    },
+  ],
+  tierMessages: {
+    high: {
+      headline: 'แนะนำให้พบสูตินรีแพทย์เร็วๆ นี้',
+      body: 'มีปัจจัยที่ควรประเมินกับแพทย์ — voucher ครอบคลุมค่าธรรมเนียมการปรึกษาและตรวจคัดกรองเบื้องต้น',
+    },
+    medium: {
+      headline: 'ควรตรวจคัดกรองตามวัย',
+      body: 'อยู่ในกลุ่มที่ควรพบสูตินรีแพทย์ทุก 1-3 ปี เพื่อตรวจคัดกรองและรับคำแนะนำ',
+    },
+    low: {
+      headline: 'ความเสี่ยงต่ำ — เยี่ยมมาก',
+      body: 'ดูแลสุขภาพประจำต่อไป ตรวจคัดกรองตามรอบเวลาที่แพทย์แนะนำ',
+    },
+  },
+  ctaLabel: 'ทำแบบประเมินเต็ม รับสิทธิ์ปรึกษาแพทย์ฟรี',
+  ctaHref: '/quiz/women',
+}
+
 export const ARTICLE_QUIZZES: Partial<Record<Service, ArticleQuizDefinition>> = {
   glp1: GLP1,
   ckd: CKD,
   std: STD,
+  women: WOMEN,
 }
 
 export function getArticleQuiz(service: Service): ArticleQuizDefinition | null {

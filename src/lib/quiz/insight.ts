@@ -243,12 +243,98 @@ function insightMens(a: Answers, tier: LeadTier): HealthInsight {
   }
 }
 
+// ── Women's Sexual & Reproductive Health ────────────────────────────
+// Compliance-safe: no diagnosis, doctor-led framing, supportive tone.
+function insightWomen(a: Answers, tier: LeadTier): HealthInsight {
+  const symptoms = asArray(a.symptoms).filter(s => s !== 'none')
+  const screening = asString(a.screening_history)
+  const interest = asString(a.interest)
+  const ageRange = asString(a.age_range)
+  const risks = asArray(a.risk_factors).filter(r => r !== 'none')
+
+  if (symptoms.includes('abnormal_bleeding')) {
+    return {
+      headline: '🚨 เลือดออกผิดปกติ — ควรพบแพทย์เร็วที่สุด',
+      body: 'เลือดออกผิดปกติระหว่างรอบประจำเดือน หลังมีเพศสัมพันธ์ หรือหลังวัยทอง เป็นอาการที่ควรประเมินทันที — สาเหตุมีตั้งแต่ฮอร์โมน โพลิป จนถึงเรื่องที่ต้องตรวจให้แน่ใจ',
+      recommendation: 'ติดต่อ W Medical เพื่อนัดพบสูตินรีแพทย์โดยเร็ว — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น',
+      disclaimer: DISCLAIMER,
+      urgent: true,
+    }
+  }
+
+  if (screening === 'never' || screening === '>3y') {
+    const yearsLine = screening === 'never'
+      ? 'การไม่เคยตรวจคัดกรอง = เสี่ยงสูงสุดในการพลาดการตรวจพบมะเร็งปากมดลูกระยะเริ่มต้น'
+      : 'การเว้นช่วงตรวจ > 3 ปีในผู้หญิงวัยเจริญพันธุ์ = ช่วงที่อาจพลาดการตรวจพบการเปลี่ยนแปลงระยะแรก'
+    return {
+      headline: `${screening === 'never' ? 'ยังไม่เคย' : 'นานเกิน 3 ปีแล้ว'} ที่ตรวจคัดกรองมะเร็งปากมดลูก`,
+      body: `มะเร็งปากมดลูกเป็นหนึ่งใน "มะเร็งที่ป้องกันได้" — HPV และ Pap smear ตรวจพบการเปลี่ยนแปลงก่อนเป็นมะเร็ง 5-10 ปี ${yearsLine}`,
+      recommendation: 'voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินและคำแนะนำการตรวจคัดกรองที่เหมาะกับวัยของคุณ — รายละเอียดการตรวจเป็นไปตามดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+      urgent: tier === 'urgent' || tier === 'hot',
+    }
+  }
+
+  if (symptoms.includes('discharge') || symptoms.includes('dysuria') || symptoms.includes('painful_sex')) {
+    return {
+      headline: `อาการ ${symptoms.length} ข้อ — ควรตรวจให้แน่ใจ`,
+      body: 'ตกขาวผิดปกติ ปัสสาวะแสบ หรือเจ็บเวลามีเพศสัมพันธ์ อาจมาจากการติดเชื้อ (แบคทีเรีย / ยีสต์ / STI) ฮอร์โมน หรือสาเหตุทางกายภาพ — การวินิจฉัยจากอาการเพียงอย่างเดียวมักไม่แม่นยำ',
+      recommendation: 'ปรึกษาสูตินรีแพทย์เพื่อตรวจประเมินสาเหตุ — voucher ครอบคลุมค่าธรรมเนียมการปรึกษาเบื้องต้น',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'menopause' || ageRange === '45_54' || ageRange === '55_plus') {
+    return {
+      headline: 'วัยทอง — เปลี่ยนผ่านที่ดูแลได้',
+      body: 'อาการวัยทอง (ร้อนวูบวาบ นอนไม่หลับ อารมณ์แปรปรวน ช่องคลอดแห้ง) เกิดจากการลดลงของฮอร์โมน Estrogen — มีหลายแนวทางดูแลตั้งแต่ lifestyle จนถึงฮอร์โมนทดแทน ขึ้นกับสุขภาพแต่ละคน',
+      recommendation: 'ปรึกษาแพทย์เพื่อวางแผนการดูแลที่เหมาะกับคุณ — แผนรักษาทั้งหมดอยู่ภายใต้ดุลยพินิจของแพทย์',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'menstrual' || a.menstrual === 'irregular' || a.menstrual === 'painful') {
+    return {
+      headline: 'ประจำเดือนผิดปกติ — อาจสะท้อนปัญหาฮอร์โมน',
+      body: 'ประจำเดือนไม่สม่ำเสมอ มามาก หรือปวดรุนแรง อาจสัมพันธ์กับ PCOS, ไทรอยด์, เยื่อบุโพรงมดลูกเจริญผิดที่ หรือสาเหตุอื่น — การประเมินจากแพทย์จะช่วยจับสาเหตุที่แท้จริง',
+      recommendation: 'ปรึกษาสูตินรีแพทย์เพื่อตรวจประเมินและวางแผนดูแล',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (interest === 'contraception') {
+    return {
+      headline: 'วางแผนคุมกำเนิด — มีหลายทางเลือก',
+      body: 'การคุมกำเนิดมีหลายแบบ (ยาเม็ด ห่วงอนามัย ยาฝัง ยาฉีด) แต่ละแบบมีข้อดี-ผลข้างเคียง-ระยะเวลาต่างกัน การเลือกที่เหมาะสุดต้องพิจารณาสุขภาพ ไลฟ์สไตล์ และแผนครอบครัวของคุณ',
+      recommendation: 'ปรึกษาแพทย์เพื่อเลือกวิธีที่เหมาะกับคุณ — voucher ครอบคลุมค่าธรรมเนียมการปรึกษา',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  if (risks.includes('family_cancer') || risks.includes('hpv_unvaccinated')) {
+    return {
+      headline: 'ปัจจัยเสี่ยง — ควรคัดกรองสม่ำเสมอ',
+      body: `${risks.includes('family_cancer') ? 'ประวัติครอบครัวมะเร็ง' : 'ยังไม่ได้ฉีดวัคซีน HPV'} เพิ่มความสำคัญของการตรวจคัดกรองตามวัย — การตรวจพบเร็ว = โอกาสรักษาหายสูง`,
+      recommendation: 'ปรึกษาแพทย์เพื่อวางแผนการตรวจคัดกรองและพิจารณาวัคซีน HPV ที่เหมาะกับวัยของคุณ',
+      disclaimer: DISCLAIMER,
+    }
+  }
+
+  return {
+    headline: 'ประเมินสุขภาพเพศหญิงเบื้องต้นเรียบร้อย',
+    body: 'ข้อมูลที่คุณกรอกอยู่ในเกณฑ์พอใช้ได้ — แต่ผู้หญิงควรพบสูตินรีแพทย์อย่างน้อยทุก 1-3 ปี ขึ้นกับวัยและประวัติ',
+    recommendation: 'ใช้ voucher ปรึกษาแพทย์ฟรี เก็บไว้เป็น baseline สุขภาพเพศหญิงของคุณ',
+    disclaimer: DISCLAIMER,
+  }
+}
+
 export function generateInsight(service: Service, answers: Answers, tier: LeadTier): HealthInsight | null {
   switch (service) {
     case 'glp1':    return insightGLP1(answers, tier)
     case 'ckd':     return insightCKD(answers, tier)
     case 'std':     return insightSTD(answers, tier)
     case 'mens':    return insightMens(answers, tier)
+    case 'women':   return insightWomen(answers, tier)
     case 'foreign': return null
   }
 }

@@ -236,12 +236,92 @@ export function scoreMens(a: MensAnswers): MensScoringResult {
   return { score, tier, reasons }
 }
 
+// ── Women's Sexual & Reproductive Health ────────────────────────────
+// Cervical-cancer screening + gyne-symptom risk. Red flag = abnormal
+// bleeding (post-coital / between periods) → urgent referral.
+interface WomenAnswers {
+  age_range?: string
+  screening_history?: string
+  symptoms?: string[]
+  menstrual?: string
+  risk_factors?: string[]
+  interest?: string
+  start_when?: string
+}
+
+export function scoreWomen(a: WomenAnswers): ScoringResult {
+  let score = 0
+  const reasons: string[] = []
+  let urgent = false
+
+  const symptoms = (a.symptoms || []).filter(s => s !== 'none')
+  if (symptoms.includes('abnormal_bleeding')) {
+    score += 5; urgent = true
+    reasons.push('🚨 เลือดออกผิดปกติ — ต้องประเมินด่วน')
+  }
+  if (symptoms.includes('pelvic_pain')) {
+    score += 2; reasons.push('ปวดท้องน้อยเรื้อรัง')
+  }
+  if (symptoms.length >= 2 && !urgent) {
+    score += 2; reasons.push(`มีอาการ ${symptoms.length} ข้อ`)
+  } else if (symptoms.length >= 1 && !urgent) {
+    score += 1
+  }
+
+  // Screening overdue → high lift for HPV/Pap voucher
+  if (a.screening_history === 'never') {
+    score += 3; reasons.push('ไม่เคยตรวจคัดกรอง')
+  } else if (a.screening_history === '>3y') {
+    score += 2; reasons.push('คัดกรองล่าสุด > 3 ปี')
+  }
+
+  const risks = (a.risk_factors || []).filter(r => r !== 'none')
+  if (risks.includes('family_cancer')) {
+    score += 2; reasons.push('ประวัติครอบครัวมะเร็ง')
+  }
+  if (risks.length >= 2) {
+    score += 1; reasons.push(`ปัจจัยเสี่ยง ${risks.length} ข้อ`)
+  }
+
+  if (a.menstrual === 'painful' || a.menstrual === 'irregular') {
+    score += 1
+    reasons.push(a.menstrual === 'painful' ? 'ปวดประจำเดือนรุนแรง' : 'ประจำเดือนไม่สม่ำเสมอ')
+  }
+
+  // Age × screening interaction: 35+ overdue is higher-priority demographic
+  if ((a.age_range === '35_44' || a.age_range === '45_54' || a.age_range === '55_plus')
+      && (a.screening_history === '>3y' || a.screening_history === 'never')) {
+    score += 1
+    reasons.push('อายุ 35+ และคัดกรองไม่ทัน')
+  }
+
+  if (a.start_when === 'now') {
+    score += 3; reasons.push('พร้อมเริ่มทันที')
+  } else if (a.start_when === '1m') {
+    score += 2; reasons.push('ภายใน 1 เดือน')
+  }
+
+  if (a.interest === 'screening') {
+    score += 2; reasons.push('สนใจคัดกรอง HPV/Pap')
+  } else if (a.interest === 'menopause') {
+    score += 1; reasons.push('สนใจวัยทอง')
+  }
+
+  const tier: LeadTier = urgent
+    ? 'urgent'
+    : score >= 9 ? 'hot'
+    : score >= 5 ? 'warm'
+    : 'cold'
+  return { score, tier, reasons }
+}
+
 export function scoreQuiz(service: Service, answers: Record<string, unknown>): ScoringResult {
   switch (service) {
     case 'glp1':    return scoreGLP1(answers as GLP1Answers)
     case 'ckd':     return scoreCKD(answers as CKDAnswers)
     case 'std':     return scoreSTD(answers as STDAnswers)
     case 'mens':    return scoreMens(answers as MensAnswers)
+    case 'women':   return scoreWomen(answers as WomenAnswers)
     case 'foreign': return { score: 0, tier: 'warm', reasons: ['B2B lead'] }
   }
 }

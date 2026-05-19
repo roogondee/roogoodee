@@ -365,6 +365,108 @@ const MENS_QUESTIONS: Question[] = [
   },
 ]
 
+// ── Women's Sexual & Reproductive Health ────────────────────────────
+// Tap-only screening covering cervical cancer, menstrual issues,
+// vaginal health, contraception, and menopause. Voucher = ปรึกษา
+// สูตินรีแพทย์ฟรี + ตรวจคัดกรอง HPV/Pap smear ภายใต้ดุลยพินิจของแพทย์.
+const WOMEN_QUESTIONS: Question[] = [
+  {
+    id: 'age_range',
+    type: 'radio',
+    title: 'อายุประมาณเท่าไหร่?',
+    required: true,
+    options: [
+      { value: 'under_25', label: 'ต่ำกว่า 25 ปี' },
+      { value: '25_34',    label: '25-34 ปี' },
+      { value: '35_44',    label: '35-44 ปี' },
+      { value: '45_54',    label: '45-54 ปี' },
+      { value: '55_plus',  label: '55 ปีขึ้นไป' },
+    ],
+  },
+  {
+    id: 'screening_history',
+    type: 'radio',
+    title: 'ตรวจภายใน / Pap smear ครั้งล่าสุดเมื่อไหร่?',
+    subtitle: 'การตรวจคัดกรองมะเร็งปากมดลูก',
+    required: true,
+    options: [
+      { value: '<1y',     label: 'ภายใน 1 ปี' },
+      { value: '1-3y',    label: '1-3 ปี' },
+      { value: '>3y',     label: 'มากกว่า 3 ปี' },
+      { value: 'never',   label: 'ไม่เคยตรวจ' },
+    ],
+  },
+  {
+    id: 'symptoms',
+    type: 'multi',
+    title: 'ในช่วง 3 เดือน มีอาการเหล่านี้ไหม?',
+    subtitle: 'เลือกได้หลายข้อ — เป็นความลับ',
+    required: true,
+    options: [
+      { value: 'abnormal_bleeding', label: 'เลือดออกผิดปกติ / เลือดออกหลังมีเพศสัมพันธ์', badge: '⚠️' },
+      { value: 'discharge',         label: 'ตกขาวผิดปกติ (สี/กลิ่น/คัน)' },
+      { value: 'pelvic_pain',       label: 'ปวดท้องน้อยเรื้อรัง' },
+      { value: 'dysuria',           label: 'ปัสสาวะแสบ / ติดเชื้อบ่อย' },
+      { value: 'painful_sex',       label: 'เจ็บเวลามีเพศสัมพันธ์' },
+      { value: 'none',              label: 'ไม่มี', exclusive: true },
+    ],
+  },
+  {
+    id: 'menstrual',
+    type: 'radio',
+    title: 'ประจำเดือนของคุณเป็นแบบไหน?',
+    required: true,
+    options: [
+      { value: 'regular',     label: 'มาสม่ำเสมอ ปกติ' },
+      { value: 'irregular',   label: 'มาไม่สม่ำเสมอ' },
+      { value: 'painful',     label: 'ปวดรุนแรง / มามาก' },
+      { value: 'absent',      label: 'ขาดประจำเดือน (ไม่ได้ตั้งครรภ์)' },
+      { value: 'menopause',   label: 'หมดประจำเดือนแล้ว / วัยทอง' },
+      { value: 'na',          label: 'ไม่สะดวกบอก' },
+    ],
+  },
+  {
+    id: 'risk_factors',
+    type: 'multi',
+    title: 'ปัจจัยเสี่ยงเพิ่มเติม',
+    subtitle: 'เลือกได้หลายข้อ',
+    options: [
+      { value: 'family_cancer',  label: 'ครอบครัวมีประวัติมะเร็งปากมดลูก / เต้านม / รังไข่' },
+      { value: 'hpv_unvaccinated', label: 'ยังไม่ได้ฉีดวัคซีน HPV' },
+      { value: 'multi_partner',  label: 'มีคู่นอนหลายคน' },
+      { value: 'smoking',        label: 'สูบบุหรี่' },
+      { value: 'none',           label: 'ไม่มี', exclusive: true },
+    ],
+  },
+  {
+    id: 'interest',
+    type: 'radio',
+    title: 'อยากให้แพทย์ช่วยเรื่องอะไรเป็นหลัก?',
+    required: true,
+    options: [
+      { value: 'screening',      label: 'ตรวจคัดกรอง HPV / Pap smear' },
+      { value: 'discharge',      label: 'ตกขาว / ติดเชื้อในช่องคลอด' },
+      { value: 'menstrual',      label: 'ประจำเดือนผิดปกติ / PCOS' },
+      { value: 'contraception',  label: 'ปรึกษาคุมกำเนิด / วางแผนครอบครัว' },
+      { value: 'menopause',      label: 'อาการวัยทอง' },
+      { value: 'sexual_wellness',label: 'sexual wellness / ความสัมพันธ์' },
+      { value: 'unsure',         label: 'ยังไม่แน่ใจ — อยากปรึกษาก่อน' },
+    ],
+  },
+  {
+    id: 'start_when',
+    type: 'radio',
+    title: 'พร้อมพบแพทย์เมื่อไหร่?',
+    required: true,
+    options: [
+      { value: 'now',    label: 'ทันที',         badge: 'Hot' },
+      { value: '1m',     label: 'ภายใน 1 เดือน' },
+      { value: '1-3m',   label: '1-3 เดือน' },
+      { value: 'unsure', label: 'ยังไม่แน่ใจ' },
+    ],
+  },
+]
+
 export const QUIZZES: Record<Service, QuizDefinition> = {
   glp1: {
     service: 'glp1',
@@ -397,5 +499,11 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
     landingHeadline: 'ปรึกษาแพทย์ฟรี + ตรวจประเมินสุขภาพชายวัย 40+',
     subHeadline: 'ภายใต้การดูแลของแพทย์ W Medical Hospital สมุทรสาคร — ปรึกษาเป็นความลับ ไม่ตัดสิน',
     questions: MENS_QUESTIONS,
+  },
+  women: {
+    service: 'women',
+    landingHeadline: 'ปรึกษาสูตินรีแพทย์ฟรี + ตรวจคัดกรองสุขภาพเพศหญิง',
+    subHeadline: 'HPV / Pap smear / ตกขาว / ประจำเดือน / วัยทอง — ภายใต้การดูแลของแพทย์ W Medical Hospital สมุทรสาคร เป็นความลับ ไม่ตัดสิน',
+    questions: WOMEN_QUESTIONS,
   },
 }

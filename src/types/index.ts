@@ -1,4 +1,4 @@
-export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens'
+export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women'
 
 export interface Post {
   id: string
@@ -140,5 +140,13 @@ export const SERVICES = {
     target: 'ผู้ชายอายุ 40-65 ปี ที่กังวลเรื่องพลังงาน อารมณ์ ฮอร์โมน',
     tone: 'ให้ความรู้ ไม่ตัดสิน ภายใต้การดูแลของแพทย์',
     cta: 'ปรึกษาแพทย์ฟรี'
+  },
+  women: {
+    name: 'สุขภาพเพศหญิง',
+    emoji: '🌸',
+    color: '#FCE7F3',
+    target: 'ผู้หญิงทุกช่วงวัย เน้น 25-55 ปี',
+    tone: 'ส่วนตัว เปิดใจ ไม่ตัดสิน ภายใต้การดูแลของแพทย์',
+    cta: 'ปรึกษาสูตินรีแพทย์ฟรี'
   }
 } as const

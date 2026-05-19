@@ -243,12 +243,95 @@ function summarizeMens(a: Answers): string[] {
   return lines
 }
 
+// ── Women's Sexual & Reproductive Health ────────────────────────────
+const WOMEN_AGE: Record<string, string> = {
+  under_25: '< 25 ปี',
+  '25_34':  '25-34 ปี',
+  '35_44':  '35-44 ปี',
+  '45_54':  '45-54 ปี',
+  '55_plus': '55+ ปี',
+}
+const WOMEN_SCREENING: Record<string, string> = {
+  '<1y':   'ภายใน 1 ปี',
+  '1-3y':  '1-3 ปี',
+  '>3y':   '> 3 ปี',
+  never:   'ไม่เคยตรวจ',
+}
+const WOMEN_SYMPTOMS: Record<string, string> = {
+  abnormal_bleeding: '🚩 เลือดออกผิดปกติ',
+  discharge:         'ตกขาวผิดปกติ',
+  pelvic_pain:       'ปวดท้องน้อย',
+  dysuria:           'ปัสสาวะแสบ',
+  painful_sex:       'เจ็บเวลา sex',
+}
+const WOMEN_MENSTRUAL: Record<string, string> = {
+  regular:   'ปกติ',
+  irregular: 'ไม่สม่ำเสมอ',
+  painful:   'ปวดรุนแรง / มามาก',
+  absent:    'ขาดประจำเดือน',
+  menopause: 'หมดประจำเดือน',
+  na:        'ไม่สะดวกบอก',
+}
+const WOMEN_RISK: Record<string, string> = {
+  family_cancer:     'ครอบครัวเป็นมะเร็ง',
+  hpv_unvaccinated:  'ไม่ได้ฉีด HPV',
+  multi_partner:     'คู่นอนหลายคน',
+  smoking:           'สูบบุหรี่',
+}
+const WOMEN_INTEREST: Record<string, string> = {
+  screening:        'คัดกรอง HPV/Pap',
+  discharge:        'ตกขาว/ติดเชื้อ',
+  menstrual:        'ประจำเดือนผิดปกติ',
+  contraception:    'คุมกำเนิด',
+  menopause:        'วัยทอง',
+  sexual_wellness:  'sexual wellness',
+  unsure:           'ยังไม่แน่ใจ',
+}
+const WOMEN_START: Record<string, string> = {
+  now:    'ทันที',
+  '1m':   'ภายใน 1 เดือน',
+  '1-3m': '1-3 เดือน',
+  unsure: 'ยังไม่แน่ใจ',
+}
+
+function summarizeWomen(a: Answers): string[] {
+  const lines: string[] = []
+
+  const age = asString(a.age_range)
+  if (age) lines.push(`ช่วงอายุ: ${WOMEN_AGE[age] || age}`)
+
+  const screening = asString(a.screening_history)
+  if (screening) lines.push(`คัดกรองล่าสุด: ${WOMEN_SCREENING[screening] || screening}`)
+
+  const symptoms = asArray(a.symptoms).filter(s => s !== 'none')
+  if (symptoms.length) {
+    lines.push(`อาการ: ${symptoms.map(s => WOMEN_SYMPTOMS[s] || s).join(', ')}`)
+  }
+
+  const menstrual = asString(a.menstrual)
+  if (menstrual) lines.push(`ประจำเดือน: ${WOMEN_MENSTRUAL[menstrual] || menstrual}`)
+
+  const risks = asArray(a.risk_factors).filter(r => r !== 'none')
+  if (risks.length) {
+    lines.push(`ปัจจัยเสี่ยง: ${risks.map(r => WOMEN_RISK[r] || r).join(', ')}`)
+  }
+
+  const interest = asString(a.interest)
+  if (interest) lines.push(`สนใจ: ${WOMEN_INTEREST[interest] || interest}`)
+
+  const start = asString(a.start_when)
+  if (start) lines.push(`พร้อมเริ่ม: ${WOMEN_START[start] || start}`)
+
+  return lines
+}
+
 export function summarizeAnswers(service: Service, answers: Answers): string[] {
   switch (service) {
     case 'glp1':    return summarizeGLP1(answers)
     case 'ckd':     return summarizeCKD(answers)
     case 'std':     return summarizeSTD(answers)
     case 'mens':    return summarizeMens(answers)
+    case 'women':   return summarizeWomen(answers)
     case 'foreign': return []
   }
 }
