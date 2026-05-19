@@ -74,7 +74,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const feedCaption = `${headline}\n\n${caption}\n\n${cta}\nLINE: @roogondee | https://roogondee.com`
+  const dateTag = new Date().toISOString().slice(0, 10)
+  const quizUrl = `https://roogondee.com/quiz/${service}?utm_source=facebook&utm_medium=organic&utm_campaign=compose_${dateTag}`
+  const feedCaption = `${headline}\n\n${caption}\n\n${cta}\n\nทำ Quiz 2 นาที รับสิทธิ์ฟรี: ${quizUrl}\nLINE: @roogondee`
 
   if (targets.includes('feed')) {
     try {
