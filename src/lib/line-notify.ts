@@ -26,9 +26,16 @@ interface NotifyParams {
 }
 
 async function pushLine(to: string, text: string) {
-  if (!LINE_CHANNEL_ACCESS_TOKEN) return
+  if (!LINE_CHANNEL_ACCESS_TOKEN) {
+    console.warn('LINE push skipped: LINE_CHANNEL_ACCESS_TOKEN not set')
+    return
+  }
+  if (!to) {
+    console.warn('LINE push skipped: empty `to` target')
+    return
+  }
   try {
-    await fetch('https://api.line.me/v2/bot/message/push', {
+    const res = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,6 +46,10 @@ async function pushLine(to: string, text: string) {
         messages: [{ type: 'text', text }],
       }),
     })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`LINE push failed: ${res.status} ${res.statusText} — ${body}`)
+    }
   } catch (err) {
     console.error('LINE push error:', err)
   }

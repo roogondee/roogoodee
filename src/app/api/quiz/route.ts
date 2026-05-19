@@ -150,19 +150,25 @@ export async function POST(req: NextRequest) {
 
     const voucher = await issueVoucher({ leadId: inserted.id, service: body.service })
 
-    void notifyLeadToSale({
-      name:               `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
-      phone:              inserted.phone,
-      line_id:            inserted.line_id,
-      email:              inserted.email,
-      service:            body.service,
-      tier:               scoring.tier,
-      score:              scoring.score,
-      voucher_code:       voucher.code,
-      voucher_expires_at: voucher.expires_at,
-      reasons:            scoring.reasons,
-      answer_summary:     summarizeAnswers(body.service, answers),
-    })
+    // Await so the LINE push completes before the Vercel lambda freezes;
+    // fire-and-forget (`void`) was being dropped after the response returned.
+    try {
+      await notifyLeadToSale({
+        name:               `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
+        phone:              inserted.phone,
+        line_id:            inserted.line_id,
+        email:              inserted.email,
+        service:            body.service,
+        tier:               scoring.tier,
+        score:              scoring.score,
+        voucher_code:       voucher.code,
+        voucher_expires_at: voucher.expires_at,
+        reasons:            scoring.reasons,
+        answer_summary:     summarizeAnswers(body.service, answers),
+      })
+    } catch (err) {
+      console.error('notifyLeadToSale failed:', err)
+    }
 
     void sendLeadNotification({
       name:    `${inserted.first_name} ${inserted.last_name || ''}`.trim(),

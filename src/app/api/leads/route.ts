@@ -47,14 +47,18 @@ export async function POST(req: NextRequest) {
       note,
     })
 
-    // Send LINE group notification (non-blocking)
-    void notifyLineGroup({
-      name: `${first_name} ${last_name || ''}`.trim(),
-      phone,
-      service: service || 'general',
-      source,
-      note,
-    })
+    // Await so the LINE push completes before the lambda freezes on Vercel.
+    try {
+      await notifyLineGroup({
+        name: `${first_name} ${last_name || ''}`.trim(),
+        phone,
+        service: service || 'general',
+        source,
+        note,
+      })
+    } catch (err) {
+      console.error('notifyLineGroup failed:', err)
+    }
 
     return NextResponse.json({ success: true, id: data[0].id })
   } catch (err: unknown) {
