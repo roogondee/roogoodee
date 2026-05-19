@@ -51,18 +51,18 @@ export async function POST(req: NextRequest) {
     const body = JSON.parse(rawBody)
     const events = body.events || []
 
-    for (const event of events) {
-      // Idempotency: LINE retries webhooks that don't 200 within 3s, resending
-      // the same webhookEventId. Atomically claim the event_id; if the insert
-      // hits the PK, another delivery already processed (or is processing) it.
+    // Process events in parallel: LINE batches up to ~100 events per delivery
+    // and each replyToken has its own 60s TTL. Serial processing made later
+    // events wait on earlier AI calls and risked token expiry.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await Promise.all(events.map(async (event: any) => {
       const eventId: string | undefined = event.webhookEventId
       if (eventId) {
         const { error: claimErr } = await supabaseAdmin
           .from('processed_webhook_events')
           .insert({ event_id: eventId, source: 'line' })
         if (claimErr) {
-          // 23505 = unique_violation → duplicate delivery, skip silently.
-          if ((claimErr as { code?: string }).code === '23505') continue
+          if ((claimErr as { code?: string }).code === '23505') return
           console.error('webhook dedup insert error:', claimErr)
         }
       }
@@ -70,11 +70,9 @@ export async function POST(req: NextRequest) {
       try {
         await handleEvent(event)
       } catch (err) {
-        // Per-event isolation: a single failure must not 500 the whole batch
-        // and trigger LINE to retry every event in this delivery.
         console.error('LINE event processing error:', err, { eventId })
       }
-    }
+    }))
 
     return NextResponse.json({ ok: true })
   } catch (err) {
@@ -93,14 +91,19 @@ async function handleEvent(event: any): Promise<void> {
   // Spec §5.3: follow event = user added the OA. Send welcome + ask for
   // voucher code so we can link their userId to a lead for future push.
   if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
+    // Many followers arrive from LINE Ads without a voucher in hand — the
+    // welcome must serve both paths or ad-clicked users go silent.
     const welcome = [
       'ยินดีต้อนรับสู่ รู้ก่อนดี(รู้งี้) 💚',
       '',
-      'หากคุณเพิ่งรับ voucher จากเว็บไซต์ของเรา',
-      'กรุณาส่ง "โค้ด voucher" ของคุณในช่องแชทนี้',
-      '(เช่น RGD-GLP1-A3X9K2)',
+      '🎟 มี voucher อยู่แล้ว?',
+      'ส่งโค้ด (เช่น RGD-GLP1-A3X9K2) ในแชทนี้',
+      'เพื่อเชื่อมบัญชีและรับการแจ้งเตือน',
       '',
-      'เพื่อเชื่อมบัญชีและรับการแจ้งเตือนอัตโนมัติ',
+      '✨ ยังไม่มี voucher?',
+      'ทำแบบประเมินสุขภาพฟรี (2 นาที)',
+      'รับ voucher ตรวจฟรีมูลค่า 500฿',
+      '👉 https://roogondee.com/quiz',
     ].join('\n')
     await replyToLine(event.replyToken, welcome)
     return
