@@ -19,7 +19,8 @@ export async function captureBotLead(params: {
   const { platform, userId, service, rawText } = params
   const { firstName, notifySource } = PLATFORM_LABELS[platform]
 
-  void supabaseAdmin.from('leads').insert([{
+  // Await so writes & LINE push complete before the webhook lambda freezes.
+  const { error } = await supabaseAdmin.from('leads').insert([{
     first_name: firstName,
     phone: userId,
     service,
@@ -27,12 +28,17 @@ export async function captureBotLead(params: {
     source: platform,
     status: 'new',
   }])
+  if (error) console.error('captureBotLead insert failed:', error)
 
   if (service !== 'general') {
-    void notifyLineGroup({
-      service,
-      source: notifySource,
-      note: rawText,
-    })
+    try {
+      await notifyLineGroup({
+        service,
+        source: notifySource,
+        note: rawText,
+      })
+    } catch (err) {
+      console.error('captureBotLead notifyLineGroup failed:', err)
+    }
   }
 }
