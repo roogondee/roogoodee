@@ -129,3 +129,61 @@ mode: ${opts.mode || 'post'} (จะใช้ทั้ง blog post + FB feed + 
   }
   throw new Error(`generateCaptionFromImage failed after 3 attempts: ${lastErr}`)
 }
+
+const ARTICLE_SYSTEM = `คุณเป็นนักเขียนบทความสุขภาพของเว็บ "รู้ก่อนดี (รู้งี้)" / roogondee.com ร่วมกับ W Medical Hospital สมุทรสาคร
+
+เขียนบทความ blog ภาษาไทยจาก caption + รูปที่ผู้ใช้แนบมา — ขยายเนื้อหา 400-700 คำ ใช้ภาษาเป็นกันเอง อ่านง่าย ให้ความรู้จริง ไม่ขายตรง
+
+ส่งคืนเป็น HTML เท่านั้น (ไม่มี markdown, ไม่มี code fence) โครงสร้าง:
+- <p> 2-4 ย่อหน้าเปิดเรื่อง (hook + ทำไมเรื่องนี้สำคัญ)
+- <h2> หัวข้อย่อย 2-3 อัน + <p> ใต้แต่ละหัวข้อ
+- <ul><li> ลิสต์ key takeaway 3-5 ข้อ
+- <p> ย่อหน้าปิด + invite ทำ quiz / ทักไลน์
+
+กฎเข้ม:
+- ห้ามใช้คำการันตี (100%, หายขาด, รักษาหายแน่นอน)
+- ห้ามคำตัดสินรูปร่าง (อ้วน, น่าเกลียด)
+- ห้ามใส่ link ภายนอกอื่นนอกจาก roogondee.com
+- ห้ามมี <html>, <body>, <head> — ส่งเฉพาะเนื้อหา block-level
+- ห้ามใช้ <script>, <style>, inline style, on* handlers`
+
+export async function generateArticleFromCaption(opts: {
+  imageUrl: string
+  service: 'glp1' | 'std' | 'ckd' | 'foreign'
+  caption: CaptionBundle
+}): Promise<string> {
+  const meta = SERVICE_META[opts.service]
+  if (!meta) throw new Error(`unknown service: ${opts.service}`)
+
+  const { data: b64, mediaType } = await fetchImageAsBase64(opts.imageUrl)
+  const userText = `vertical: ${meta.label}
+ข้อมูลโปร: ${meta.voucher_hint}
+สถานที่ตรวจ: W Medical Hospital สมุทรสาคร
+
+Headline: ${opts.caption.headline}
+Subline: ${opts.caption.subline}
+Caption: ${opts.caption.caption}
+
+ขยายเป็นบทความ blog HTML ตามโครงที่กำหนด — ส่งคืน HTML เท่านั้น`
+
+  const client = anthropicSonnet()
+  const msg = await client.messages.create({
+    model: CONTENT_MODEL,
+    max_tokens: 2500,
+    system: ARTICLE_SYSTEM,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: b64 } },
+        { type: 'text', text: userText },
+      ],
+    }],
+  })
+  const block = msg.content[0]
+  if (block.type !== 'text') throw new Error('no text response from article gen')
+  const html = stripFence(block.text)
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/\son\w+="[^"]*"/gi, '')
+  return html
+}

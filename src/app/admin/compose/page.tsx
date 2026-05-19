@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 type Service = 'glp1' | 'std' | 'ckd' | 'foreign'
-type Target = 'blog' | 'feed' | 'story'
+type Target = 'blog' | 'feed' | 'story' | 'line'
 
 const SERVICE_LABEL: Record<Service, string> = {
   glp1: 'GLP-1 ลดน้ำหนัก',
@@ -22,7 +22,8 @@ export default function ComposePage() {
   const [subline, setSubline] = useState('')
   const [caption, setCaption] = useState('')
   const [cta, setCta] = useState('')
-  const [targets, setTargets] = useState<Record<Target, boolean>>({ blog: true, feed: true, story: true })
+  const [targets, setTargets] = useState<Record<Target, boolean>>({ blog: true, feed: true, story: true, line: false })
+  const [fullArticle, setFullArticle] = useState(true)
   const [err, setErr] = useState('')
   const [results, setResults] = useState<Record<string, { ok: boolean; data?: unknown; error?: string }> | null>(null)
 
@@ -72,7 +73,7 @@ export default function ComposePage() {
       const res = await fetch('/api/admin/compose/publish', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ imageUrl, service, headline, subline, caption, cta, targets: picked }),
+        body: JSON.stringify({ imageUrl, service, headline, subline, caption, cta, targets: picked, fullArticle }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'publish failed')
@@ -141,16 +142,23 @@ export default function ComposePage() {
 
       <section className="bg-white rounded-xl p-5 border border-gray-100 space-y-3">
         <h2 className="font-semibold">ลงที่ไหน</h2>
-        {(['blog', 'feed', 'story'] as Target[]).map(t => (
+        {(['blog', 'feed', 'story', 'line'] as Target[]).map(t => (
           <label key={t} className="flex items-center gap-2">
             <input type="checkbox" checked={targets[t]} onChange={e => setTargets(s => ({ ...s, [t]: e.target.checked }))} />
             <span>
               {t === 'blog' && 'Blog post (roogondee.com/blog)'}
               {t === 'feed' && 'FB Page feed (รูป + caption)'}
               {t === 'story' && 'FB Page Story (รูป 9:16)'}
+              {t === 'line' && 'LINE OA broadcast (Flex message ถึง followers ทุกคน)'}
             </span>
           </label>
         ))}
+        {targets.blog && (
+          <label className="flex items-center gap-2 mt-2 pt-3 border-t border-gray-100">
+            <input type="checkbox" checked={fullArticle} onChange={e => setFullArticle(e.target.checked)} />
+            <span className="text-sm">ให้ AI ขยาย caption เป็นบทความเต็ม 400-700 คำ (แนะนำ — SEO ดีกว่า)</span>
+          </label>
+        )}
         <button
           onClick={handlePublish}
           disabled={publishing}
