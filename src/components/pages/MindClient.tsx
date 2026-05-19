@@ -61,7 +61,18 @@ export default function MindClient() {
         </div>
       </nav>
 
-      <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-violet-50 via-cream to-cream">
+      {/* SOFT-LAUNCH WAITLIST BANNER — remove or hide when in-house team is fulfillment-ready (Phase 2) */}
+      <section className="pt-20 md:pt-24 px-6 md:px-20 pb-2">
+        <div className="max-w-5xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex flex-col md:flex-row gap-3 md:items-center">
+          <span className="text-2xl">🌱</span>
+          <div className="flex-1 text-sm">
+            <span className="font-bold text-amber-900">Soft launch — </span>
+            <span className="text-amber-900/85">เรากำลังคัดเลือกทีมนักจิตวิทยา/จิตแพทย์ที่มีใบอนุญาตและเหมาะกับคุณที่สุด หากกรอกแบบประเมินตอนนี้ ทีมจะติดต่อกลับภายใน 1-2 สัปดาห์ — กรณีเร่งด่วน โทร 1323 ฟรี 24 ชม.</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="min-h-[70vh] flex items-center pt-4 px-6 md:px-20 bg-gradient-to-br from-violet-50 via-cream to-cream">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 bg-violet-100 border border-violet-200 text-violet-700 px-4 py-2 rounded-full text-xs font-semibold mb-6">
             {t.mind.heroTag}

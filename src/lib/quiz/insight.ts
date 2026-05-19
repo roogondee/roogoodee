@@ -333,6 +333,18 @@ function insightWomen(a: Answers, tier: LeadTier): HealthInsight {
 // other inputs. Hotline 1323 is the Thai Department of Mental Health
 // crisis line (24/7, free, Thai language). Never remove the hotline
 // from the urgent branch — it's the safety net for the entire pillar.
+//
+// LAUNCH PHASE 1 (waitlist): we are recruiting in-house licensed
+// psychologists/psychiatrists. Non-urgent recommendations promise a
+// callback within 1-2 weeks rather than an immediate 30-min session,
+// and the body of every non-urgent branch surfaces 1323 as the
+// "if it gets worse today" lifeline. When fulfillment is ready,
+// flip MIND_WAITLIST_MODE to false (or remove this block).
+const MIND_WAITLIST_MODE = true
+const MIND_WAITLIST_LINE = 'ขณะนี้เรากำลังคัดเลือกทีมนักจิตวิทยา/จิตแพทย์ที่มีใบอนุญาตและเหมาะกับคุณที่สุด — ทีมจะติดต่อกลับภายใน 1-2 สัปดาห์ (หากความรู้สึกเริ่มหนักขึ้นก่อนนั้น โทรสายด่วนสุขภาพจิต **1323** ฟรี 24 ชม. ได้เสมอ)'
+const MIND_LIVE_LINE_30 = 'ปรึกษานักจิตวิทยา/จิตแพทย์ 30 นาทีฟรี (telehealth) — แผนการดูแลและการสั่งยา (หากจำเป็น) อยู่ภายใต้ดุลยพินิจของผู้เชี่ยวชาญ'
+const MIND_REC = MIND_WAITLIST_MODE ? MIND_WAITLIST_LINE : MIND_LIVE_LINE_30
+
 function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
   const selfHarm = asString(a.self_harm_check)
   const concerns = asArray(a.main_concerns)
@@ -353,7 +365,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'การสูญเสีย — เป็นเรื่องที่ใจหนัก',
       body: 'อกหัก หย่าร้าง หรือสูญเสียคนรัก เป็นความเจ็บปวดที่ไม่ควรเผชิญคนเดียว ความรู้สึกตอนนี้ปกติแต่ไม่ได้หมายความว่าต้องผ่านไปได้ด้วยตัวเอง — การมีพื้นที่ปลอดภัยให้พูดออกมาช่วยได้มาก',
-      recommendation: 'ปรึกษานักจิตวิทยา 30 นาทีฟรี (telehealth) — รับฟังโดยไม่ตัดสิน หาแนวทางที่เหมาะกับคุณ',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
     }
   }
@@ -362,7 +374,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'ปัญหาความสัมพันธ์ — ปรึกษาได้ตามแบบของคุณ',
       body: 'ความสัมพันธ์ที่ไม่ลงตัว ไม่ว่าจะกับคู่รัก ครอบครัว หรือคนใกล้ตัว สามารถสะสมจนกระทบสุขภาพจิตและกายได้ — การมีคนกลางที่เป็นผู้เชี่ยวชาญช่วยให้มองสถานการณ์ใหม่ได้ชัดขึ้น',
-      recommendation: 'ปรึกษานักจิตวิทยาคนเดียว หรือชวนคนสำคัญของคุณมาด้วยก็ได้ — voucher ใช้ได้กับ session แรก',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
     }
   }
@@ -375,7 +387,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'อาการเรื้อรังและถี่ — ควรให้ผู้เชี่ยวชาญช่วยประเมิน',
       body: 'อาการเศร้า/วิตกกังวลที่กินเวลานาน > 3 เดือน และเกิดบ่อย เป็นรูปแบบที่ไม่ค่อยหายเอง การได้คุยกับผู้เชี่ยวชาญช่วยจับสาเหตุและวางแผนดูแลที่เหมาะกับคุณโดยเฉพาะ',
-      recommendation: 'ปรึกษานักจิตวิทยา/จิตแพทย์ 30 นาทีฟรี — แผนการดูแลและการสั่งยา (หากจำเป็น) อยู่ภายใต้ดุลยพินิจของผู้เชี่ยวชาญ',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
       urgent: false,
     }
@@ -385,7 +397,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'นอนไม่หลับ — บ่อยมาคู่กับเรื่องอื่นในใจ',
       body: 'การนอนไม่ดีต่อเนื่องส่งผลต่ออารมณ์ พลังงาน สมาธิ และระบบฮอร์โมน บางครั้งปัญหาการนอนเป็นปลายทางของความเครียดที่ยังหาทางออกไม่เจอ',
-      recommendation: 'ปรึกษาผู้เชี่ยวชาญเพื่อแยกสาเหตุ (พฤติกรรม / อารมณ์ / ฮอร์โมน) — voucher ครอบคลุม session แรก',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
     }
   }
@@ -394,7 +406,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'Burnout — ไม่ใช่แค่ "เหนื่อย"',
       body: 'ความเครียดจากงานสะสมต่อเนื่องจน energy หมด สนใจอะไรไม่ได้ และรู้สึกแยกตัวจากเป้าหมาย เป็นภาวะที่ WHO ยอมรับว่าเป็นปัญหาสุขภาพ ไม่ใช่ลักษณะนิสัย',
-      recommendation: 'ปรึกษานักจิตวิทยาเพื่อวางแผน recovery — บ่อยครั้งแก้ที่ระบบงาน + วิธีคิด ดีกว่าฝืนต่อ',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
     }
   }
@@ -403,7 +415,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
     return {
       headline: 'ความรู้สึกไม่มีค่า — ไม่ใช่ความจริง',
       body: 'ความรู้สึกแบบนี้มักมีที่มาจากประสบการณ์เก่า ความสัมพันธ์ หรือ pattern ความคิดที่สั่งสมมานาน การได้ทำงานกับนักจิตวิทยาช่วยถอดที่มา และสร้าง view ใหม่ที่เป็นกลางกว่า',
-      recommendation: 'session แรก 30 นาทีฟรี — ไม่มีคำตอบเร็ว แต่ทิศทางมีได้',
+      recommendation: MIND_REC,
       disclaimer: DISCLAIMER,
     }
   }
@@ -411,7 +423,7 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
   return {
     headline: 'ขอบคุณที่ดูแลใจตัวเอง',
     body: 'การคิดเรื่องสุขภาพจิตเป็นจุดเริ่มต้นที่ดี — ไม่ต้องรอให้รุนแรงก่อนค่อยปรึกษา การได้คุยกับผู้เชี่ยวชาญแม้ในวันที่ "ก็โอเค" ช่วยป้องกันปัญหาในอนาคต',
-    recommendation: 'ใช้ voucher ปรึกษา 30 นาทีฟรี — ไม่จำเป็นต้องมีปัญหาใหญ่ก่อนถึงจะเริ่ม',
+    recommendation: MIND_REC,
     disclaimer: DISCLAIMER,
   }
 }
