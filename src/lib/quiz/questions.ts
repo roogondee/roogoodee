@@ -608,8 +608,8 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
   },
   mind: {
     service: 'mind',
-    landingHeadline: 'ปรึกษานักจิตวิทยาฟรี 30 นาที — ส่วนตัว ไม่ตัดสิน',
-    subHeadline: 'สุขภาพจิต ความเครียด ความสัมพันธ์ การสูญเสีย — voucher ครอบคลุมการปรึกษาเบื้องต้นกับผู้เชี่ยวชาญ (telehealth) ทุกข้อมูลเป็นความลับ',
+    landingHeadline: 'ปรึกษานักจิตวิทยาฟรี — ส่วนตัว ไม่ตัดสิน',
+    subHeadline: 'สุขภาพจิต ความเครียด ความสัมพันธ์ การสูญเสีย — ลงทะเบียนรับ voucher ไว้ก่อน ทีมกำลังคัดเลือกผู้เชี่ยวชาญที่เหมาะกับคุณ จะติดต่อกลับภายใน 1-2 สัปดาห์ (วิกฤตเร่งด่วน โทร 1323)',
     questions: MIND_QUESTIONS,
     allowAnonymous: true,
   },
