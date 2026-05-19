@@ -82,6 +82,8 @@ const en = {
     footerStd: 'STD & PrEP HIV', footerGlp1: 'GLP-1 Weight Loss',
     footerCkd: 'CKD Kidney Clinic', footerForeign: 'Foreign Worker Checkup',
     footerMens: 'Men\'s Health 40+',
+    footerWomen: 'Women\'s Health',
+    footerMind: 'Mind & Relationships',
     footerCalc: 'Health Calculators', footerAsk: 'Ask Expert',
     footerBlog: 'Health Articles', footerFaq: 'FAQ', footerAbout: 'About Us', footerEnglish: 'English',
   },

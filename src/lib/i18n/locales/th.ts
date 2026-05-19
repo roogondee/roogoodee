@@ -109,6 +109,8 @@ const th = {
     footerStd: 'ตรวจ STD & PrEP HIV', footerGlp1: 'GLP-1 ลดน้ำหนัก',
     footerCkd: 'CKD Clinic โรคไต', footerForeign: 'ตรวจสุขภาพแรงงานต่างด้าว',
     footerMens: 'สุขภาพชายวัย 40+',
+    footerWomen: 'สุขภาพเพศหญิง',
+    footerMind: 'สุขภาพจิต & ความสัมพันธ์',
     footerCalc: 'เครื่องคำนวณสุขภาพ', footerAsk: 'ถามผู้เชี่ยวชาญ',
     footerBlog: 'บทความสุขภาพ', footerFaq: 'คำถามที่พบบ่อย',
     footerAbout: 'เกี่ยวกับเรา', footerEnglish: 'English',
