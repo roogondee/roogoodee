@@ -250,11 +250,70 @@ const WOMEN: ArticleQuizDefinition = {
   ctaHref: '/quiz/women',
 }
 
+const MIND: ArticleQuizDefinition = {
+  service: 'mind',
+  intro: 'เช็กสุขภาพใจเบื้องต้นใน 30 วินาที — เป็นความลับ ไม่ตัดสิน',
+  questions: [
+    {
+      id: 'frequency',
+      type: 'radio',
+      title: 'ในช่วง 2 สัปดาห์ที่ผ่านมา รู้สึกเศร้า/วิตกกังวล/หมดพลัง บ่อยแค่ไหน?',
+      options: [
+        { value: 'almost_daily', label: 'แทบทุกวัน',          weight: 4 },
+        { value: 'most_days',    label: 'มากกว่าครึ่งของวัน', weight: 3 },
+        { value: 'some_days',    label: 'บางวัน',              weight: 1 },
+        { value: 'rare',         label: 'นานๆ ครั้ง',          weight: 0 },
+      ],
+    },
+    {
+      id: 'concerns',
+      type: 'multi',
+      title: 'มีเรื่องไหนกวนใจอยู่บ้าง?',
+      options: [
+        { value: 'mood',         label: 'อารมณ์เศร้า / หมดหวัง',  weight: 2 },
+        { value: 'anxiety',      label: 'วิตกกังวล / คิดมาก',    weight: 2 },
+        { value: 'relationship', label: 'ปัญหาความสัมพันธ์',     weight: 2 },
+        { value: 'work_stress',  label: 'เครียดงาน / burnout',   weight: 1 },
+        { value: 'sleep',        label: 'นอนไม่หลับ',             weight: 1 },
+        { value: 'none',         label: 'ไม่มี',                   weight: 0, exclusive: true },
+      ],
+    },
+    {
+      id: 'duration',
+      type: 'radio',
+      title: 'เป็นมานานแค่ไหนแล้ว?',
+      options: [
+        { value: '<2w',     label: 'น้อยกว่า 2 สัปดาห์',     weight: 0 },
+        { value: '2w-1m',   label: '2 สัปดาห์ - 1 เดือน',     weight: 1 },
+        { value: '1-3m',    label: '1-3 เดือน',                weight: 2 },
+        { value: '>3m',     label: 'มากกว่า 3 เดือน',         weight: 3 },
+      ],
+    },
+  ],
+  tierMessages: {
+    high: {
+      headline: 'ควรได้คุยกับผู้เชี่ยวชาญเร็วๆ นี้',
+      body: 'สิ่งที่คุณเจอกินเวลานานและถี่พอที่จะส่งผลต่อชีวิต — voucher ปรึกษานักจิตวิทยา 30 นาทีฟรี ส่วนตัว ไม่ตัดสิน',
+    },
+    medium: {
+      headline: 'พื้นที่ปลอดภัยให้คุณคุยได้',
+      body: 'อาการระดับนี้บ่อยกว่าที่หลายคนคิด — ปรึกษานักจิตวิทยาช่วยทำให้เห็นว่าควรไปทางไหนต่อ',
+    },
+    low: {
+      headline: 'ดูแลใจตัวเองอยู่ — เยี่ยมมาก',
+      body: 'การคิดถึงสุขภาพจิตเป็นเรื่องดี — ถ้าวันไหนรู้สึกหนัก ปรึกษาฟรีได้เสมอ',
+    },
+  },
+  ctaLabel: 'ทำแบบประเมินเต็ม รับสิทธิ์ปรึกษานักจิตวิทยาฟรี 30 นาที',
+  ctaHref: '/quiz/mind',
+}
+
 export const ARTICLE_QUIZZES: Partial<Record<Service, ArticleQuizDefinition>> = {
   glp1: GLP1,
   ckd: CKD,
   std: STD,
   women: WOMEN,
+  mind: MIND,
 }
 
 export function getArticleQuiz(service: Service): ArticleQuizDefinition | null {

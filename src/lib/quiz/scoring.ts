@@ -315,6 +315,91 @@ export function scoreWomen(a: WomenAnswers): ScoringResult {
   return { score, tier, reasons }
 }
 
+// ── Mental Wellness & Relationships (Mind) ──────────────────────────
+// Red flag: self_harm_check ∈ {sometimes, often} → urgent tier + the
+// insight layer surfaces crisis hotline 1323. This MUST NOT be relaxed
+// downstream — it's the safety gate for the entire pillar.
+interface MindAnswers {
+  age_range?: string
+  main_concerns?: string[]
+  frequency?: string
+  duration?: string
+  self_harm_check?: string
+  previous_help?: string
+  start_when?: string
+}
+
+const MIND_FREQ_SCORE: Record<string, number> = {
+  almost_daily: 5,
+  most_days:    3,
+  some_days:    1,
+  rare:         0,
+}
+const MIND_DURATION_SCORE: Record<string, number> = {
+  '<2w':   1,
+  '2w-1m': 2,
+  '1-3m':  3,
+  '>3m':   4,
+  on_off:  3,
+}
+
+export function scoreMind(a: MindAnswers): ScoringResult {
+  const reasons: string[] = []
+  let score = 0
+  let urgent = false
+
+  if (a.self_harm_check === 'often') {
+    score += 100; urgent = true
+    reasons.push('🚨 มีความคิดอยากทำร้ายตัวเองบ่อย — ติดต่อด่วน')
+  } else if (a.self_harm_check === 'sometimes') {
+    score += 50; urgent = true
+    reasons.push('🚨 มีความคิดอยากทำร้ายตัวเองบางครั้ง — ติดต่อด่วน')
+  }
+
+  const freq = MIND_FREQ_SCORE[a.frequency || ''] ?? 0
+  if (freq > 0) {
+    score += freq
+    if (a.frequency === 'almost_daily') reasons.push('อาการแทบทุกวัน')
+    else if (a.frequency === 'most_days') reasons.push('อาการมากกว่าครึ่งของวัน')
+  }
+
+  const dur = MIND_DURATION_SCORE[a.duration || ''] ?? 0
+  if (dur >= 3) {
+    score += dur
+    reasons.push(a.duration === '>3m' ? 'เรื้อรัง > 3 เดือน' : a.duration === 'on_off' ? 'เป็นๆ หายๆ หลายปี' : 'นาน 1-3 เดือน')
+  } else {
+    score += dur
+  }
+
+  const concerns = (a.main_concerns || []).filter(c => c !== 'unsure')
+  const coreConcerns = ['mood', 'anxiety', 'sleep']
+  const coreHits = concerns.filter(c => coreConcerns.includes(c)).length
+  if (coreHits >= 1) {
+    score += Math.min(coreHits * 2, 4)
+    reasons.push(`อาการหลัก ${coreHits} ด้าน`)
+  }
+  if (concerns.includes('breakup')) {
+    score += 2; reasons.push('การสูญเสีย / breakup')
+  }
+
+  if (a.start_when === 'now') {
+    score += 3; reasons.push('พร้อมเริ่มทันที')
+  } else if (a.start_when === '1w') {
+    score += 2; reasons.push('ภายใน 1 สัปดาห์')
+  }
+
+  if (a.previous_help === 'current') {
+    score += 1; reasons.push('กำลังรักษาอยู่ — อาจหาที่ปรึกษาเพิ่ม')
+  }
+
+  const tier: LeadTier = urgent
+    ? 'urgent'
+    : score >= 10 ? 'hot'
+    : score >= 5  ? 'warm'
+    : 'cold'
+  return { score, tier, reasons }
+}
+
 export function scoreQuiz(service: Service, answers: Record<string, unknown>): ScoringResult {
   switch (service) {
     case 'glp1':    return scoreGLP1(answers as GLP1Answers)
@@ -322,6 +407,7 @@ export function scoreQuiz(service: Service, answers: Record<string, unknown>): S
     case 'std':     return scoreSTD(answers as STDAnswers)
     case 'mens':    return scoreMens(answers as MensAnswers)
     case 'women':   return scoreWomen(answers as WomenAnswers)
+    case 'mind':    return scoreMind(answers as MindAnswers)
     case 'foreign': return { score: 0, tier: 'warm', reasons: ['B2B lead'] }
   }
 }

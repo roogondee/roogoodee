@@ -325,6 +325,89 @@ function summarizeWomen(a: Answers): string[] {
   return lines
 }
 
+// ── Mental Wellness & Relationships (Mind) ──────────────────────────
+const MIND_AGE: Record<string, string> = {
+  under_20: '< 20 ปี',
+  '20_29':  '20-29 ปี',
+  '30_39':  '30-39 ปี',
+  '40_49':  '40-49 ปี',
+  '50_plus': '50+ ปี',
+}
+const MIND_CONCERNS: Record<string, string> = {
+  mood:         'อารมณ์เศร้า',
+  anxiety:      'วิตกกังวล',
+  sleep:        'นอนไม่หลับ',
+  work_stress:  'burnout/งาน',
+  relationship: 'ความสัมพันธ์',
+  family:       'ครอบครัว',
+  breakup:      'อกหัก/สูญเสีย',
+  self_esteem:  'self-esteem',
+  unsure:       'ยังบอกไม่ถูก',
+}
+const MIND_FREQ: Record<string, string> = {
+  almost_daily: 'แทบทุกวัน',
+  most_days:    'มากกว่าครึ่งของวัน',
+  some_days:    'บางวัน',
+  rare:         'นานๆ ครั้ง',
+}
+const MIND_DURATION: Record<string, string> = {
+  '<2w':   '< 2 สัปดาห์',
+  '2w-1m': '2 สัปดาห์-1 เดือน',
+  '1-3m':  '1-3 เดือน',
+  '>3m':   '> 3 เดือน',
+  on_off:  'เป็นๆ หายๆ หลายปี',
+}
+const MIND_SELF_HARM: Record<string, string> = {
+  no:        'ไม่มี',
+  sometimes: '🚩 มีบางครั้ง',
+  often:     '🚨 มีบ่อย / กำลังคิดอยู่',
+}
+const MIND_HELP: Record<string, string> = {
+  never:        'ไม่เคยปรึกษา',
+  friends_only: 'ปรึกษาเพื่อน/ครอบครัวเท่านั้น',
+  past:         'เคยปรึกษาผู้เชี่ยวชาญ (จบแล้ว)',
+  current:      'กำลังรักษา/ปรึกษาอยู่',
+}
+const MIND_START: Record<string, string> = {
+  now:    'ทันที',
+  '1w':   'ภายใน 1 สัปดาห์',
+  '1m':   'ภายใน 1 เดือน',
+  unsure: 'ยังไม่แน่ใจ',
+}
+
+function summarizeMind(a: Answers): string[] {
+  const lines: string[] = []
+
+  const selfHarm = asString(a.self_harm_check)
+  if (selfHarm && selfHarm !== 'no') {
+    lines.push(`🚨 self-harm: ${MIND_SELF_HARM[selfHarm] || selfHarm} — ติดต่อด่วน`)
+  }
+
+  const age = asString(a.age_range)
+  if (age) lines.push(`ช่วงอายุ: ${MIND_AGE[age] || age}`)
+
+  const concerns = asArray(a.main_concerns)
+  if (concerns.length) {
+    lines.push(`เรื่องกวนใจ: ${concerns.map(c => MIND_CONCERNS[c] || c).join(', ')}`)
+  }
+
+  const freq = asString(a.frequency)
+  if (freq) lines.push(`ความถี่: ${MIND_FREQ[freq] || freq}`)
+
+  const dur = asString(a.duration)
+  if (dur) lines.push(`เป็นมานาน: ${MIND_DURATION[dur] || dur}`)
+
+  if (selfHarm === 'no') lines.push('self-harm: ไม่มี')
+
+  const help = asString(a.previous_help)
+  if (help) lines.push(`เคยปรึกษา: ${MIND_HELP[help] || help}`)
+
+  const start = asString(a.start_when)
+  if (start) lines.push(`พร้อมเริ่ม: ${MIND_START[start] || start}`)
+
+  return lines
+}
+
 export function summarizeAnswers(service: Service, answers: Answers): string[] {
   switch (service) {
     case 'glp1':    return summarizeGLP1(answers)
@@ -332,6 +415,7 @@ export function summarizeAnswers(service: Service, answers: Answers): string[] {
     case 'std':     return summarizeSTD(answers)
     case 'mens':    return summarizeMens(answers)
     case 'women':   return summarizeWomen(answers)
+    case 'mind':    return summarizeMind(answers)
     case 'foreign': return []
   }
 }

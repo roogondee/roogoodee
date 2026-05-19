@@ -11,6 +11,7 @@ const SERVICE_CODE: Record<Service, string> = {
   foreign: 'FRN',
   mens: 'MENS',
   women: 'WMN',
+  mind: 'MND',
 }
 
 // A-Z + 2-9 (avoid 0/1/O/I for voice/SMS readability)

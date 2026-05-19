@@ -467,6 +467,106 @@ const WOMEN_QUESTIONS: Question[] = [
   },
 ]
 
+// ── Mental Wellness & Relationships (Mind) ──────────────────────────
+// Lightweight non-diagnostic screening — covers mood, anxiety, sleep,
+// stress, and relationship/family concerns. Item `self_harm_check`
+// answering "yes"/"sometimes" is a RED FLAG → urgent tier + display
+// crisis hotline 1323 immediately. Voucher = ปรึกษานักจิตวิทยา/จิตแพทย์
+// 30 นาที (telehealth). All clinical care under licensed professionals.
+const MIND_QUESTIONS: Question[] = [
+  {
+    id: 'age_range',
+    type: 'radio',
+    title: 'อายุประมาณเท่าไหร่?',
+    required: true,
+    options: [
+      { value: 'under_20', label: 'ต่ำกว่า 20 ปี' },
+      { value: '20_29',    label: '20-29 ปี' },
+      { value: '30_39',    label: '30-39 ปี' },
+      { value: '40_49',    label: '40-49 ปี' },
+      { value: '50_plus',  label: '50 ปีขึ้นไป' },
+    ],
+  },
+  {
+    id: 'main_concerns',
+    type: 'multi',
+    title: 'เรื่องไหนกวนใจคุณตอนนี้?',
+    subtitle: 'เลือกได้หลายข้อ — เป็นความลับ',
+    required: true,
+    options: [
+      { value: 'mood',         label: 'อารมณ์เศร้า / หดหู่ / สิ้นหวัง' },
+      { value: 'anxiety',      label: 'วิตกกังวล / panic / คิดมาก' },
+      { value: 'sleep',        label: 'นอนไม่หลับ / หลับยาก / ฝันร้าย' },
+      { value: 'work_stress',  label: 'เครียดเรื่องงาน / burnout' },
+      { value: 'relationship', label: 'ปัญหาคู่รัก / ความสัมพันธ์' },
+      { value: 'family',       label: 'ปัญหาครอบครัว / พ่อแม่' },
+      { value: 'breakup',      label: 'อกหัก / หย่าร้าง / สูญเสีย' },
+      { value: 'self_esteem',  label: 'ไม่มั่นใจในตัวเอง / รู้สึกไม่มีค่า' },
+      { value: 'unsure',       label: 'ยังบอกไม่ถูก — แค่อยากปรึกษา' },
+    ],
+  },
+  {
+    id: 'frequency',
+    type: 'radio',
+    title: 'ในช่วง 2 สัปดาห์ที่ผ่านมา อาการกวนใจคุณบ่อยแค่ไหน?',
+    required: true,
+    options: [
+      { value: 'almost_daily',  label: 'แทบทุกวัน',         badge: 'Hot' },
+      { value: 'most_days',     label: 'มากกว่าครึ่งของวัน' },
+      { value: 'some_days',     label: 'บางวัน' },
+      { value: 'rare',          label: 'นานๆ ครั้ง' },
+    ],
+  },
+  {
+    id: 'duration',
+    type: 'radio',
+    title: 'เป็นมานานแค่ไหนแล้ว?',
+    required: true,
+    options: [
+      { value: '<2w',     label: 'น้อยกว่า 2 สัปดาห์' },
+      { value: '2w-1m',   label: '2 สัปดาห์ - 1 เดือน' },
+      { value: '1-3m',    label: '1-3 เดือน' },
+      { value: '>3m',     label: 'มากกว่า 3 เดือน' },
+      { value: 'on_off',  label: 'เป็นๆ หายๆ มาหลายปี' },
+    ],
+  },
+  {
+    id: 'self_harm_check',
+    type: 'radio',
+    title: 'ในช่วง 2 สัปดาห์ที่ผ่านมา มีความคิดอยากทำร้ายตัวเอง หรือไม่อยากอยู่บนโลกนี้บ้างไหม?',
+    subtitle: 'คำถามนี้ช่วยให้เราดูแลคุณได้ปลอดภัยที่สุด — เป็นความลับ',
+    required: true,
+    options: [
+      { value: 'no',         label: 'ไม่มี — ไม่เคยคิด' },
+      { value: 'sometimes',  label: 'มีบางครั้ง',        badge: '⚠️' },
+      { value: 'often',      label: 'มีบ่อยครั้ง / กำลังคิดอยู่ตอนนี้', badge: '🚨 ด่วน' },
+    ],
+  },
+  {
+    id: 'previous_help',
+    type: 'radio',
+    title: 'เคยปรึกษาผู้เชี่ยวชาญด้านสุขภาพจิตหรือไม่?',
+    options: [
+      { value: 'never',         label: 'ไม่เคย' },
+      { value: 'friends_only',  label: 'เคยปรึกษาเพื่อน/ครอบครัวเท่านั้น' },
+      { value: 'past',          label: 'เคยปรึกษาผู้เชี่ยวชาญ (จบไปแล้ว)' },
+      { value: 'current',       label: 'กำลังรักษา/ปรึกษาอยู่' },
+    ],
+  },
+  {
+    id: 'start_when',
+    type: 'radio',
+    title: 'พร้อมเริ่มปรึกษาเมื่อไหร่?',
+    required: true,
+    options: [
+      { value: 'now',    label: 'ทันที',         badge: 'Hot' },
+      { value: '1w',     label: 'ภายใน 1 สัปดาห์' },
+      { value: '1m',     label: 'ภายใน 1 เดือน' },
+      { value: 'unsure', label: 'ยังไม่แน่ใจ' },
+    ],
+  },
+]
+
 export const QUIZZES: Record<Service, QuizDefinition> = {
   glp1: {
     service: 'glp1',
@@ -502,8 +602,15 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
   },
   women: {
     service: 'women',
-    landingHeadline: 'ปรึกษาสูตินรีแพทย์ฟรี + ตรวจคัดกรองสุขภาพเพศหญิง',
-    subHeadline: 'HPV / Pap smear / ตกขาว / ประจำเดือน / วัยทอง — ภายใต้การดูแลของแพทย์ W Medical Hospital สมุทรสาคร เป็นความลับ ไม่ตัดสิน',
+    landingHeadline: 'ปรึกษาสูตินรีแพทย์ฟรี + ตรวจประเมินสุขภาพเพศหญิงเบื้องต้น',
+    subHeadline: 'HPV / Pap smear / ตกขาว / ประจำเดือน / วัยทอง — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น รายการตรวจ/ยาเพิ่มเติมเป็นไปตามดุลยพินิจของแพทย์ W Medical Hospital สมุทรสาคร',
     questions: WOMEN_QUESTIONS,
+  },
+  mind: {
+    service: 'mind',
+    landingHeadline: 'ปรึกษานักจิตวิทยาฟรี 30 นาที — ส่วนตัว ไม่ตัดสิน',
+    subHeadline: 'สุขภาพจิต ความเครียด ความสัมพันธ์ การสูญเสีย — voucher ครอบคลุมการปรึกษาเบื้องต้นกับผู้เชี่ยวชาญ (telehealth) ทุกข้อมูลเป็นความลับ',
+    questions: MIND_QUESTIONS,
+    allowAnonymous: true,
   },
 }
