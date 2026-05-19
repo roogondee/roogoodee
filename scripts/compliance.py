@@ -62,6 +62,47 @@ REQUIRED_PHRASES_MENS: tuple[str, ...] = (
     "การดูแลของแพทย์",
 )
 
+# ── Mind pillar compliance — see docs/mind-crisis-sop.md for context ──
+# Suicide / self-harm trigger words: caption content must avoid the
+# direct phrases below. Neutral clinical references in psychoeducational
+# context can be okay but this is a marketing surface — keep it safe.
+FORBIDDEN_MIND_TRIGGER: tuple[str, ...] = (
+    "ฆ่าตัวตาย", "อยากตาย", "ไม่อยากอยู่", "จบชีวิต",
+    "ผูกคอ", "กระโดดตึก", "กินยาเกินขนาด",
+)
+
+# Stigmatizing language banned by Thai mental health advocacy guidelines.
+FORBIDDEN_MIND_STIGMA: tuple[str, ...] = (
+    "จิตป่วย", "บ้า", "เพี้ยน", "ปัญญาอ่อน",
+    "ผีบ้า", "จิตวิปริต",
+)
+
+# Direct diagnostic claims at readers — autopost must screen, not diagnose.
+FORBIDDEN_MIND_DIAGNOSIS: tuple[str, ...] = (
+    "คุณเป็น depression", "คุณเป็นซึมเศร้า",
+    "คุณมี anxiety", "คุณมีโรคจิต",
+    "คุณป่วยเป็น", "เธอเป็นโรค",
+)
+
+# Psychiatric medication brand/generic names — autopost must not name
+# specific drugs (prescription only, controlled by แพทยสภา rules).
+FORBIDDEN_MIND_DRUGS: tuple[str, ...] = (
+    "escitalopram", "sertraline", "fluoxetine", "paroxetine",
+    "citalopram", "venlafaxine", "duloxetine",
+    "alprazolam", "lorazepam", "clonazepam", "diazepam",
+    "xanax", "ativan", "valium",
+    "prozac", "zoloft", "lexapro",
+    "olanzapine", "risperidone", "quetiapine",
+)
+
+# Phrases that MUST appear at least once in mind content (compliance ID).
+REQUIRED_PHRASES_MIND: tuple[str, ...] = (
+    "ผู้เชี่ยวชาญที่มีใบอนุญาต",
+    "นักจิตวิทยา",
+    "จิตแพทย์",
+    "ภายใต้นักจิตวิทยา",
+)
+
 
 def check_mens_compliance(content: str) -> Tuple[bool, list[str]]:
     """
@@ -104,8 +145,13 @@ def check_caption_compliance(caption: str, service: str) -> Tuple[bool, list[str
     """
     Lighter check for FB/social captions — required phrase not enforced
     (caption too short to fit). Forbidden words still blocked.
+
+    Service-specific rules:
+      mens — drugs / overclaim / sexual perf / giveaway language
+      mind — trigger words / stigma / direct diagnosis / psych drugs /
+             overclaim / giveaway
     """
-    if service != "mens":
+    if service not in ("mens", "mind"):
         return True, []
 
     if not caption:
@@ -114,21 +160,42 @@ def check_caption_compliance(caption: str, service: str) -> Tuple[bool, list[str
     issues: list[str] = []
     text_lower = caption.lower()
 
-    for word in FORBIDDEN_DRUG_NAMES:
-        if word in text_lower:
-            issues.append(f"caption: พบชื่อยา {word}")
+    if service == "mens":
+        for word in FORBIDDEN_DRUG_NAMES:
+            if word in text_lower:
+                issues.append(f"caption: พบชื่อยา {word}")
+        for phrase in FORBIDDEN_OVERCLAIM:
+            if phrase.lower() in text_lower:
+                issues.append(f"caption: พบคำเกินจริง {phrase}")
+        for phrase in FORBIDDEN_SEXUAL:
+            if phrase.lower() in text_lower:
+                issues.append(f"caption: พบคำเชิงเพศ {phrase}")
+        for phrase in FORBIDDEN_GIVEAWAY:
+            if phrase.lower() in text_lower:
+                issues.append(f"caption: พบคำแจกยา {phrase}")
 
-    for phrase in FORBIDDEN_OVERCLAIM:
-        if phrase.lower() in text_lower:
-            issues.append(f"caption: พบคำเกินจริง {phrase}")
-
-    for phrase in FORBIDDEN_SEXUAL:
-        if phrase.lower() in text_lower:
-            issues.append(f"caption: พบคำเชิงเพศ {phrase}")
-
-    for phrase in FORBIDDEN_GIVEAWAY:
-        if phrase.lower() in text_lower:
-            issues.append(f"caption: พบคำแจกยา {phrase}")
+    elif service == "mind":
+        # NB: FORBIDDEN_GIVEAWAY is intentionally not checked for mind —
+        # entries like "ยาฟรี" substring-match the legitimate phrase
+        # "นักจิตวิทยาฟรี" (free clinical psychologist). Mind pillar
+        # doesn't market drugs anyway, so giveaway-of-drugs framing
+        # isn't the failure mode here. Psych drug brand names are
+        # already covered by FORBIDDEN_MIND_DRUGS below.
+        for phrase in FORBIDDEN_MIND_TRIGGER:
+            if phrase in caption:
+                issues.append(f"caption: พบคำ trigger {phrase}")
+        for phrase in FORBIDDEN_MIND_STIGMA:
+            if phrase in caption:
+                issues.append(f"caption: พบคำตีตรา {phrase}")
+        for phrase in FORBIDDEN_MIND_DIAGNOSIS:
+            if phrase in caption:
+                issues.append(f"caption: พบการวินิจฉัยตรง {phrase}")
+        for phrase in FORBIDDEN_MIND_DRUGS:
+            if phrase in text_lower:
+                issues.append(f"caption: พบชื่อยาจิตเวช {phrase}")
+        for phrase in FORBIDDEN_OVERCLAIM:
+            if phrase.lower() in text_lower:
+                issues.append(f"caption: พบคำเกินจริง {phrase}")
 
     return len(issues) == 0, issues
 
