@@ -18,7 +18,7 @@ type QuizPayload = Partial<QuizSubmission> & {
   ttp?: string
 }
 
-const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens']
+const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind']
 
 // Spec §5.2: "จำกัด 50 สิทธิ์/service/เดือน"
 const MONTHLY_QUOTA = 50

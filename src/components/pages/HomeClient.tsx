@@ -23,6 +23,8 @@ const SERVICE_COLORS: Record<string, string> = {
   ckd: 'bg-blue-100 text-blue-700',
   foreign: 'bg-amber-100 text-amber-700',
   mens: 'bg-indigo-100 text-indigo-700',
+  women: 'bg-pink-100 text-pink-700',
+  mind: 'bg-violet-100 text-violet-700',
 }
 
 export default function HomeClient({ posts }: { posts: Post[] | null }) {
@@ -42,6 +44,8 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
     { key: 'ckd',    emoji: '🫘', tag: 'Kidney Health',     color: 'from-blue-50 to-indigo-100 border-indigo-200',   name: t.home.ckdName,    desc: t.home.ckdDesc,    features: [t.home.ckdFeature1, t.home.ckdFeature2, t.home.ckdFeature3],       href: '/ckd' },
     { key: 'foreign',emoji: '🧪', tag: 'Corporate Health',  color: 'from-yellow-50 to-amber-100 border-amber-200',  name: t.home.foreignName, desc: t.home.foreignDesc, features: [t.home.foreignFeature1, t.home.foreignFeature2, t.home.foreignFeature3], href: '/foreign' },
     { key: 'mens',   emoji: '🧔', tag: 'Men\'s Health 40+', color: 'from-slate-50 to-indigo-100 border-indigo-200', name: t.home.mensName,    desc: t.home.mensDesc,    features: [t.home.mensFeature1, t.home.mensFeature2, t.home.mensFeature3],         href: '/mens' },
+    { key: 'women',  emoji: '🌸', tag: 'Women\'s Health',   color: 'from-pink-50 to-rose-100 border-pink-200',      name: t.home.womenName,   desc: t.home.womenDesc,   features: [t.home.womenFeature1, t.home.womenFeature2, t.home.womenFeature3],     href: '/women' },
+    { key: 'mind',   emoji: '🧠', tag: 'Mind & Relationships', color: 'from-violet-50 to-indigo-100 border-violet-200', name: t.home.mindName, desc: t.home.mindDesc, features: [t.home.mindFeature1, t.home.mindFeature2, t.home.mindFeature3],           href: '/mind' },
   ]
 
   const STEPS = [
