@@ -38,6 +38,12 @@ const GOALS: { value: Goal; label: string }[] = [
   { value: 'lead',      label: '🎯 Lead (รับ voucher)' },
 ]
 
+interface PostState {
+  loading: boolean
+  posted?: { id: string; scheduled: boolean }
+  error?: string
+}
+
 export default function CaptionGenForm() {
   const [service, setService] = useState<Service>('glp1')
   const [tone, setTone] = useState<Tone>('informative')
@@ -46,6 +52,8 @@ export default function CaptionGenForm() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<GenResponse | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
+  const [postState, setPostState] = useState<Record<string, PostState>>({})
+  const [scheduleAt, setScheduleAt] = useState<Record<string, string>>({})
 
   const submit = async () => {
     setLoading(true)
@@ -70,6 +78,43 @@ export default function CaptionGenForm() {
     await navigator.clipboard.writeText(text)
     setCopied(v.version)
     setTimeout(() => setCopied(null), 1500)
+  }
+
+  const postVariant = async (v: Variant, schedule: boolean) => {
+    if (schedule && !scheduleAt[v.version]) {
+      setPostState((s) => ({ ...s, [v.version]: { loading: false, error: 'เลือกเวลานัดก่อน' } }))
+      return
+    }
+    setPostState((s) => ({ ...s, [v.version]: { loading: true } }))
+    try {
+      const message = `${v.caption}\n\n${v.hashtags.join(' ')}`
+      const res = await fetch('/api/admin/fb-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          link: result?.ctaUrl,
+          scheduledAt: schedule ? scheduleAt[v.version] : null,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setPostState((s) => ({ ...s, [v.version]: { loading: false, error: json.error || 'Post failed' } }))
+        return
+      }
+      setPostState((s) => ({ ...s, [v.version]: { loading: false, posted: { id: json.id, scheduled: json.scheduled } } }))
+    } catch (err) {
+      setPostState((s) => ({
+        ...s,
+        [v.version]: { loading: false, error: err instanceof Error ? err.message : 'Network error' },
+      }))
+    }
+  }
+
+  const minScheduleAt = () => {
+    const d = new Date(Date.now() + 11 * 60 * 1000)
+    d.setSeconds(0, 0)
+    return d.toISOString().slice(0, 16)
   }
 
   return (
@@ -166,6 +211,38 @@ export default function CaptionGenForm() {
                 {tag}
               </span>
             ))}
+          </div>
+
+          <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => postVariant(v, false)}
+              disabled={postState[v.version]?.loading || !!postState[v.version]?.posted}
+              className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              {postState[v.version]?.loading ? '…' : '📤 Post Now'}
+            </button>
+            <input
+              type="datetime-local"
+              min={minScheduleAt()}
+              value={scheduleAt[v.version] || ''}
+              onChange={(e) => setScheduleAt((s) => ({ ...s, [v.version]: e.target.value }))}
+              className="text-sm border rounded px-2 py-1.5"
+            />
+            <button
+              onClick={() => postVariant(v, true)}
+              disabled={postState[v.version]?.loading || !!postState[v.version]?.posted}
+              className="text-sm bg-mint text-white px-3 py-1.5 rounded hover:bg-mint/90 disabled:opacity-50 transition-colors"
+            >
+              📅 Schedule
+            </button>
+            {postState[v.version]?.posted && (
+              <span className="text-sm text-green-700">
+                ✓ {postState[v.version]?.posted?.scheduled ? 'Scheduled' : 'Posted'} · id={postState[v.version]?.posted?.id}
+              </span>
+            )}
+            {postState[v.version]?.error && (
+              <span className="text-sm text-red-600">❌ {postState[v.version]?.error}</span>
+            )}
           </div>
         </div>
       ))}
