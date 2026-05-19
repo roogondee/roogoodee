@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionUser, hashPassword } from '@/lib/auth'
+import { getSessionUser, hashPassword, makeSessionValue } from '@/lib/auth'
 
 export async function GET() {
   const me = await getSessionUser()
@@ -49,5 +49,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, user: data })
+  const res = NextResponse.json({ ok: true, user: data })
+
+  // If the caller authenticated with the legacy ADMIN_SECRET cookie (id === null),
+  // their session is about to break once admin_users is non-empty. Promote them to
+  // a real signed session as the newly-created manager so they don't lock themselves out.
+  if (me.id === null && data && role === 'manager') {
+    res.cookies.set('admin_session', makeSessionValue(data.id), {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    })
+  }
+
+  return res
 }
