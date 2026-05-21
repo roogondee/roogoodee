@@ -22,7 +22,8 @@ SUPABASE_KEY  = os.environ["SUPABASE_SECRET"]
 
 from notify import notify as _line_notify  # ใช้ alias เดิมให้โค้ดอื่นไม่ต้องเปลี่ยน
 
-SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign", "mens"]  # วนซ้ำ
+SERVICES_CYCLE = ["std", "ckd", "glp1", "foreign", "mens", "women"]  # วนซ้ำ
+# mind อยู่ Phase 1 waitlist (ยังไม่มี provider) — เพิ่มเข้า cycle เมื่อ Phase 2 launch
 
 SERVICE_CONTEXT = {
     "std": {
@@ -63,6 +64,27 @@ SERVICE_CONTEXT = {
             "ต้องมีคำว่า 'ภายใต้การดูแลของแพทย์' หรือใกล้เคียง อย่างน้อยครั้งหนึ่ง; "
             "tone ให้ความรู้ ไม่ตัดสิน ไม่ขายของ; "
             "เน้น Pillar A (พลังงาน อารมณ์ lifestyle) มากกว่า Pillar B (สมรรถภาพ)"
+        ),
+    },
+    "women": {
+        "name": "สุขภาพเพศหญิง (HPV/Pap/ประจำเดือน/วัยทอง)",
+        "target": "ผู้หญิงอายุ 18-55 ปี กังวลเรื่องสุขภาพอนามัย ฮอร์โมน การคัดกรองมะเร็ง",
+        "topics": (
+            "HPV, วัคซีน HPV, Pap smear, มะเร็งปากมดลูก, "
+            "ตกขาวผิดปกติ, ปัสสาวะแสบ, ติดเชื้อทางเดินปัสสาวะ, "
+            "ประจำเดือนไม่ปกติ, PCOS, endometriosis, ปวดประจำเดือนรุนแรง, "
+            "วัยทอง menopause, ฮอร์โมน estrogen, ร้อนวูบวาบ, นอนไม่หลับวัยทอง, "
+            "คุมกำเนิด, ยาเม็ดคุมกำเนิด, ห่วงอนามัย IUD, ยาฝัง, "
+            "ตรวจคัดกรองมะเร็งเต้านม, ตรวจสูตินรีเวช, สูตินรีแพทย์"
+        ),
+        "compliance": (
+            "COMPLIANCE สำหรับ Women's Health (บังคับ): "
+            "ห้ามวินิจฉัยอาการเฉพาะรายในบทความ ('คุณดูเหมือนเป็น...'); "
+            "ห้ามคำว่า 'รักษาหายขาด', '100%', 'การันตี', 'ดีที่สุด'; "
+            "ห้ามให้คำแนะนำการใช้ยา/ฮอร์โมนแบบเฉพาะเจาะจง; "
+            "ต้องมีคำว่า 'ภายใต้การดูแลของแพทย์/สูตินรีแพทย์' หรือใกล้เคียง อย่างน้อยครั้งหนึ่ง; "
+            "tone ให้ความรู้ ไม่ตัดสิน เป็นมิตร safe-space; "
+            "หากกล่าวถึง abnormal bleeding ต้องระบุชัดว่าควรพบแพทย์เร็ว"
         ),
     }
 }
@@ -110,7 +132,7 @@ def get_service_count_by_date(start_date: date) -> dict:
     )
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read().decode('utf-8'))
-    counts = {"std": 0, "ckd": 0, "glp1": 0, "foreign": 0}
+    counts = {svc: 0 for svc in SERVICES_CYCLE}
     for row in data:
         svc = row.get('service', '')
         if svc in counts:
