@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendLeadNotification, sendVoucherToUser } from '@/lib/email'
-import { notifyLeadToSale } from '@/lib/line-notify'
+import { notifyLeadToSale, notifyMindCrisisToSale, pushMindCrisisReplyToUser } from '@/lib/line-notify'
 import { scoreQuiz } from '@/lib/quiz/scoring'
 import { issueVoucher } from '@/lib/quiz/voucher'
 import { pickNextAssignee } from '@/lib/quiz/assign'
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     const voucher = await issueVoucher({ leadId: inserted.id, service: body.service })
 
-    void notifyLeadToSale({
+    const notifyPayload = {
       name:               `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
       phone:              inserted.phone,
       line_id:            inserted.line_id,
@@ -162,7 +162,39 @@ export async function POST(req: NextRequest) {
       voucher_expires_at: voucher.expires_at,
       reasons:            scoring.reasons,
       answer_summary:     summarizeAnswers(body.service, answers),
-    })
+    } as const
+
+    // Mind pillar safety gate — see docs/mind-crisis-sop.md. self_harm
+    // flag triggers a crisis-formatted alert to the sales LINE Group
+    // (supersedes the normal handoff card) plus an immediate LINE auto-
+    // reply to the lead surfacing hotline 1323.
+    //
+    // Await everything (PR #87): fire-and-forget was being dropped after
+    // the response returned on Vercel.
+    const isMindCrisis = body.service === 'mind' && scoring.tier === 'urgent'
+    if (isMindCrisis) {
+      try {
+        await notifyMindCrisisToSale(notifyPayload)
+      } catch (err) {
+        console.error('notifyMindCrisisToSale failed:', err)
+      }
+      if (inserted.line_id) {
+        try {
+          await pushMindCrisisReplyToUser(inserted.line_id, {
+            name: notifyPayload.name,
+            voucher_code: voucher.code,
+          })
+        } catch (err) {
+          console.error('pushMindCrisisReplyToUser failed:', err)
+        }
+      }
+    } else {
+      try {
+        await notifyLeadToSale(notifyPayload)
+      } catch (err) {
+        console.error('notifyLeadToSale failed:', err)
+      }
+    }
 
     void sendLeadNotification({
       name:    `${inserted.first_name} ${inserted.last_name || ''}`.trim(),

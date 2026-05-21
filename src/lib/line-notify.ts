@@ -6,6 +6,9 @@ const SERVICE_LABELS: Record<string, string> = {
   glp1: 'GLP-1 ลดน้ำหนัก',
   ckd: 'CKD โรคไต',
   foreign: 'แรงงานต่างด้าว',
+  mens: 'สุขภาพชายวัย 40+',
+  women: 'สุขภาพเพศหญิง',
+  mind: 'สุขภาพจิต & ความสัมพันธ์',
   general: 'ทั่วไป',
   'chat-widget': 'Chat Widget',
 }
@@ -26,9 +29,16 @@ interface NotifyParams {
 }
 
 async function pushLine(to: string, text: string) {
-  if (!LINE_CHANNEL_ACCESS_TOKEN) return
+  if (!LINE_CHANNEL_ACCESS_TOKEN) {
+    console.warn('LINE push skipped: LINE_CHANNEL_ACCESS_TOKEN not set')
+    return
+  }
+  if (!to) {
+    console.warn('LINE push skipped: empty `to` target')
+    return
+  }
   try {
-    await fetch('https://api.line.me/v2/bot/message/push', {
+    const res = await fetch('https://api.line.me/v2/bot/message/push', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,6 +49,10 @@ async function pushLine(to: string, text: string) {
         messages: [{ type: 'text', text }],
       }),
     })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`LINE push failed: ${res.status} ${res.statusText} — ${body}`)
+    }
   } catch (err) {
     console.error('LINE push error:', err)
   }
@@ -149,4 +163,85 @@ export async function notifyLeadToSale(p: VoucherLeadNotifyParams) {
   )
 
   await pushLine(LINE_NOTIFY_GROUP_ID, lines.filter(l => l !== null).join('\n'))
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Mind pillar — crisis flow (self_harm_check ∈ {sometimes, often})
+// Operationalizes docs/mind-crisis-sop.md. Two surfaces:
+//   1. Sales team LINE Group — heavily-formatted alert with 1323
+//      reminder, SOP link, and "first contact" prompt to drive
+//      response within the 30-min SLA.
+//   2. Lead's personal LINE (if line_id provided) — gentle auto-
+//      reply that immediately surfaces 1323 so the lead has a
+//      safety net even if our team is delayed.
+//
+// MUST NOT be relaxed downstream — this is the entire pillar's
+// safety net.
+
+/** LINE Group alert for mind+urgent leads — supersedes notifyLeadToSale */
+export async function notifyMindCrisisToSale(p: VoucherLeadNotifyParams) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+
+  const sep = '━━━━━━━━━━━━━━━'
+  const lines: Array<string | null> = [
+    '🚨🚨🚨 MIND — URGENT CRISIS 🚨🚨🚨',
+    'self_harm flag triggered — first contact ภายใน 30 นาที',
+    sep,
+    `👤 ${p.name || '-'}`,
+    `📞 ${p.phone || '-'}`,
+    p.line_id ? `💬 LINE: ${p.line_id}` : null,
+    p.email ? `📧 ${p.email}` : null,
+    sep,
+    `🎟 Voucher: ${p.voucher_code}`,
+    `📊 Score ${p.score} · ${p.tier.toUpperCase()}`,
+    p.reasons && p.reasons.length > 0 ? p.reasons.slice(0, 5).map(r => `  • ${r}`).join('\n') : null,
+  ]
+
+  if (p.answer_summary && p.answer_summary.length > 0) {
+    lines.push('', '📝 Quiz answers:')
+    for (const s of p.answer_summary) lines.push(`  • ${s}`)
+  }
+
+  lines.push(
+    '',
+    sep,
+    '⚡ FIRST CONTACT REMINDER:',
+    '  • อย่าตัดสิน / minimize / ให้คำแนะนำคลินิก',
+    '  • ฟัง 1-2 นาที, validate, ถาม safety check',
+    '  • Surface สายด่วน 1323 (กรมสุขภาพจิต ฟรี 24 ชม.)',
+    '  • หากปฏิเสธ + ยังในอันตราย → ขอเบอร์ญาติ + แจ้ง supervisor',
+    '  • Log ใน leads.note ทุก contact',
+    '',
+    '📖 SOP เต็ม: github.com/roogondee/roogoodee/blob/main/docs/mind-crisis-sop.md',
+    '🔧 https://www.roogondee.com/admin',
+  )
+
+  await pushLine(LINE_NOTIFY_GROUP_ID, lines.filter(l => l !== null).join('\n'))
+}
+
+/** Auto-reply to lead's personal LINE for mind+urgent — surfaces 1323 immediately */
+export async function pushMindCrisisReplyToUser(lineUserId: string, params: {
+  name: string
+  voucher_code: string
+}) {
+  if (!LINE_CHANNEL_ACCESS_TOKEN) return
+  const text = [
+    `สวัสดีค่ะคุณ ${params.name}`,
+    ``,
+    `ขอบคุณที่กล้าบอกเราเรื่องที่คุณกำลังเจออยู่ — เราเห็นข้อมูลของคุณแล้ว และทีมจะติดต่อกลับโดยเร็วที่สุดค่ะ`,
+    ``,
+    `🆘 หากตอนนี้ความรู้สึกหนักมาก หรือคิดทำร้ายตัวเอง`,
+    `โปรดโทรสายด่วนสุขภาพจิต กรมสุขภาพจิต`,
+    ``,
+    `📞 1323`,
+    `(โทรฟรี 24 ชั่วโมง เป็นความลับ)`,
+    ``,
+    `มีผู้เชี่ยวชาญพร้อมรับฟังคุณตอนนี้ค่ะ`,
+    ``,
+    `คุณไม่ได้อยู่คนเดียว 🌱`,
+    ``,
+    `— ทีม Roogondee`,
+    `🎟 ${params.voucher_code}`,
+  ].join('\n')
+  await pushLine(lineUserId, text)
 }

@@ -1,22 +1,24 @@
 """
 roogondee-autopost: fb_story.py
 รู้ก่อนดี (RuGonDee) — Facebook Page Story daily poster
-หมุน 4 verticals (glp1/std/ckd/+optional mens), gen caption + 9:16 cover ทุกวัน
+หมุน verticals (glp1/std/ckd/women + optional mens/mind), gen caption + 9:16 cover ทุกวัน
 แล้วโพสต์เป็น Facebook Page Story (24-hour ephemeral) ผ่าน Graph API.
 
 Required env:
   ANTHROPIC_API_KEY
-  TOGETHER_API_KEY                  (optional — ถ้าว่างจะใช้ gradient background)
+  TOGETHER_API_KEY                              (optional — ถ้าว่างจะใช้ gradient background)
   NEXT_PUBLIC_SUPABASE_URL
   SUPABASE_SECRET
   FB_PAGE_ID
-  FB_PAGE_ACCESS_TOKEN              ต้องมี pages_manage_posts
-  SITE_BASE_URL                     (default https://www.roogondee.com)
+  FB_PAGE_ACCESS_TOKEN                          ต้องมี pages_manage_posts
+  SITE_BASE_URL                                 (default https://www.roogondee.com)
 
 Optional env:
-  STORY_INCLUDE_MENS=1              เปิด mens vertical (default ปิด)
-  STORY_FORCE_SERVICE=glp1|std|ckd  override การหมุนวัน (สำหรับ workflow_dispatch)
-  STORY_DRY_RUN=1                   ทำทุกขั้น ยกเว้นยิง Graph API
+  STORY_INCLUDE_MENS=1                          เปิด mens vertical (default ปิด)
+  STORY_INCLUDE_MIND=1                          เปิด mind vertical (default ปิด — รอ Phase 2)
+  STORY_FORCE_SERVICE=glp1|std|ckd|women|mens|mind
+                                                override การหมุนวัน (สำหรับ workflow_dispatch)
+  STORY_DRY_RUN=1                               ทำทุกขั้น ยกเว้นยิง Graph API
 """
 
 import os
@@ -47,6 +49,7 @@ FB_PAGE_TOKEN  = os.environ.get("FB_PAGE_ACCESS_TOKEN", "").strip()
 SITE_BASE      = os.environ.get("SITE_BASE_URL", "https://www.roogondee.com").rstrip("/")
 
 INCLUDE_MENS   = os.environ.get("STORY_INCLUDE_MENS", "0") == "1"
+INCLUDE_MIND   = os.environ.get("STORY_INCLUDE_MIND", "0") == "1"
 FORCE_SERVICE  = os.environ.get("STORY_FORCE_SERVICE", "").strip().lower()
 DRY_RUN        = os.environ.get("STORY_DRY_RUN", "0") == "1"
 
@@ -60,9 +63,13 @@ FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 # ─── SERVICE ROTATION ──────────────────────────────────────────────────────────
 
 # foreign B2B vertical ไม่เหมาะกับ Stories (target HR องค์กร ไม่ใช่ผู้บริโภค)
-ROTATION = ["glp1", "std", "ckd"]
+# women คือ pillar 6 ad-friendly + demand ใหญ่ → default-on
+# mens / mind ต้อง opt-in: mens เพราะ ad policy เข้มสุด, mind เพราะอยู่ Phase 1 waitlist
+ROTATION = ["glp1", "std", "ckd", "women"]
 if INCLUDE_MENS:
     ROTATION.append("mens")
+if INCLUDE_MIND:
+    ROTATION.append("mind")
 
 SERVICE_META: dict[str, dict] = {
     "glp1": {
@@ -99,6 +106,26 @@ SERVICE_META: dict[str, dict] = {
         "color_bottom":  (24, 32, 53),
         "image_prompt":  ("Thai man aged 45-55 in business casual, thoughtful expression looking out window, navy and slate tones, "
                            "professional lifestyle, fully clothed, no shirtless, no couples, vertical 9:16 framing, "
+                           "professional photo, no text, no logos"),
+    },
+    "women": {
+        "label":         "สุขภาพเพศหญิง",
+        "voucher_hint":  "ปรึกษาสูตินรีแพทย์ฟรี + ตรวจประเมินเบื้องต้น",
+        "color_top":     (236, 72, 153),   # pink-500
+        "color_bottom":  (131, 24, 67),     # dark rose
+        "image_prompt":  ("Thai woman aged 25-45 in casual professional outfit, calm confident expression, "
+                           "soft pink and rose tones, healthcare consultation aesthetic, fully clothed and tasteful, "
+                           "no medical procedure shots, no intimate framing, vertical 9:16 framing, "
+                           "professional photo, no text, no logos"),
+    },
+    "mind": {
+        "label":         "สุขภาพจิต & ความสัมพันธ์",
+        "voucher_hint":  "ปรึกษานักจิตวิทยาฟรี — วิกฤตเร่งด่วน โทร 1323 ฟรี 24 ชม.",
+        "color_top":     (139, 92, 246),    # violet-500
+        "color_bottom":  (46, 16, 101),      # deep violet
+        "image_prompt":  ("Thai person aged 25-40 with thoughtful expression, soft afternoon light through window, "
+                           "calm peaceful atmosphere, violet and soft purple tones, hopeful mood, "
+                           "no distressed expressions, no clinical settings, no medication shots, vertical 9:16 framing, "
                            "professional photo, no text, no logos"),
     },
 }
@@ -181,6 +208,18 @@ MENS_COMPLIANCE_BLOCK = """
 - tone: ให้ความรู้ ไม่ตัดสิน ไม่ขายของ
 - มีประโยค "ภายใต้การดูแลของแพทย์ที่ W Medical Hospital" อย่างน้อย 1 ครั้งในใน caption"""
 
+MIND_COMPLIANCE_BLOCK = """
+
+⚠️ COMPLIANCE สุขภาพจิต (บังคับ — caption + headline + subline ทุกตัว):
+- ห้ามใช้คำ trigger ตรง ๆ: 'ฆ่าตัวตาย', 'ไม่อยากอยู่', 'อยากตาย', 'จบชีวิต'
+- ห้ามใช้คำตีตรา: 'จิตป่วย', 'บ้า', 'เพี้ยน', 'ปัญญาอ่อน', 'จิตเภท' (ใช้ neutral ตามวิชาการเท่านั้น)
+- ห้ามวินิจฉัยผู้อ่าน: 'คุณอาจเป็น depression', 'คุณมี anxiety' (พูดเชิงคัดกรองเท่านั้น)
+- ห้ามใช้ 'รักษาหายขาด' / '100%' / 'การันตี' / 'ยาตัวเดียวจบ' / 'แจกยา'
+- ห้ามแนะนำยาเฉพาะ (escitalopram, sertraline, fluoxetine, ฯลฯ)
+- tone: hopeful, supportive, validate ความรู้สึก, ไม่ดราม่า ไม่บีบคั้น
+- ใส่ข้อความ "ปรึกษาผู้เชี่ยวชาญที่มีใบอนุญาต" หรือ "ภายใต้นักจิตวิทยา/จิตแพทย์" 1 ครั้งใน caption
+- ถ้า story_type = 'voucher' หรือ caption พูดถึงวิกฤต ต้องมีเลข "1323" (สายด่วนสุขภาพจิต กรมสุขภาพจิต) ใน caption"""
+
 SYSTEM_PROMPT = """คุณเป็นแอดมินเพจสุขภาพ "รู้ก่อนดี (รู้งี้)" / roogondee.com
 โดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
 เขียน Facebook Story ภาษาไทย กระชับ คล้ายเพื่อนคุยให้ฟัง — ไม่แข็ง ไม่ขายตรง
@@ -212,6 +251,8 @@ def generate_caption(service: str, story_type: str) -> dict:
     system = SYSTEM_PROMPT
     if service == "mens":
         system += MENS_COMPLIANCE_BLOCK
+    elif service == "mind":
+        system += MIND_COMPLIANCE_BLOCK
 
     user = f"""วันนี้สร้าง Facebook Story สำหรับ vertical: {meta['label']}
 สไตล์: {story_type} — {brief}
@@ -251,11 +292,11 @@ def generate_caption(service: str, story_type: str) -> dict:
                     raise ValueError(f"missing/empty field: {key}")
                 data[key] = data[key].strip()
 
-            if service == "mens":
+            if service in ("mens", "mind"):
                 blob = "\n".join([data["headline"], data["subline"], data["caption"]])
-                ok, issues = check_caption_compliance(blob, "mens")
+                ok, issues = check_caption_compliance(blob, service)
                 if not ok:
-                    raise ValueError(f"mens compliance fail: {issues}")
+                    raise ValueError(f"{service} compliance fail: {issues}")
 
             # Thai language QA on every visible field (headline + subline + caption).
             blob = "\n".join([data["headline"], data["subline"], data["caption"]])
