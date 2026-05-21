@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+import { unstable_noStore as noStore } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const metadata: Metadata = {
@@ -45,6 +46,11 @@ const LANG_LABEL: Record<string, string> = {
 }
 
 async function fetchActiveProviders(): Promise<Provider[]> {
+  // supabase-js's fetch is wrapped by Next's data cache even with
+  // `dynamic = 'force-dynamic'`. noStore() opts every read on this
+  // request out of that cache so deactivated providers disappear
+  // immediately instead of after the next deploy.
+  noStore()
   const { data, error } = await supabaseAdmin
     .from('mind_providers')
     .select('id, name, title, photo_url, bio, specialties, languages, display_order')
