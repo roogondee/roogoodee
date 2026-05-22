@@ -61,20 +61,35 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
     <div className="max-w-4xl mx-auto space-y-6">
       <Link href="/admin" className="text-sm text-gray-500 hover:text-forest">← กลับ Leads</Link>
 
-      <header className="bg-white rounded-xl border border-gray-100 p-6">
+      <header className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="font-display text-2xl text-forest mb-1">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl text-forest mb-2">
               {lead.first_name} {lead.last_name || ''}
             </h1>
-            <div className="flex items-center gap-3 flex-wrap text-sm">
-              <a href={`tel:${lead.phone}`} className="text-forest font-mono font-semibold hover:underline">{lead.phone}</a>
-              {lead.email && <span className="text-gray-500">• {lead.email}</span>}
-              {lead.line_id && <span className="text-gray-500">• LINE: {lead.line_id}</span>}
+            <div className="flex items-center gap-2 flex-wrap text-sm">
+              {lead.phone && (
+                <a href={`tel:${lead.phone}`}
+                  className="inline-flex items-center gap-1.5 bg-forest text-white font-mono font-semibold px-3 py-1.5 rounded-full hover:bg-sage">
+                  📞 {lead.phone}
+                </a>
+              )}
+              {lead.line_id && (
+                <a href={`https://line.me/ti/p/~${lead.line_id}`} target="_blank" rel="noopener"
+                  className="inline-flex items-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-full hover:bg-green-700">
+                  💬 LINE
+                </a>
+              )}
+              {lead.email && (
+                <a href={`mailto:${lead.email}`}
+                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full hover:bg-gray-200">
+                  📧 Email
+                </a>
+              )}
               {lead.line_user_id && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">✓ LINE linked</span>}
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="text-xs text-gray-500">{SERVICE_LABELS[lead.service] || lead.service}</span>
             {lead.lead_tier && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${TIER_COLOR[lead.lead_tier]}`}>

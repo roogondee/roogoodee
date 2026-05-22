@@ -62,6 +62,8 @@ export default function ActivityTimeline({ leadId }: { leadId: string }) {
   const [nextAt, setNextAt] = useState<string>('')
   const [nextNote, setNextNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiReason, setAiReason] = useState<string | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -78,6 +80,24 @@ export default function ActivityTimeline({ leadId }: { leadId: string }) {
   }
 
   useEffect(() => { load() }, [leadId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const aiSuggest = async () => {
+    setAiBusy(true); setError(null); setAiReason(null)
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/suggest-action`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'ai failed')
+      setNextNote(data.action)
+      setNextAt(defaultDueInDays(data.due_in_days))
+      const chanToKind: Record<string, string> = { call: 'call', line: 'line', sms: 'sms' }
+      if (chanToKind[data.channel]) setKind(chanToKind[data.channel])
+      setAiReason(data.reasoning || null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ai failed')
+    } finally {
+      setAiBusy(false)
+    }
+  }
 
   const submit = async () => {
     setSaving(true); setError(null)
@@ -156,12 +176,24 @@ export default function ActivityTimeline({ leadId }: { leadId: string }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        {aiReason && (
+          <p className="text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded px-2 py-1">
+            ✨ AI: {aiReason}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           {error && <span className="text-xs text-red-600">{error}</span>}
-          <button type="button" onClick={submit} disabled={saving}
-            className="ml-auto text-xs font-semibold bg-forest text-white px-4 py-1.5 rounded-md hover:bg-sage disabled:opacity-40">
-            {saving ? 'กำลังบันทึก…' : 'บันทึก Activity'}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={aiSuggest} disabled={aiBusy || saving}
+              className="text-xs font-semibold bg-white border border-purple-300 text-purple-700 px-3 py-1.5 rounded-md hover:bg-purple-50 disabled:opacity-40">
+              {aiBusy ? 'กำลังคิด…' : '✨ AI แนะนำ next step'}
+            </button>
+            <button type="button" onClick={submit} disabled={saving}
+              className="text-xs font-semibold bg-forest text-white px-4 py-1.5 rounded-md hover:bg-sage disabled:opacity-40">
+              {saving ? 'กำลังบันทึก…' : 'บันทึก Activity'}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import QueueBulkToolbar from '@/components/admin/QueueBulkToolbar'
 
 export const revalidate = 0
 
@@ -94,9 +95,11 @@ export default async function QueuePage({
   ])
 
   const assigneeById = new Map((assignees || []).map(u => [u.id, u.name || u.email]))
+  const assigneeList = (assignees || []).map(u => ({ id: u.id, label: u.name || u.email }))
 
   return (
     <div className="space-y-6">
+      <QueueBulkToolbar bucketId="queue" assignees={assigneeList} canReassign={me.role === 'manager'} />
       <header className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-display text-2xl text-forest">คิวติดตาม</h1>
         {me.role === 'manager' && (
@@ -129,32 +132,34 @@ export default async function QueuePage({
         )}
       </header>
 
-      <Bucket
-        title="🚨 ค้างคิว (เลยกำหนดแล้ว)"
-        leads={overdue || []}
-        emptyText="ไม่มีค้าง — เยี่ยมเลย"
-        accent="border-red-300"
-        showAssignee={showAll}
-        assigneeById={assigneeById}
-      />
+      <div data-bucket="queue" className="space-y-6">
+        <Bucket
+          title="🚨 ค้างคิว (เลยกำหนดแล้ว)"
+          leads={overdue || []}
+          emptyText="ไม่มีค้าง — เยี่ยมเลย"
+          accent="border-red-300"
+          showAssignee={showAll}
+          assigneeById={assigneeById}
+        />
 
-      <Bucket
-        title="📅 วันนี้ต้องตาม"
-        leads={today || []}
-        emptyText="วันนี้ไม่มีนัด"
-        accent="border-blue-200"
-        showAssignee={showAll}
-        assigneeById={assigneeById}
-      />
+        <Bucket
+          title="📅 วันนี้ต้องตาม"
+          leads={today || []}
+          emptyText="วันนี้ไม่มีนัด"
+          accent="border-blue-200"
+          showAssignee={showAll}
+          assigneeById={assigneeById}
+        />
 
-      <Bucket
-        title="❄️ ยังไม่ได้แตะ (≥ 24 ชม.)"
-        leads={stale || []}
-        emptyText="ไม่มี lead ค้างไม่ได้แตะ"
-        accent="border-gray-200"
-        showAssignee={showAll}
-        assigneeById={assigneeById}
-      />
+        <Bucket
+          title="❄️ ยังไม่ได้แตะ (≥ 24 ชม.)"
+          leads={stale || []}
+          emptyText="ไม่มี lead ค้างไม่ได้แตะ"
+          accent="border-gray-200"
+          showAssignee={showAll}
+          assigneeById={assigneeById}
+        />
+      </div>
     </div>
   )
 }
@@ -196,8 +201,14 @@ function Bucket({
       ) : (
         <ul className="divide-y divide-gray-50">
           {leads.map(l => (
-            <li key={l.id} className="px-5 py-3 hover:bg-gray-50">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
+            <li key={l.id} className="px-4 sm:px-5 py-3 hover:bg-gray-50">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                <input
+                  type="checkbox"
+                  data-lead-id={l.id}
+                  className="mt-1 sm:mt-0 w-4 h-4 accent-forest shrink-0"
+                  aria-label="เลือก lead"
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link href={`/admin/leads/${l.id}`} className="font-medium text-gray-800 hover:text-forest hover:underline">
@@ -209,7 +220,11 @@ function Bucket({
                         {l.lead_tier}{typeof l.lead_score === 'number' ? ` ${l.lead_score}` : ''}
                       </span>
                     )}
-                    {l.phone && <a href={`tel:${l.phone}`} className="text-xs text-forest font-mono hover:underline">{l.phone}</a>}
+                    {l.phone && (
+                      <a href={`tel:${l.phone}`} className="text-xs text-forest font-mono hover:underline px-2 py-0.5 rounded border border-forest/30 sm:border-0 sm:px-0">
+                        📞 {l.phone}
+                      </a>
+                    )}
                     {showAssignee && l.assigned_to && (
                       <span className="text-xs text-gray-500">👤 {assigneeById.get(l.assigned_to) || '—'}</span>
                     )}
@@ -217,8 +232,17 @@ function Bucket({
                   {l.next_action_note && (
                     <p className="text-xs text-gray-600 mt-1">⏭ {l.next_action_note}</p>
                   )}
+                  <div className="text-xs mt-1 sm:hidden">
+                    {l.next_action_at ? (
+                      <span className={new Date(l.next_action_at) < new Date() ? 'text-red-600 font-medium' : 'text-blue-600 font-medium'}>
+                        {fmt(l.next_action_at)} ({relativeFromNow(l.next_action_at)})
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">สร้าง {fmt(l.created_at)}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right text-xs">
+                <div className="hidden sm:block text-right text-xs shrink-0">
                   {l.next_action_at ? (
                     <>
                       <p className="text-gray-700 font-medium">{fmt(l.next_action_at)}</p>
