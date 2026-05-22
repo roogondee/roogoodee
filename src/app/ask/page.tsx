@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { unstable_noStore as noStore } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
 import AskClient from '@/components/pages/AskClient'
 
@@ -13,9 +14,15 @@ export const metadata: Metadata = {
   },
 }
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 async function getRecentQAs() {
+  // supabase-js's fetch sits outside Next's instrumented call sites, so
+  // route-level `revalidate` doesn't propagate to it — it gets the default
+  // `force-cache` behavior and freezes until the next deploy. Same root
+  // cause as the /mind/team stale-cache bug fixed in PR #93. noStore()
+  // opts every read here out of the Data Cache.
+  noStore()
   try {
     const { data } = await supabaseAdmin
       .from('qa_posts')
