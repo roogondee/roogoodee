@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionUser } from '@/lib/auth'
 import { postPhotoToFeed, postPhotoStory } from '@/lib/fb/graph'
+import { generateArticleFromCaption } from '@/lib/anthropic/content-gen'
+import { broadcastFlex, buildFlexFromCompose } from '@/lib/line/broadcast'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
-type Target = 'blog' | 'feed' | 'story'
+type Target = 'blog' | 'feed' | 'story' | 'line'
+type Service = 'glp1' | 'std' | 'ckd' | 'foreign'
+
+const SERVICE_LABEL: Record<Service, string> = {
+  glp1: 'GLP-1 ลดน้ำหนัก',
+  std: 'STD & PrEP HIV',
+  ckd: 'CKD โรคไต',
+  foreign: 'ตรวจสุขภาพแรงงาน',
+}
 
 function slugify(headline: string): string {
   const base = headline
@@ -31,15 +41,17 @@ export async function POST(req: NextRequest) {
     caption?: string
     cta?: string
     targets?: Target[]
+    fullArticle?: boolean
   }
 
   const imageUrl = (body.imageUrl || '').trim()
-  const service = body.service
+  const service = body.service as Service | undefined
   const headline = (body.headline || '').trim()
   const subline = (body.subline || '').trim()
   const caption = (body.caption || '').trim()
   const cta = (body.cta || '').trim()
   const targets = (body.targets || []) as Target[]
+  const fullArticle = body.fullArticle !== false
 
   if (!imageUrl || !service || !headline || !subline || !caption) {
     return NextResponse.json({ error: 'imageUrl, service, headline, subline, caption required' }, { status: 400 })
@@ -52,15 +64,28 @@ export async function POST(req: NextRequest) {
   }
 
   const results: Record<Target, { ok: boolean; data?: unknown; error?: string }> = {} as Record<Target, { ok: boolean; data?: unknown; error?: string }>
+  let blogSlug: string | undefined
 
   if (targets.includes('blog')) {
     try {
       const slug = slugify(headline)
+      let content = `<p>${caption.replace(/\n/g, '</p><p>')}</p><p><strong>${cta}</strong></p>`
+      if (fullArticle) {
+        try {
+          content = await generateArticleFromCaption({
+            imageUrl,
+            service,
+            caption: { headline, subline, caption, cta },
+          })
+        } catch (e) {
+          console.warn('article gen failed, falling back to caption HTML:', e)
+        }
+      }
       const { data, error } = await supabaseAdmin.from('posts').insert({
         title: headline,
         slug,
         excerpt: subline,
-        content: `<p>${caption.replace(/\n/g, '</p><p>')}</p><p><strong>${cta}</strong></p>`,
+        content,
         meta_desc: subline.slice(0, 160),
         service,
         image_url: imageUrl,
@@ -68,6 +93,7 @@ export async function POST(req: NextRequest) {
         published_at: new Date().toISOString(),
       }).select('id, slug').single()
       if (error) throw error
+      blogSlug = data.slug
       results.blog = { ok: true, data }
     } catch (e) {
       results.blog = { ok: false, error: e instanceof Error ? e.message : String(e) }
@@ -107,6 +133,24 @@ export async function POST(req: NextRequest) {
       } catch { /* logging best-effort */ }
     } catch (e) {
       results.story = { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  }
+
+  if (targets.includes('line')) {
+    try {
+      const flex = buildFlexFromCompose({
+        service,
+        serviceLabel: SERVICE_LABEL[service],
+        imageUrl,
+        headline,
+        caption,
+        cta,
+        blogSlug,
+      })
+      const r = await broadcastFlex(flex)
+      results.line = { ok: true, data: r }
+    } catch (e) {
+      results.line = { ok: false, error: e instanceof Error ? e.message : String(e) }
     }
   }
 
