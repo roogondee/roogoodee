@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import NoteEditor from '@/components/admin/NoteEditor'
 import AssigneeSelect from '@/components/admin/AssigneeSelect'
+import ActivityTimeline from '@/components/admin/ActivityTimeline'
 
 export const revalidate = 0
 
@@ -100,10 +101,21 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 p-5">
-          <h2 className="font-semibold text-gray-700 mb-2 text-sm">หมายเหตุภายใน</h2>
-          <NoteEditor id={lead.id} initial={lead.note || ''} />
+        <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3 text-sm">
+          <h2 className="font-semibold text-gray-700">สรุปล่าสุด</h2>
+          <Row label="ติดต่อล่าสุด" value={lead.last_contacted_at ? fmt(lead.last_contacted_at) : '—'} />
+          <Row label="นัดติดต่ออีก" value={lead.next_action_at ? fmt(lead.next_action_at) : '—'} />
+          <Row label="ทำอะไรต่อ" value={lead.next_action_note || '—'} />
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">หมายเหตุติดท็อป (sticky)</p>
+            <NoteEditor id={lead.id} initial={lead.note || ''} />
+          </div>
         </div>
+      </section>
+
+      <section className="bg-white rounded-xl border border-gray-100 p-5">
+        <h2 className="font-semibold text-gray-700 mb-3 text-sm">Activity Timeline</h2>
+        <ActivityTimeline leadId={lead.id} />
       </section>
 
       <section className="bg-white rounded-xl border border-gray-100 p-5">
