@@ -104,6 +104,65 @@ export async function notifyLineGroup(params: NotifyParams) {
   await pushLine(LINE_NOTIFY_GROUP_ID, lines.join('\n'))
 }
 
+// First-time chatbot contact — fires the very first time a userId on a given
+// platform messages us, regardless of whether keywords match a service. Keeps
+// noise low (subsequent messages from the same user fall through to the
+// keyword-only notifyLineGroup path) while ensuring no curious lead slips by.
+interface FirstContactParams {
+  platform: string
+  userId: string
+  service: string
+  rawText: string
+}
+
+export async function notifyFirstChatbotContact(p: FirstContactParams) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+
+  const label = SERVICE_LABELS[p.service] || p.service
+  const lines = [
+    `🆕 ลูกค้าใหม่ครั้งแรกจาก ${p.platform}`,
+    `🆔 ${p.userId.slice(0, 16)}…`,
+    `📋 ตรวจเจอ: ${label}`,
+    `💬 "${p.rawText.slice(0, 120)}"`,
+    '',
+    '👉 ดูทั้งหมด: https://www.roogondee.com/admin',
+  ]
+  await pushLine(LINE_NOTIFY_GROUP_ID, lines.join('\n'))
+}
+
+// Booking cancellation — mirrors booking-notify shape but with cancel framing
+// so the sales team can spot it in the group chat at a glance.
+interface BookingCancelParams {
+  name?: string
+  phone?: string
+  service: string
+  date?: string
+  time?: string
+  reason?: string
+  source?: string
+}
+
+export async function notifyBookingCancel(p: BookingCancelParams) {
+  if (!LINE_NOTIFY_GROUP_ID) return
+
+  const label = SERVICE_LABELS[p.service] || p.service
+  const sep = '━━━━━━━━━━━━━━━'
+  const when = [p.date, p.time].filter(Boolean).join(' ')
+  const lines = [
+    `❌ ยกเลิกคิว — ${label}`,
+    sep,
+    `👤 ${p.name || '-'}`,
+    `📞 ${p.phone || '-'}`,
+    when ? `🕐 ${when}` : null,
+    p.reason ? `📝 เหตุผล: ${p.reason}` : null,
+    sep,
+    `🌐 ที่มา: ${p.source || 'booking-page'}`,
+    `🔧 https://www.roogondee.com/admin`,
+  ].filter((l): l is string => Boolean(l))
+
+  await pushLine(LINE_NOTIFY_GROUP_ID, lines.join('\n'))
+}
+
 interface VoucherLeadNotifyParams {
   name?: string
   phone?: string
