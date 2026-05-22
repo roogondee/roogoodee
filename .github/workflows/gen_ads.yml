@@ -1,0 +1,40 @@
+name: 🎯 RuGonDee Ad Drafts Generator
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # 02:00 UTC Monday = 09:00 Bangkok ทุกวันจันทร์
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to generate (glp1/std/ckd/all)"
+        required: false
+        default: "all"
+
+jobs:
+  gen_ads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🎯 Generate ad drafts
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          TOGETHER_API_KEY:         ${{ secrets.TOGETHER_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          SITE_BASE_URL:            ${{ secrets.SITE_BASE_URL }}
+        run: python scripts/gen_ads.py --service "${{ github.event.inputs.service || 'all' }}"
