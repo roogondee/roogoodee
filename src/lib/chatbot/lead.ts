@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
-import { notifyLineGroup } from '@/lib/line-notify'
+import { notifyFirstChatbotContact, notifyLineGroup } from '@/lib/line-notify'
 import type { DetectedService } from './service-detect'
 
 export type BotPlatform = 'facebook-bot' | 'line-bot' | 'instagram-bot'
@@ -19,6 +19,17 @@ export async function captureBotLead(params: {
   const { platform, userId, service, rawText } = params
   const { firstName, notifySource } = PLATFORM_LABELS[platform]
 
+  // First-contact check before insert — `leads.phone` carries the platform
+  // userId for bot rows, so "no prior row from this userId on this platform"
+  // means we've never heard from them before.
+  const { data: prior } = await supabaseAdmin
+    .from('leads')
+    .select('id')
+    .eq('phone', userId)
+    .eq('source', platform)
+    .limit(1)
+  const isFirstContact = !prior || prior.length === 0
+
   // Await so writes & LINE push complete before the webhook lambda freezes.
   const { error } = await supabaseAdmin.from('leads').insert([{
     first_name: firstName,
@@ -30,7 +41,23 @@ export async function captureBotLead(params: {
   }])
   if (error) console.error('captureBotLead insert failed:', error)
 
-  if (service !== 'general') {
+  // Two alert paths, mutually exclusive to avoid double-pinging the group:
+  //   1. First-time contact → always ping (even for general chit-chat) so we
+  //      never miss a curious lead.
+  //   2. Repeat contact with a detected service → ping with the existing
+  //      service-tagged format. Repeat general messages stay silent.
+  if (isFirstContact) {
+    try {
+      await notifyFirstChatbotContact({
+        platform: notifySource,
+        userId,
+        service,
+        rawText,
+      })
+    } catch (err) {
+      console.error('captureBotLead notifyFirstChatbotContact failed:', err)
+    }
+  } else if (service !== 'general') {
     try {
       await notifyLineGroup({
         service,
