@@ -15,6 +15,7 @@ interface Post {
   image_url: string
   published_at: string
   meta_desc: string
+  category?: string
 }
 
 const SERVICE_COLORS: Record<string, string> = {
@@ -27,7 +28,7 @@ const SERVICE_COLORS: Record<string, string> = {
   mind: 'bg-violet-100 text-violet-700',
 }
 
-export default function HomeClient({ posts }: { posts: Post[] | null }) {
+export default function HomeClient({ posts, news }: { posts: Post[] | null; news?: Post[] | null }) {
   const { locale, t } = useTranslation()
   const brand = locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span></> : <>RooGon<span className="text-mint italic">Dee</span></>
 
@@ -246,6 +247,36 @@ export default function HomeClient({ posts }: { posts: Post[] | null }) {
           </div>
         )}
       </section>
+
+      {/* NEWS */}
+      {news && news.length > 0 && (
+        <section className="py-16 md:py-24 px-6 md:px-20 bg-cream border-t border-mint/10">
+          <div className="flex justify-between items-end mb-8 md:mb-12">
+            <div>
+              <p className="text-xs font-bold tracking-widest uppercase text-mint mb-2 md:mb-3">News</p>
+              <h2 className="font-display text-3xl md:text-4xl text-forest">{locale === 'th' ? 'ข่าวสารล่าสุด' : 'Latest News'}</h2>
+            </div>
+            <Link href="/news" className="text-forest font-semibold flex items-center gap-1 hover:gap-2 transition-all text-sm md:text-base whitespace-nowrap ml-4">{t.common.viewAll}</Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            {news.map(item => (
+              <Link key={item.id} href={`/news/${item.slug}`} className="bg-white rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+                {item.image_url && (
+                  <div className="aspect-video bg-gray-100 overflow-hidden">
+                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-5 md:p-6">
+                  {item.category && <span className="text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{item.category}</span>}
+                  <h3 className="font-display text-lg md:text-xl text-forest mt-3 mb-2 leading-tight">{item.title}</h3>
+                  <p className="text-muted text-sm leading-relaxed line-clamp-2">{item.meta_desc || item.excerpt}</p>
+                  <p className="text-xs text-muted/60 mt-3">{item.published_at ? new Date(item.published_at).toLocaleDateString('th-TH') : ''}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* TOOLS PROMO */}
       <section className="py-16 md:py-20 px-6 md:px-20 bg-white border-t border-mint/10">

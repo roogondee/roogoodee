@@ -20,7 +20,7 @@ const SERVICE_PAGES: Record<string, string> = { std: '/std', glp1: '/glp1', ckd:
 export const revalidate = 60
 
 export default async function BlogPage() {
-  const { data: posts } = await supabase.from('posts').select('id,title,slug,excerpt,service,image_url,published_at,meta_desc').eq('status', 'published').order('published_at', { ascending: false })
+  const { data: posts } = await supabase.from('posts').select('id,title,slug,excerpt,service,image_url,published_at,meta_desc').eq('status', 'published').neq('service', 'news').order('published_at', { ascending: false })
   const counts = (posts || []).reduce<Record<string, number>>((acc, p) => { acc[p.service] = (acc[p.service] || 0) + 1; return acc }, {})
 
   return (
