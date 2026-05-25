@@ -9,12 +9,22 @@ const supabase = createClient(
 export const revalidate = 60
 
 export default async function Home() {
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('id,title,slug,excerpt,service,image_url,published_at,meta_desc')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(3)
+  const [{ data: posts }, { data: news }] = await Promise.all([
+    supabase
+      .from('posts')
+      .select('id,title,slug,excerpt,service,image_url,published_at,meta_desc')
+      .eq('status', 'published')
+      .neq('service', 'news')
+      .order('published_at', { ascending: false })
+      .limit(3),
+    supabase
+      .from('posts')
+      .select('id,title,slug,excerpt,service,image_url,published_at,meta_desc,category')
+      .eq('status', 'published')
+      .eq('service', 'news')
+      .order('published_at', { ascending: false })
+      .limit(3),
+  ])
 
-  return <HomeClient posts={posts} />
+  return <HomeClient posts={posts} news={news} />
 }

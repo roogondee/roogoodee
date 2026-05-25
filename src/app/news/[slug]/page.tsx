@@ -6,8 +6,6 @@ import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
 import MediaBlock from '@/components/ui/MediaBlock'
-import ArticleQuiz from '@/components/quiz/ArticleQuiz'
-import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,71 +18,53 @@ export async function generateStaticParams() {
   const { data } = await supabase
     .from('posts')
     .select('slug')
+    .eq('service', 'news')
     .eq('status', 'published')
-    .neq('service', 'news')
   return (data || []).map((p) => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const slug = decodeURIComponent(params.slug)
-  const { data } = await supabase.from('posts').select('title,meta_desc,image_url,focus_kw,service').eq('slug', slug).single()
+  const { data } = await supabase.from('posts').select('title,meta_desc,image_url,focus_kw').eq('slug', slug).eq('service', 'news').single()
   if (!data) return {}
   return {
-    title: data.title + ' — รู้ก่อนดี(รู้งี้)',
+    title: data.title + ' — ข่าวรู้ก่อนดี(รู้งี้)',
     description: data.meta_desc,
     keywords: data.focus_kw,
     openGraph: {
-      title: data.title + ' — รู้ก่อนดี(รู้งี้)',
+      title: data.title + ' — ข่าวรู้ก่อนดี(รู้งี้)',
       description: data.meta_desc,
       images: data.image_url ? [data.image_url] : [],
       type: 'article',
     },
-    alternates: { canonical: `https://roogondee.com/blog/${slug}` },
+    alternates: { canonical: `https://roogondee.com/news/${slug}` },
   }
 }
 
-const SERVICE_LABELS: Record<string, string> = {
-  std: 'STD & PrEP HIV', glp1: 'GLP-1 ลดน้ำหนัก', ckd: 'CKD Clinic', foreign: 'แรงงานต่างด้าว',
-}
-const SERVICE_COLORS: Record<string, string> = {
-  std: 'bg-rose-100 text-rose-700', glp1: 'bg-emerald-100 text-emerald-700',
-  ckd: 'bg-blue-100 text-blue-700', foreign: 'bg-amber-100 text-amber-700',
-}
-const SERVICE_PAGES: Record<string, string> = {
-  std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign',
-}
-const SERVICE_TOOLS: Record<string, { href: string; label: string; icon: string }> = {
-  std:     { href: '/tools#prep', label: 'ทำ PrEP Risk Quiz', icon: '🔴' },
-  glp1:    { href: '/tools#bmi', label: 'คำนวณ BMI & GLP-1', icon: '💉' },
-  ckd:     { href: '/tools#egfr', label: 'คำนวณ eGFR (CKD)', icon: '🫘' },
-  foreign: { href: '/contact?service=foreign', label: 'ขอใบเสนอราคา B2B', icon: '📋' },
-}
-
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+export default async function NewsPostPage({ params }: { params: { slug: string } }) {
   const slug = decodeURIComponent(params.slug)
   const { data: post } = await supabase
     .from('posts')
     .select('*')
     .eq('slug', slug)
+    .eq('service', 'news')
     .eq('status', 'published')
-    .neq('service', 'news')
     .single()
 
   if (!post) notFound()
 
-  // Fetch 3 related posts (same service, different slug)
   const { data: related } = await supabase
     .from('posts')
-    .select('id,title,slug,service,image_url,published_at')
+    .select('id,title,slug,image_url,published_at')
+    .eq('service', 'news')
     .eq('status', 'published')
-    .eq('service', post.service)
     .neq('slug', slug)
     .order('published_at', { ascending: false })
     .limit(3)
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'NewsArticle',
     headline: post.title,
     description: post.meta_desc || post.excerpt || '',
     image: post.image_url || '',
@@ -97,23 +77,23 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       url: 'https://roogondee.com',
       logo: { '@type': 'ImageObject', url: 'https://roogondee.com/favicon.ico' },
     },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://roogondee.com/blog/${post.slug}` },
-    keywords: post.focus_kw || '',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://roogondee.com/news/${post.slug}` },
     inLanguage: 'th',
   }
-
-  const tool = SERVICE_TOOLS[post.service]
 
   return (
     <main className="min-h-screen bg-cream">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <NavBar ctaHref={`/contact?service=${post.service}`} />
+      <NavBar />
 
       <article className="pt-24 md:pt-28 pb-16 md:pb-24 max-w-3xl mx-auto px-6">
-        <BlogBreadcrumb service={post.service} />
+        <div className="text-sm text-muted mb-4">
+          <Link href="/" className="hover:text-forest">หน้าแรก</Link>
+          <span className="mx-2">/</span>
+          <Link href="/news" className="hover:text-forest">ข่าวสาร</Link>
+        </div>
 
-        {/* Cover media (video takes priority over image) */}
         {(post.video_url || post.image_url) && (
           <div className="mb-6 md:mb-8">
             <MediaBlock
@@ -126,50 +106,36 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
           </div>
         )}
 
-        {/* Title */}
         <h1 className="font-display text-3xl md:text-4xl text-forest leading-tight mb-3 md:mb-4">{post.title}</h1>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 md:mb-10">
           <p className="text-muted text-sm">
-            {post.published_at ? new Date(post.published_at).toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' }) : ''}
-            {post.focus_kw && <span className="ml-3 text-xs text-muted/60">#{post.focus_kw.split(',')[0].trim()}</span>}
+            {post.published_at ? new Date(post.published_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+            {post.category && <span className="ml-3 text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{post.category}</span>}
           </p>
           <div className="sm:ml-auto">
-            <ShareButtons url={`https://roogondee.com/blog/${post.slug}`} title={post.title} />
+            <ShareButtons url={`https://roogondee.com/news/${post.slug}`} title={post.title} />
           </div>
         </div>
 
-        {/* Tool inline CTA (before article) */}
-        {tool && <BlogAssessBefore href={tool.href} icon={tool.icon} label={tool.label} />}
-
-        {/* Article content */}
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
 
-        {/* Inline lite quiz — auto-embedded for all articles based on service */}
-        <ArticleQuiz service={post.service} slug={post.slug} articleTitle={post.title} />
-
-        <BlogServiceCTA service={post.service} />
-
-        {/* Main CTA */}
-        <BlogPostCTA service={post.service} />
-
-        {/* Share bottom */}
-        <div className="mt-8 bg-white border border-mint/15 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <BlogShareLabel />
-          <div className="sm:ml-auto">
-            <ShareButtons url={`https://roogondee.com/blog/${post.slug}`} title={post.title} />
+        {/* Generic CTA */}
+        <div className="mt-10 bg-gradient-to-br from-forest to-sage rounded-3xl p-7 md:p-10 text-white text-center">
+          <div className="text-4xl mb-3">💬</div>
+          <h3 className="font-display text-xl md:text-2xl mb-2">สนใจตรวจคัดกรองฟรีกับรู้ก่อนดี?</h3>
+          <p className="text-white/75 text-sm mb-5">ทำแบบประเมินสั้นๆ รับ voucher ตรวจฟรี ที่ W Medical Hospital สมุทรสาคร</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <Link href="/" className="inline-flex items-center justify-center gap-2 bg-white text-forest px-7 py-3 rounded-full font-bold hover:bg-cream transition-all">ดูบริการทั้งหมด</Link>
           </div>
         </div>
 
-        {/* Ask a question */}
-        <BlogAskMore />
-
-        {/* Related posts */}
         {related && related.length > 0 && (
           <div className="mt-12">
-            <BlogRelatedTitle />
+            <h2 className="font-display text-2xl text-forest mb-4">ข่าวอื่นๆ</h2>
             <div className="space-y-3">
               {related.map(r => (
-                <Link key={r.id} href={`/blog/${r.slug}`} className="flex items-center gap-4 bg-white border border-mint/15 rounded-xl p-4 hover:border-mint hover:shadow-sm transition-all">
+                <Link key={r.id} href={`/news/${r.slug}`} className="flex items-center gap-4 bg-white border border-mint/15 rounded-xl p-4 hover:border-mint hover:shadow-sm transition-all">
                   {r.image_url && (
                     <div className="w-16 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
                       <Image src={r.image_url} alt={r.title} fill className="object-cover" sizes="64px" />

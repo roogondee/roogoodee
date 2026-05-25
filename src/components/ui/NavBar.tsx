@@ -21,6 +21,7 @@ export default function NavBar({ ctaHref = '/contact', ctaLabel }: NavBarProps) 
         <Link href="/tools" className="hover:text-forest transition-colors">{t.common.calculator}</Link>
         <Link href="/ask" className="hover:text-forest transition-colors">{t.common.askExpert}</Link>
         <Link href="/blog" className="hover:text-forest transition-colors">{t.common.articles}</Link>
+        <Link href="/news" className="hover:text-forest transition-colors">{locale === 'th' ? 'ข่าวสาร' : 'News'}</Link>
       </div>
       <div className="flex items-center gap-2">
         <LanguageSwitcher />
