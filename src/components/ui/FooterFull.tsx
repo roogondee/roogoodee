@@ -32,6 +32,7 @@ export default function FooterFull() {
             <li><Link href="/tools" className="hover:text-white transition-colors">{t.home.footerCalc}</Link></li>
             <li><Link href="/ask" className="hover:text-white transition-colors">{t.home.footerAsk}</Link></li>
             <li><Link href="/blog" className="hover:text-white transition-colors">{t.home.footerBlog}</Link></li>
+            <li><Link href="/news" className="hover:text-white transition-colors">{t.home.footerNews}</Link></li>
             <li><Link href="/faq" className="hover:text-white transition-colors">{t.home.footerFaq}</Link></li>
             <li><Link href="/about" className="hover:text-white transition-colors">{t.home.footerAbout}</Link></li>
           </ul>

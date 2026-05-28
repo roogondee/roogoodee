@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
 import homepageImages from '@/config/homepage-images'
+import { SERVICES as PILLAR_INFO } from '@/types'
 
 interface Post {
   id: string
@@ -12,6 +13,7 @@ interface Post {
   slug: string
   excerpt: string
   service: string
+  news_pillar?: string
   image_url: string
   published_at: string
   meta_desc: string
@@ -267,7 +269,14 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
                   </div>
                 )}
                 <div className="p-5 md:p-6">
-                  {item.category && <span className="text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{item.category}</span>}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {item.news_pillar && PILLAR_INFO[item.news_pillar as keyof typeof PILLAR_INFO] && (
+                      <span className={`text-xs font-bold px-2 py-1 rounded-full ${SERVICE_COLORS[item.news_pillar] || 'bg-mint/15 text-sage'}`}>
+                        {PILLAR_INFO[item.news_pillar as keyof typeof PILLAR_INFO].emoji} {PILLAR_INFO[item.news_pillar as keyof typeof PILLAR_INFO].name}
+                      </span>
+                    )}
+                    {item.category && <span className="text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{item.category}</span>}
+                  </div>
                   <h3 className="font-display text-lg md:text-xl text-forest mt-3 mb-2 leading-tight">{item.title}</h3>
                   <p className="text-muted text-sm leading-relaxed line-clamp-2">{item.meta_desc || item.excerpt}</p>
                   <p className="text-xs text-muted/60 mt-3">{item.published_at ? new Date(item.published_at).toLocaleDateString('th-TH') : ''}</p>

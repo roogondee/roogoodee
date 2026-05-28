@@ -35,6 +35,9 @@ SERVICE_HASHTAGS = {
     # mens — Pillar A only (วัยทอง / พลังงาน / lifestyle).
     # ห้ามใช้ #ED #PrEP #แข็งตัว — Meta จะ flag
     "mens":    "#สุขภาพชาย #วัยทองชาย #ฮอร์โมนชาย #ชายวัย40 #andropause",
+    "women":   "#สุขภาพผู้หญิง #สูตินรีเวช #ตรวจภายใน #HPV",
+    "mind":    "#สุขภาพจิต #ดูแลใจ #ความเครียด #รู้ก่อนดี",
+    "news":    "#ข่าวสุขภาพ #รู้ก่อนดี #ตรวจสุขภาพ",
 }
 
 # ─── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -248,7 +251,9 @@ def main() -> int:
 
     title = post["title"]
     slug  = post["slug"]
-    link  = f"{SITE_BASE}/blog/{slug}"
+    # news posts live under /news/<slug>; everything else under /blog/<slug>
+    section = "news" if post.get("service") == "news" else "blog"
+    link  = f"{SITE_BASE}/{section}/{slug}"
     image = post.get("image_url") or None
 
     print(f"📝 เลือกบทความ: {title}")

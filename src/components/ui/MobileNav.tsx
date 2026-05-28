@@ -22,6 +22,7 @@ export default function MobileNav() {
     { href: '/tools', label: t.nav.tools },
     { href: '/ask', label: t.nav.ask },
     { href: '/blog', label: t.nav.blog },
+    { href: '/news', label: t.nav.news },
   ]
 
   useEffect(() => { setOpen(false) }, [pathname])
