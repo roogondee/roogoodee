@@ -40,6 +40,9 @@ SERVICE_LABELS = {
     "ckd": "CKD โรคไต",
     "foreign": "ตรวจสุขภาพแรงงาน",
     "mens": "สุขภาพชายวัย 40+",
+    "women": "สุขภาพเพศหญิง",
+    "mind": "สุขภาพจิต & ความสัมพันธ์",
+    "news": "ข่าวสารรู้ก่อนดี",
     "general": "ปรึกษาทั่วไป",
 }
 
@@ -84,7 +87,7 @@ def pick_post() -> dict | None:
     rows = supa_get(
         "posts",
         {
-            "select": "id,title,slug,excerpt,service,image_url,published_at",
+            "select": "id,title,slug,excerpt,service,news_pillar,image_url,published_at",
             "status": "eq.published",
             "line_broadcast_at": "is.null",
             "image_url": "not.is.null",
@@ -131,6 +134,11 @@ def write_caption(post: dict) -> str:
 # ─── FLEX MESSAGE ──────────────────────────────────────────────────────────
 def build_flex(post: dict, caption: str) -> dict:
     service = post.get("service", "general")
+    # ข่าว (service='news') เก็บ pillar ไว้ที่ news_pillar — ใช้ pillar เป็น label
+    # และ service ของ lead form เพื่อให้ฟอร์มตรงกับเนื้อหา
+    pillar = post.get("news_pillar")
+    label_service = pillar or service
+    lead_service = pillar or service
     # truncate title to fit Flex layout safely
     title = (post.get("title") or "")[:80]
     image_url = post["image_url"]
@@ -138,7 +146,10 @@ def build_flex(post: dict, caption: str) -> dict:
     # produce a URL that LINE rejects with "Invalid action URI" → 400.
     slug = post.get("slug", "") or ""
     slug_path = urllib.parse.quote(slug, safe="-_~")
-    blog_url = f"{SITE_BASE}/blog/{slug_path}"
+    # Route news posts to /news/<slug> — they don't exist under /blog (404).
+    section = "news" if service == "news" else "blog"
+    article_url = f"{SITE_BASE}/{section}/{slug_path}"
+    read_label = "📖 อ่านข่าว" if service == "news" else "📖 อ่านบทความ"
     # Use the direct site URL for the CTA. The previous liff.line.me/<id>
     # deep-link surfaced "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ" inside LINE when
     # the LIFF app wasn't fully published. /lead/liff still initialises the
@@ -146,13 +157,13 @@ def build_flex(post: dict, caption: str) -> dict:
     # otherwise it gracefully falls back to a plain form.
     lead_url = (
         f"{SITE_BASE}/lead/liff"
-        f"?service={urllib.parse.quote(service)}"
+        f"?service={urllib.parse.quote(lead_service)}"
         f"&utm_source=line&utm_medium=broadcast&utm_campaign={urllib.parse.quote(slug or 'daily')}"
     )
 
     return {
         "type": "flex",
-        "altText": f"{title} — {SERVICE_LABELS.get(service, service)}",
+        "altText": f"{title} — {SERVICE_LABELS.get(label_service, label_service)}",
         "contents": {
             "type": "bubble",
             "size": "mega",
@@ -162,7 +173,7 @@ def build_flex(post: dict, caption: str) -> dict:
                 "size": "full",
                 "aspectRatio": "1.91:1",
                 "aspectMode": "cover",
-                "action": {"type": "uri", "uri": blog_url},
+                "action": {"type": "uri", "uri": article_url},
             },
             "body": {
                 "type": "box",
@@ -171,7 +182,7 @@ def build_flex(post: dict, caption: str) -> dict:
                 "contents": [
                     {
                         "type": "text",
-                        "text": SERVICE_LABELS.get(service, "สุขภาพ"),
+                        "text": SERVICE_LABELS.get(label_service, "สุขภาพ"),
                         "size": "xs",
                         "color": "#5B8C7B",
                         "weight": "bold",
@@ -214,8 +225,8 @@ def build_flex(post: dict, caption: str) -> dict:
                         "style": "secondary",
                         "action": {
                             "type": "uri",
-                            "label": "📖 อ่านบทความ",
-                            "uri": blog_url,
+                            "label": read_label,
+                            "uri": article_url,
                         },
                     },
                 ],
