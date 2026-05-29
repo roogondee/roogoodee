@@ -19,16 +19,17 @@ def mm(v): return round(v * MM)
 CARD_W, CARD_H = mm(90), mm(55)
 RADIUS = mm(3.5)
 
-# ─── brand palette ───────────────────────────────────────────────────────────
-FOREST = (27, 67, 50)
-SAGE   = (45, 106, 79)
-MINT   = (82, 183, 136)
-LEAF   = (149, 213, 178)
-CREAM  = (248, 244, 239)
-WARM   = (244, 233, 216)
-GOLD   = (201, 151, 59)
-RTEXT  = (44, 62, 40)
-MUTED  = (107, 140, 114)
+# ─── brand palette (Little Secret Clinic — turquoise/teal) ─────────────────────
+# Sampled from the LS butterfly logo (~#16A69A) and built into a tonal range.
+FOREST = (10, 79, 73)      # deepest teal  (base / gradient start)
+SAGE   = (16, 125, 116)    # mid teal      (gradient mid, table header)
+MINT   = (22, 166, 154)    # primary teal  (logo colour, gradient end)
+LEAF   = (165, 224, 218)   # light teal    (num-column highlight)
+CREAM  = (248, 247, 245)   # neutral card back
+WARM   = (235, 247, 245)
+GOLD   = (22, 166, 154)    # accent now teal (logo is monochrome)
+RTEXT  = (38, 70, 66)      # body text
+MUTED  = (110, 140, 136)   # secondary text
 WHITE  = (255, 255, 255)
 
 # ─── fonts (download once, cache) ──────────────────────────────────────────────
@@ -63,6 +64,27 @@ def _file(key):
 
 def font(key, size_mm):
     return ImageFont.truetype(_file(key), size=round(size_mm * MM))
+
+# ─── logo (optional real artwork) ──────────────────────────────────────────────
+OUT_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       "..", "public", "vitamin-course-card"))
+_LOGO_CACHE = "unset"
+def load_logo():
+    """Return the brand logo as RGBA if public/vitamin-course-card/logo.png
+    exists, else None (falls back to an 'LS' monogram)."""
+    global _LOGO_CACHE
+    if _LOGO_CACHE != "unset":
+        return _LOGO_CACHE
+    path = os.path.join(OUT_DIR, "logo.png")
+    _LOGO_CACHE = Image.open(path).convert("RGBA") if os.path.exists(path) else None
+    if _LOGO_CACHE is None:
+        print("  note: logo.png not found — using 'LS' monogram placeholder")
+    return _LOGO_CACHE
+
+def fit_contain(img, max_w, max_h):
+    r = min(max_w / img.width, max_h / img.height)
+    return img.resize((max(1, round(img.width * r)), max(1, round(img.height * r))),
+                      Image.LANCZOS)
 
 # ─── helpers ───────────────────────────────────────────────────────────────────
 def rounded_mask(w, h, r):
@@ -124,39 +146,46 @@ def render_front():
 
     PAD = mm(4.5)
 
-    # ---- brand (top-left) ----
-    mark_d = mm(7)
-    mx, my = PAD, mm(4)
-    d.ellipse([mx, my, mx + mark_d, my + mark_d], fill=WHITE,
-              outline=(255, 255, 255, 220), width=max(1, mm(0.4)))
-    f_mark = font("prompt-bold", 3.4)
-    bb = d.textbbox((0, 0), "รู้", font=f_mark)
-    d.text((mx + mark_d / 2 - (bb[2] - bb[0]) / 2 - bb[0],
-            my + mark_d / 2 - (bb[3] - bb[1]) / 2 - bb[1]),
-           "รู้", font=f_mark, fill=FOREST)
+    # ---- brand (top-left): white chip holding the LS logo mark ----
+    mark_d = mm(11)
+    mx, my = PAD, mm(3.2)
+    logo = load_logo()
+    # white circular chip so the teal logo reads on the teal gradient
+    d.ellipse([mx, my, mx + mark_d, my + mark_d], fill=WHITE)
+    if logo is not None:
+        inner = round(mark_d * 0.82)
+        lg = fit_contain(logo, inner, inner)
+        card.paste(lg, (round(mx + (mark_d - lg.width) / 2),
+                        round(my + (mark_d - lg.height) / 2)), lg)
+    else:
+        f_mark = font("prompt-bold", 5.0)
+        bb = d.textbbox((0, 0), "LS", font=f_mark)
+        d.text((mx + mark_d / 2 - (bb[2] - bb[0]) / 2 - bb[0],
+                my + mark_d / 2 - (bb[3] - bb[1]) / 2 - bb[1]),
+               "LS", font=f_mark, fill=MINT)
 
-    tx = mx + mark_d + mm(2)
-    f_name = font("prompt-semi", 3.5)
-    d.text((tx, my - mm(0.3)), "รู้ก่อนดี", font=f_name, fill=WHITE)
-    f_small = font("sara-reg", 1.9)
-    d.text((tx, my + mm(4.4)), "RooGonDee  •  Vitamin Care", font=f_small,
-           fill=(255, 255, 255, 220))
+    tx = mx + mark_d + mm(2.4)
+    f_name = font("prompt-semi", 4.2)
+    d.text((tx, my + mm(0.6)), "Little Secret", font=f_name, fill=WHITE)
+    f_small = font("sara-med", 2.0)
+    text_tracked(d, (tx + mm(0.3), my + mm(6.2)), "C L I N I C",
+                 f_small, (255, 255, 255, 225), tracking=mm(0.4))
 
-    # ---- badge (top-right, gold) ----
+    # ---- badge (top-right): white chip, teal number ----
     bw, bh = mm(13), mm(13)
     bx, by = CARD_W - PAD - bw, mm(4)
-    d.rounded_rectangle([bx, by, bx + bw, by + bh], radius=mm(2), fill=GOLD)
+    d.rounded_rectangle([bx, by, bx + bw, by + bh], radius=mm(2), fill=WHITE)
     f_bnum = font("prompt-bold", 6.0)
     bb = d.textbbox((0, 0), "5", font=f_bnum)
     d.text((bx + bw / 2 - (bb[2] - bb[0]) / 2 - bb[0], by + mm(1.2)), "5",
-           font=f_bnum, fill=WHITE)
+           font=f_bnum, fill=MINT)
     f_bsp = font("sara-semi", 2.0)
     bb = d.textbbox((0, 0), "ครั้ง", font=f_bsp)
     d.text((bx + bw / 2 - (bb[2] - bb[0]) / 2 - bb[0], by + bh - mm(3.6)), "ครั้ง",
-           font=f_bsp, fill=WHITE)
+           font=f_bsp, fill=SAGE)
 
     # ---- title ----
-    ty = mm(15)
+    ty = mm(16.5)
     f_th = font("prompt-bold", 5.2)
     d.text((PAD, ty), "บัตรคอร์สวิตามิน", font=f_th, fill=WHITE)
     f_en = font("sara-med", 2.2)
@@ -252,9 +281,9 @@ def render_back():
     f_f = font("sara-reg", 1.95)
     d.text((PADX, fy), "บัตรนี้ใช้เฉพาะผู้มีชื่อด้านหน้า · กรุณานำมาทุกครั้งที่รับบริการ",
            font=f_f, fill=MUTED)
-    f_oa = font("sara-semi", 1.95)
-    ow = d.textlength("@roogondee", font=f_oa)
-    d.text((CARD_W - PADX - ow, fy), "@roogondee", font=f_oa, fill=SAGE)
+    f_oa = font("prompt-semi", 1.95)
+    ow = d.textlength("Little Secret Clinic", font=f_oa)
+    d.text((CARD_W - PADX - ow, fy), "Little Secret Clinic", font=f_oa, fill=SAGE)
 
     card.putalpha(rounded_mask(CARD_W, CARD_H, RADIUS))
     return card
