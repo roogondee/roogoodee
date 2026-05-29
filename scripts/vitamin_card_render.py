@@ -158,7 +158,12 @@ def render_front():
         card.paste(lg, (round(mx + (mark_d - lg.width) / 2),
                         round(my + (mark_d - lg.height) / 2)), lg)
     else:
-        f_mark = font("prompt-bold", 5.0)
+        # placeholder echoing the real logo: teal ring + serif LS monogram
+        ring = max(2, mm(0.5))
+        pad_r = mm(0.9)
+        d.ellipse([mx + pad_r, my + pad_r, mx + mark_d - pad_r, my + mark_d - pad_r],
+                  outline=MINT, width=ring)
+        f_mark = font("sara-bold", 4.2)
         bb = d.textbbox((0, 0), "LS", font=f_mark)
         d.text((mx + mark_d / 2 - (bb[2] - bb[0]) / 2 - bb[0],
                 my + mark_d / 2 - (bb[3] - bb[1]) / 2 - bb[1]),
