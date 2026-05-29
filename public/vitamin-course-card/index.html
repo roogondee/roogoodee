@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>บัตรคอร์สวิตามิน — รู้ก่อนดี (RooGonDee)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --forest:#1B4332;
+    --sage:#2D6A4F;
+    --mint:#52B788;
+    --leaf:#95D5B2;
+    --cream:#F8F4EF;
+    --warm:#F4E9D8;
+    --gold:#C9973B;
+    --dark:#0D2015;
+    --rtext:#2C3E28;
+    --muted:#6B8C72;
+
+    /* Thai standard name-card size */
+    --card-w:90mm;
+    --card-h:55mm;
+  }
+
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:#E9ECE8;
+    color:var(--rtext);
+    padding:24px;
+  }
+
+  /* ---------- screen-only toolbar ---------- */
+  .toolbar{
+    max-width:760px;
+    margin:0 auto 22px;
+    background:#fff;
+    border:1px solid #d9e0db;
+    border-radius:14px;
+    padding:18px 22px;
+    box-shadow:0 4px 18px rgba(27,67,50,.07);
+  }
+  .toolbar h1{
+    font-family:'Prompt',sans-serif;
+    font-size:18px;margin:0 0 6px;color:var(--forest);
+  }
+  .toolbar p{margin:4px 0;font-size:13.5px;color:#566;line-height:1.55;}
+  .toolbar ul{margin:8px 0 0;padding-left:20px;font-size:13px;color:#566;line-height:1.6;}
+  .btn{
+    margin-top:14px;display:inline-block;cursor:pointer;border:none;
+    font-family:'Prompt',sans-serif;font-weight:600;font-size:14px;
+    color:#fff;background:var(--mint);padding:10px 22px;border-radius:999px;
+    box-shadow:0 3px 10px rgba(82,183,136,.4);
+  }
+  .btn:hover{background:var(--sage);}
+
+  /* ---------- card layout ---------- */
+  .sheet{
+    max-width:760px;margin:0 auto;
+    display:flex;flex-wrap:wrap;gap:26px;justify-content:center;
+  }
+
+  .card{
+    width:var(--card-w);
+    height:var(--card-h);
+    border-radius:3.5mm;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 8px 26px rgba(13,32,21,.18);
+    background:#fff;
+    color:var(--rtext);
+  }
+
+  .card-label{
+    width:var(--card-w);
+    text-align:center;
+    font-family:'Prompt',sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:-12px;
+    letter-spacing:.5px;
+  }
+  .card-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+
+  /* ============ FRONT ============ */
+  .front{
+    background:
+      radial-gradient(120% 120% at 100% 0%, rgba(149,213,178,.30) 0%, rgba(149,213,178,0) 45%),
+      linear-gradient(135deg, var(--forest) 0%, var(--sage) 58%, var(--mint) 130%);
+    color:#fff;
+    padding:4mm 4.5mm;
+    display:flex;flex-direction:column;
+  }
+  /* faint watermark leaf circle */
+  .front::after{
+    content:"";position:absolute;right:-14mm;bottom:-18mm;
+    width:42mm;height:42mm;border-radius:50%;
+    background:rgba(255,255,255,.06);
+  }
+  .brand{display:flex;align-items:center;gap:2mm;position:relative;z-index:1;}
+  .brand .mark{
+    width:7mm;height:7mm;border-radius:50%;
+    background:rgba(255,255,255,.16);
+    border:.4mm solid rgba(255,255,255,.55);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Prompt',sans-serif;font-weight:700;font-size:3.4mm;color:#fff;
+  }
+  .brand .name{font-family:'Prompt',sans-serif;font-weight:600;font-size:3.6mm;line-height:1.1;}
+  .brand .name small{display:block;font-family:'Sarabun';font-weight:400;font-size:2mm;opacity:.85;letter-spacing:.4px;}
+
+  .front .title{
+    position:relative;z-index:1;margin-top:2.5mm;
+  }
+  .front .title .th{font-family:'Prompt',sans-serif;font-weight:700;font-size:5mm;line-height:1.05;}
+  .front .title .en{font-size:2.4mm;letter-spacing:1.4px;opacity:.85;text-transform:uppercase;margin-top:.5mm;}
+
+  .front .fields{position:relative;z-index:1;margin-top:auto;display:flex;flex-direction:column;gap:1.6mm;}
+  .fld{display:flex;align-items:flex-end;gap:1.5mm;}
+  .fld .k{font-size:2.5mm;opacity:.8;white-space:nowrap;min-width:21mm;}
+  .fld .v{flex:1;border-bottom:.3mm dotted rgba(255,255,255,.55);min-height:3.6mm;}
+
+  .front .badge{
+    position:absolute;top:4mm;right:4.5mm;z-index:2;text-align:center;
+    background:var(--gold);color:#fff;border-radius:2mm;
+    padding:1.2mm 2.4mm;box-shadow:0 1mm 3mm rgba(0,0,0,.2);
+  }
+  .front .badge b{display:block;font-family:'Prompt',sans-serif;font-weight:700;font-size:5mm;line-height:1;}
+  .front .badge span{font-size:2mm;letter-spacing:.5px;}
+
+  /* ============ BACK ============ */
+  .back{
+    background:var(--cream);
+    padding:3.5mm 4mm;
+    display:flex;flex-direction:column;
+  }
+  .back .bk-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.6mm;}
+  .back .bk-head .t{font-family:'Prompt',sans-serif;font-weight:600;font-size:3.2mm;color:var(--forest);}
+  .back .bk-head .s{font-size:2mm;color:var(--muted);}
+
+  table{width:100%;border-collapse:collapse;font-size:2.4mm;}
+  thead th{
+    background:var(--forest);color:#fff;font-family:'Prompt',sans-serif;font-weight:500;
+    font-size:2.2mm;padding:1.1mm .8mm;text-align:center;
+  }
+  thead th:first-child{border-top-left-radius:1.2mm;}
+  thead th:last-child{border-top-right-radius:1.2mm;}
+  tbody td{
+    border:.25mm solid #dcd3c5;padding:0;height:5mm;text-align:center;
+    color:var(--rtext);background:#fff;
+  }
+  tbody tr:nth-child(even) td{background:#FCFAF6;}
+  tbody td.num{background:var(--leaf);color:var(--forest);font-weight:600;width:9mm;font-family:'Prompt',sans-serif;}
+  .col-date{width:24mm;}
+  .col-prov{width:30mm;}
+
+  .back .bk-foot{
+    margin-top:auto;padding-top:1.4mm;display:flex;justify-content:space-between;align-items:center;
+    font-size:1.95mm;color:var(--muted);border-top:.25mm solid #e2dacb;
+  }
+  .back .bk-foot .line{font-family:'Sarabun';}
+  .back .bk-foot b{color:var(--sage);}
+
+  /* ---------- print ---------- */
+  @media print{
+    @page{size:A4;margin:14mm;}
+    body{background:#fff;padding:0;}
+    .toolbar{display:none;}
+    .card-label{color:#999 !important;}
+    .sheet{gap:10mm;max-width:none;}
+    .card{box-shadow:none;border:.2mm solid #ccc;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <h1>บัตรคอร์สวิตามิน — รู้ก่อนดี</h1>
+    <p>บัตรขนาดนามบัตรมาตรฐาน <b>90 × 55 มม.</b> (หน้า + หลัง) สำหรับคอร์สวิตามิน 5 ครั้ง</p>
+    <ul>
+      <li><b>หน้า</b> — โลโก้แบรนด์ + ช่องกรอก “ชื่อผู้รับบริการ” และ “สูตรวิตามิน” + ป้ายจำนวนครั้ง</li>
+      <li><b>หลัง</b> — ตารางบันทึก 5 ครั้ง: ครั้งที่ / วันที่รับบริการ / สูตรวิตามิน / ผู้ให้บริการ (ลงชื่อ)</li>
+      <li>กดปุ่มด้านล่างเพื่อพิมพ์ หรือ “Save as PDF” (ในหน้าต่างพิมพ์ ตั้งค่า Margins = Default, เปิด Background graphics)</li>
+    </ul>
+    <button class="btn" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+
+  <div class="sheet">
+
+    <!-- ================= FRONT ================= -->
+    <div class="card-wrap">
+      <div class="card front">
+        <div class="badge"><b>5</b><span>ครั้ง</span></div>
+
+        <div class="brand">
+          <div class="mark">รู้</div>
+          <div class="name">รู้ก่อนดี<small>RooGonDee • Vitamin Care</small></div>
+        </div>
+
+        <div class="title">
+          <div class="th">บัตรคอร์สวิตามิน</div>
+          <div class="en">Vitamin Drip Course Card</div>
+        </div>
+
+        <div class="fields">
+          <div class="fld"><span class="k">ชื่อผู้รับบริการ</span><span class="v"></span></div>
+          <div class="fld"><span class="k">สูตรวิตามิน</span><span class="v"></span></div>
+          <div class="fld"><span class="k">เริ่มคอร์สวันที่</span><span class="v"></span></div>
+        </div>
+      </div>
+      <div class="card-label">ด้านหน้า / Front</div>
+    </div>
+
+    <!-- ================= BACK ================= -->
+    <div class="card-wrap">
+      <div class="card back">
+        <div class="bk-head">
+          <span class="t">บันทึกการรับบริการ</span>
+          <span class="s">Service Record</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ครั้งที่</th>
+              <th class="col-date">วันที่รับบริการ</th>
+              <th>สูตรวิตามิน</th>
+              <th class="col-prov">ผู้ให้บริการ (ลงชื่อ)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="num">1</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">2</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">3</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">4</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">5</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+
+        <div class="bk-foot">
+          <span class="line">บัตรนี้ใช้เฉพาะผู้มีชื่อด้านหน้า · กรุณานำมาทุกครั้งที่รับบริการ</span>
+          <span><b>@roogondee</b></span>
+        </div>
+      </div>
+      <div class="card-label">ด้านหลัง / Back</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
