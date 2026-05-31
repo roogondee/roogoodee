@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin" className="font-display text-lg">รู้ก่อน<span className="text-mint italic">ดี</span> <span className="text-white/60 text-sm font-sans font-normal">Admin</span></Link>
           <div className="flex items-center gap-4 text-sm">
             <Link href="/admin" className="text-white/70 hover:text-white transition-colors">Leads</Link>
+            <Link href="/admin/pipeline" className="text-white/70 hover:text-white transition-colors">📊 Pipeline</Link>
             <Link href="/admin/queue" className="text-white/70 hover:text-white transition-colors">📋 คิว</Link>
             <Link href="/admin/chats" className="text-white/70 hover:text-white transition-colors">💬 Chats</Link>
             <Link href="/admin/analytics" className="text-white/70 hover:text-white transition-colors">📊 Analytics</Link>
