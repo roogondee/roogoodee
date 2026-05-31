@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { generateReply } from '@/lib/chatbot/reply'
 import { detectService, extractVoucherCode } from '@/lib/chatbot/service-detect'
 import { captureBotLead } from '@/lib/chatbot/lead'
+import { resolveContact } from '@/lib/crm/contacts'
+import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
 
 export const maxDuration = 60
@@ -91,6 +93,25 @@ async function handleEvent(event: any): Promise<void> {
   // Spec §5.3: follow event = user added the OA. Send welcome + ask for
   // voucher code so we can link their userId to a lead for future push.
   if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
+    // Capture the pushable userId at follow time (even without a voucher) and
+    // enrol the new follower into the welcome nurture sequence.
+    if (event.source.userId) {
+      try {
+        const contact = await resolveContact({ line_user_id: event.source.userId })
+        if (contact) {
+          // Following a LINE OA is consent to receive its messages.
+          if (!contact.consent_pdpa) {
+            await supabaseAdmin.from('crm_contacts')
+              .update({ consent_pdpa: true, consent_at: new Date().toISOString() })
+              .eq('id', contact.id)
+            contact.consent_pdpa = true
+          }
+          await enrollByTrigger(contact, 'welcome')
+        }
+      } catch (err) {
+        console.error('LINE follow enrol failed:', err)
+      }
+    }
     // Many followers arrive from LINE Ads without a voucher in hand — the
     // welcome must serve both paths or ad-clicked users go silent.
     const welcome = [
