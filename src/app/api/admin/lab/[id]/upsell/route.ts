@@ -66,6 +66,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (contact) await enrollByTrigger(contact, 'lab_abnormal', service)
   }
 
-  logLeadAccess({ actor: me.email, action: 'lab_upsell', details: { patient_id: patient.id, report_id: params.id, kind: u.kind, service }, ip: requestIp(req) })
+  logLeadAccess({ actor: me.email, action: 'update', details: { event: 'lab_upsell', patient_id: patient.id, report_id: params.id, kind: u.kind, service }, ip: requestIp(req) })
   return NextResponse.json({ ok: true, voucher, leadId })
 }
