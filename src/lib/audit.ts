@@ -1,7 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
-export type AuditAction = 'view' | 'update' | 'redeem' | 'delete' | 'export' | 'activity'
+export type AuditAction =
+  | 'view' | 'update' | 'redeem' | 'delete' | 'export' | 'activity'
+  | 'lab_view' | 'lab_create' | 'lab_confirm' | 'lab_export' | 'lab_send'
 
 interface LogInput {
   leadId?: string | null

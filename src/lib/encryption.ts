@@ -29,6 +29,13 @@ export function isEncrypted(v: unknown): v is EncryptedEnvelope {
   return !!(v && typeof v === 'object' && (v as { _enc?: boolean })._enc === true)
 }
 
+// One-way hash of a Thai national ID for lookup/dedup without exposing PII in
+// an index. Strips non-digits first so formatting differences collapse.
+export function hashNationalId(id: string): string {
+  const normalized = (id || '').replace(/\D/g, '')
+  return createHash('sha256').update(normalized).digest('hex')
+}
+
 export function encryptJson(value: unknown): unknown {
   const key = getKey()
   if (!key) return value // fail-open for local/dev
