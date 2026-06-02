@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>บัตรคอร์สวิตามิน — Little Secret Clinic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    /* Little Secret Clinic — turquoise / teal (sampled from the LS logo) */
+    --forest:#0A4F49;   /* deepest teal  */
+    --sage:#0F7D74;     /* mid teal      */
+    --mint:#16A69A;     /* primary teal (logo colour) */
+    --leaf:#A5E0DA;     /* light teal    */
+    --cream:#F8F7F5;
+    --warm:#EBF7F5;
+    --gold:#16A69A;
+    --dark:#06302C;
+    --rtext:#264642;
+    --muted:#6E8C88;
+
+    /* Thai standard name-card size */
+    --card-w:90mm;
+    --card-h:55mm;
+  }
+
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  body{
+    margin:0;
+    font-family:'Sarabun',sans-serif;
+    background:#E9ECEB;
+    color:var(--rtext);
+    padding:24px;
+  }
+
+  /* ---------- screen-only toolbar ---------- */
+  .toolbar{
+    max-width:760px;
+    margin:0 auto 22px;
+    background:#fff;
+    border:1px solid #d9e0df;
+    border-radius:14px;
+    padding:18px 22px;
+    box-shadow:0 4px 18px rgba(10,79,73,.08);
+  }
+  .toolbar h1{
+    font-family:'Prompt',sans-serif;
+    font-size:18px;margin:0 0 6px;color:var(--forest);
+  }
+  .toolbar p{margin:4px 0;font-size:13.5px;color:#566;line-height:1.55;}
+  .toolbar ul{margin:8px 0 0;padding-left:20px;font-size:13px;color:#566;line-height:1.6;}
+  .btn{
+    margin-top:14px;display:inline-block;cursor:pointer;border:none;
+    font-family:'Prompt',sans-serif;font-weight:600;font-size:14px;
+    color:#fff;background:var(--mint);padding:10px 22px;border-radius:999px;
+    box-shadow:0 3px 10px rgba(22,166,154,.4);
+  }
+  .btn:hover{background:var(--sage);}
+
+  /* ---------- card layout ---------- */
+  .sheet{
+    max-width:760px;margin:0 auto;
+    display:flex;flex-wrap:wrap;gap:26px;justify-content:center;
+  }
+
+  .card{
+    width:var(--card-w);
+    height:var(--card-h);
+    border-radius:3.5mm;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 8px 26px rgba(6,48,44,.18);
+    background:#fff;
+    color:var(--rtext);
+  }
+
+  .card-label{
+    width:var(--card-w);
+    text-align:center;
+    font-family:'Prompt',sans-serif;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:-12px;
+    letter-spacing:.5px;
+  }
+  .card-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+
+  /* ============ FRONT ============ */
+  .front{
+    background:
+      radial-gradient(120% 120% at 100% 0%, rgba(165,224,218,.30) 0%, rgba(165,224,218,0) 45%),
+      linear-gradient(135deg, var(--forest) 0%, var(--sage) 58%, var(--mint) 130%);
+    color:#fff;
+    padding:3.2mm 4.5mm;
+    display:flex;flex-direction:column;
+  }
+  /* faint watermark circle */
+  .front::after{
+    content:"";position:absolute;right:-14mm;bottom:-18mm;
+    width:42mm;height:42mm;border-radius:50%;
+    background:rgba(255,255,255,.07);
+  }
+  .brand{display:flex;align-items:center;gap:2.4mm;position:relative;z-index:1;}
+  .brand .mark{
+    width:11mm;height:11mm;border-radius:50%;
+    background:#fff;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .brand .mark img{width:82%;height:82%;object-fit:contain;}
+  .brand .mark .ls{font-family:'Prompt',sans-serif;font-weight:700;font-size:5mm;color:var(--mint);letter-spacing:-.2mm;}
+  .brand .name{font-family:'Prompt',sans-serif;font-weight:600;font-size:4.2mm;line-height:1.05;}
+  .brand .name small{display:block;font-family:'Prompt';font-weight:500;font-size:2mm;opacity:.9;letter-spacing:1.2mm;margin-top:.3mm;}
+
+  .front .title{position:relative;z-index:1;margin-top:2.6mm;}
+  .front .title .th{font-family:'Prompt',sans-serif;font-weight:700;font-size:5.2mm;line-height:1.05;}
+  .front .title .en{font-size:2.2mm;letter-spacing:1.4px;opacity:.85;text-transform:uppercase;margin-top:.6mm;}
+
+  .front .fields{position:relative;z-index:1;margin-top:auto;display:flex;flex-direction:column;gap:1.6mm;}
+  .fld{display:flex;align-items:flex-end;gap:1.5mm;}
+  .fld .k{font-size:2.6mm;opacity:.9;white-space:nowrap;min-width:23mm;}
+  .fld .v{flex:1;border-bottom:.3mm dotted rgba(255,255,255,.6);min-height:3.6mm;}
+
+  .front .badge{
+    position:absolute;top:4mm;right:4.5mm;z-index:2;text-align:center;
+    background:#fff;border-radius:2mm;
+    padding:1mm 2.6mm;box-shadow:0 1mm 3mm rgba(0,0,0,.18);
+  }
+  .front .badge b{display:block;font-family:'Prompt',sans-serif;font-weight:700;font-size:5.4mm;line-height:1;color:var(--mint);}
+  .front .badge span{font-size:2mm;letter-spacing:.5px;color:var(--sage);}
+
+  /* ============ BACK ============ */
+  .back{
+    background:var(--cream);
+    padding:3.4mm 4mm;
+    display:flex;flex-direction:column;
+  }
+  .back .bk-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.6mm;}
+  .back .bk-head .t{font-family:'Prompt',sans-serif;font-weight:600;font-size:3.3mm;color:var(--forest);}
+  .back .bk-head .s{font-size:2mm;color:var(--muted);}
+
+  table{width:100%;border-collapse:collapse;font-size:2.4mm;}
+  thead th{
+    background:var(--forest);color:#fff;font-family:'Prompt',sans-serif;font-weight:500;
+    font-size:2.15mm;padding:1.1mm .8mm;text-align:center;
+  }
+  thead th:first-child{border-top-left-radius:1.2mm;}
+  thead th:last-child{border-top-right-radius:1.2mm;}
+  tbody td{
+    border:.25mm solid #dcdad3;padding:0;height:5.4mm;text-align:center;
+    color:var(--rtext);background:#fff;
+  }
+  tbody tr:nth-child(even) td{background:#FCFBF9;}
+  tbody td.num{background:var(--leaf);color:var(--forest);font-weight:600;width:9mm;font-family:'Prompt',sans-serif;}
+  .col-date{width:22mm;}
+  .col-prov{width:27mm;}
+
+  .back .bk-foot{
+    margin-top:auto;padding-top:1.4mm;display:flex;justify-content:space-between;align-items:center;
+    font-size:1.95mm;color:var(--muted);border-top:.25mm solid #e4e2db;
+  }
+  .back .bk-foot .line{font-family:'Sarabun';}
+  .back .bk-foot b{color:var(--sage);font-family:'Prompt';font-weight:600;}
+
+  /* ---------- print ---------- */
+  @media print{
+    @page{size:A4;margin:14mm;}
+    body{background:#fff;padding:0;}
+    .toolbar{display:none;}
+    .card-label{color:#999 !important;}
+    .sheet{gap:10mm;max-width:none;}
+    .card{box-shadow:none;border:.2mm solid #ccc;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <h1>บัตรคอร์สวิตามิน — Little Secret Clinic</h1>
+    <p>บัตรขนาดนามบัตรมาตรฐาน <b>90 × 55 มม.</b> (หน้า + หลัง) สำหรับคอร์สวิตามิน 5 ครั้ง</p>
+    <ul>
+      <li><b>หน้า</b> — โลโก้ Little Secret Clinic + ช่องกรอก “ชื่อผู้รับบริการ” และ “สูตรวิตามิน” + ป้ายจำนวนครั้ง</li>
+      <li><b>หลัง</b> — ตารางบันทึก 5 ครั้ง: ครั้งที่ / วันที่รับบริการ / สูตรวิตามิน / ผู้ให้บริการ (ลงชื่อ)</li>
+      <li>วางไฟล์โลโก้ที่ <code>logo.png</code> (โฟลเดอร์เดียวกับไฟล์นี้) จะแสดงในวงกลมอัตโนมัติ</li>
+      <li>กดปุ่มด้านล่างเพื่อพิมพ์ หรือ “Save as PDF” (ตั้ง Margins = Default, เปิด Background graphics)</li>
+    </ul>
+    <button class="btn" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+  </div>
+
+  <div class="sheet">
+
+    <!-- ================= FRONT ================= -->
+    <div class="card-wrap">
+      <div class="card front">
+        <div class="badge"><b>5</b><span>ครั้ง</span></div>
+
+        <div class="brand">
+          <div class="mark">
+            <img src="logo.png" alt="Little Secret Clinic"
+                 onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=ls>LS</span>')" />
+          </div>
+          <div class="name">Little Secret<small>CLINIC</small></div>
+        </div>
+
+        <div class="title">
+          <div class="th">บัตรคอร์สวิตามิน</div>
+          <div class="en">Vitamin Drip Course Card</div>
+        </div>
+
+        <div class="fields">
+          <div class="fld"><span class="k">ชื่อผู้รับบริการ</span><span class="v"></span></div>
+          <div class="fld"><span class="k">สูตรวิตามิน</span><span class="v"></span></div>
+          <div class="fld"><span class="k">เริ่มคอร์สวันที่</span><span class="v"></span></div>
+        </div>
+      </div>
+      <div class="card-label">ด้านหน้า / Front</div>
+    </div>
+
+    <!-- ================= BACK ================= -->
+    <div class="card-wrap">
+      <div class="card back">
+        <div class="bk-head">
+          <span class="t">บันทึกการรับบริการ</span>
+          <span class="s">Service Record</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ครั้งที่</th>
+              <th class="col-date">วันที่รับบริการ</th>
+              <th>สูตรวิตามิน</th>
+              <th class="col-prov">ผู้ให้บริการ (ลงชื่อ)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="num">1</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">2</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">3</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">4</td><td></td><td></td><td></td></tr>
+            <tr><td class="num">5</td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+
+        <div class="bk-foot">
+          <span class="line">บัตรนี้ใช้เฉพาะผู้มีชื่อด้านหน้า · กรุณานำมาทุกครั้งที่รับบริการ</span>
+          <span><b>Little Secret Clinic</b></span>
+        </div>
+      </div>
+      <div class="card-label">ด้านหลัง / Back</div>
+    </div>
+
+  </div>
+
+</body>
+</html>
