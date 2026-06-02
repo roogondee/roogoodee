@@ -8,6 +8,7 @@ import LINEFloat from '@/components/ui/LINEFloat'
 import Pixels from '@/components/analytics/Pixels'
 import { I18nProvider } from '@/lib/i18n/context'
 import HrefLangTags from '@/components/ui/HrefLangTags'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LINEFloat />
           <PDPABanner />
         </I18nProvider>
+        <Analytics />
       </body>
     </html>
   )
