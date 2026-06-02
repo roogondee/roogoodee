@@ -47,7 +47,7 @@ export default function PatientLabUpload() {
         <p className="text-sm text-gray-600">
           ทีมงานกำลังตรวจสอบและจะส่งผลพร้อมคำแนะนำกลับให้คุณทาง LINE ภายใน 1-2 วันทำการ
         </p>
-        <a href="https://lin.ee/" className="inline-block mt-5 bg-forest text-white px-5 py-2 rounded-xl text-sm">
+        <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-block mt-5 bg-forest text-white px-5 py-2 rounded-xl text-sm">
           แอด LINE เพื่อรับผล
         </a>
       </div>
