@@ -122,6 +122,8 @@ export interface LabReport {
   risk_level?: RiskLevel | null
   status: 'pending_review' | 'confirmed'
   public_token?: string | null
+  patient_token?: string | null
+  submitted_by_patient?: boolean | null
   reviewer_name?: string | null
   reviewer_license?: string | null
   created_by?: string | null

@@ -7,7 +7,10 @@ import { buildTimeline } from '@/lib/lab/compare'
 import type { LabReport } from '@/lib/lab/types'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+// AI vision extraction (Claude Sonnet, up to 3 attempts) can exceed 60s on a
+// dense lab report — a 504 there returns a non-JSON error page that the client
+// can't parse. Give it headroom (compose/publish already runs at 120s).
+export const maxDuration = 300
 
 const BUCKET = 'lab-files'
 

@@ -3,6 +3,22 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+// Parse a fetch Response as JSON, but degrade gracefully when the body is not
+// JSON — e.g. a Vercel 504/500 platform page ("An error occurred...") returned
+// when a serverless function times out. Without this, JSON.parse throws a
+// cryptic "Unexpected token 'A'" instead of a usable message.
+async function readJsonOrError(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text()
+  try {
+    return JSON.parse(text)
+  } catch {
+    if (res.status === 504) {
+      return { error: 'ประมวลผลนานเกินไป (หมดเวลา) — ลองอัปโหลดทีละไฟล์ หรือย่อขนาดรูปแล้วลองใหม่' }
+    }
+    return { error: `เซิร์ฟเวอร์ผิดพลาด (${res.status})` }
+  }
+}
+
 // Upload one or more lab files; each is interpreted into a pending_review
 // report. Supports multi-year backfill (select several files at once).
 export default function LabUploader({ patientId }: { patientId: string }) {
@@ -23,17 +39,17 @@ export default function LabUploader({ patientId }: { patientId: string }) {
         const fd = new FormData()
         fd.append('file', file)
         const up = await fetch('/api/admin/lab/upload', { method: 'POST', body: fd })
-        const upData = await up.json()
-        if (!up.ok) throw new Error(upData.error || 'อัปโหลดไม่สำเร็จ')
+        const upData = await readJsonOrError(up)
+        if (!up.ok) throw new Error((upData.error as string) || 'อัปโหลดไม่สำเร็จ')
 
         const res = await fetch('/api/admin/lab/interpret', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ patientId, path: upData.path, contentType: upData.contentType }),
         })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'แปลผลไม่สำเร็จ')
-        lastReportId = data.report.id
+        const data = await readJsonOrError(res)
+        if (!res.ok) throw new Error((data.error as string) || 'แปลผลไม่สำเร็จ')
+        lastReportId = (data.report as { id: string }).id
       }
       setStatus('เสร็จแล้ว')
       if (list.length === 1 && lastReportId) {

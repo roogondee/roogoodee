@@ -9,6 +9,7 @@ import LabTimelineTable from '@/components/admin/lab/LabTimelineTable'
 import LabTimelineChart from '@/components/admin/lab/LabTimelineChart'
 import LabUpsellCards from '@/components/admin/lab/LabUpsellCards'
 import ConfirmReportButton from '@/components/admin/lab/ConfirmReportButton'
+import PatientLinkCopy from '@/components/admin/lab/PatientLinkCopy'
 import type { LabReport } from '@/lib/lab/types'
 
 export const revalidate = 0
@@ -69,6 +70,11 @@ export default async function ReportPage({ params }: { params: { patientId: stri
           </>
         )}
       </div>
+      {confirmedStatus && r.patient_token && (
+        <div className="bg-mint/5 border border-mint/30 rounded-xl px-4 py-3">
+          <PatientLinkCopy token={r.patient_token} />
+        </div>
+      )}
       {!confirmedStatus && (
         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
           ⚠️ ผลนี้ AI ช่วยร่าง ยังไม่ได้รับการรับรอง — ตรวจสอบความถูกต้องก่อนรับรองและส่งให้ลูกค้า
@@ -124,7 +130,7 @@ export default async function ReportPage({ params }: { params: { patientId: stri
       {r.upsell && r.upsell.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-semibold text-forest">แนะนำต่อยอด</h2>
-          <LabUpsellCards upsell={r.upsell} />
+          <LabUpsellCards upsell={r.upsell} reportId={r.id} />
         </div>
       )}
     </div>

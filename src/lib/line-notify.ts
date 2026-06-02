@@ -28,14 +28,16 @@ interface NotifyParams {
   note?: string
 }
 
-async function pushLine(to: string, text: string) {
+// Returns true only when the message was accepted by LINE. Callers that
+// don't care (fire-and-forget) can ignore the boolean.
+async function pushLine(to: string, text: string): Promise<boolean> {
   if (!LINE_CHANNEL_ACCESS_TOKEN) {
     console.warn('LINE push skipped: LINE_CHANNEL_ACCESS_TOKEN not set')
-    return
+    return false
   }
   if (!to) {
     console.warn('LINE push skipped: empty `to` target')
-    return
+    return false
   }
   try {
     const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -52,9 +54,12 @@ async function pushLine(to: string, text: string) {
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       console.error(`LINE push failed: ${res.status} ${res.statusText} — ${body}`)
+      return false
     }
+    return true
   } catch (err) {
     console.error('LINE push error:', err)
+    return false
   }
 }
 
@@ -66,7 +71,7 @@ export async function pushVoucherToUser(userId: string, params: {
   code: string
   expires_at: string
   daysLeft?: number
-}) {
+}): Promise<boolean> {
   const label = SERVICE_LABELS[params.service] || params.service
   const expires = new Date(params.expires_at).toLocaleDateString('th-TH', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -83,7 +88,7 @@ export async function pushVoucherToUser(userId: string, params: {
     `📍 W Medical Hospital สมุทรสาคร`,
     `📞 ติดต่อจองคิว: 034-XXX-XXX${urgency}`,
   ].join('\n')
-  await pushLine(userId, text)
+  return pushLine(userId, text)
 }
 
 export async function notifyLineGroup(params: NotifyParams) {
