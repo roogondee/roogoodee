@@ -84,7 +84,7 @@ export default async function PatientLabReportPage({ params }: { params: { token
         <div className="bg-mint/5 border border-mint/30 rounded-2xl p-5 text-center">
           <p className="text-sm text-forest font-medium">มีคำถามเกี่ยวกับผลตรวจ?</p>
           <p className="text-xs text-gray-600 mt-1">ปรึกษาแพทย์/ทีมงานของเราได้ฟรีทาง LINE</p>
-          <a href="https://lin.ee/" className="inline-block mt-3 bg-forest text-white px-5 py-2 rounded-xl text-sm">
+          <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 bg-forest text-white px-5 py-2 rounded-xl text-sm">
             แอด LINE ปรึกษาฟรี
           </a>
         </div>
