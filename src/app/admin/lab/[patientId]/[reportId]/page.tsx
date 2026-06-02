@@ -124,7 +124,7 @@ export default async function ReportPage({ params }: { params: { patientId: stri
       {r.upsell && r.upsell.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-semibold text-forest">แนะนำต่อยอด</h2>
-          <LabUpsellCards upsell={r.upsell} />
+          <LabUpsellCards upsell={r.upsell} reportId={r.id} />
         </div>
       )}
     </div>
