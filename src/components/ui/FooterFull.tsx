@@ -29,6 +29,7 @@ export default function FooterFull() {
         <div>
           <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-4 md:mb-5">{t.home.footerTools}</h4>
           <ul className="space-y-2 text-sm text-white/45">
+            <li><Link href="/portal" className="hover:text-white transition-colors">{locale === 'th' ? 'ดูผลตรวจของฉัน' : 'My Lab Results'}</Link></li>
             <li><Link href="/tools" className="hover:text-white transition-colors">{t.home.footerCalc}</Link></li>
             <li><Link href="/ask" className="hover:text-white transition-colors">{t.home.footerAsk}</Link></li>
             <li><Link href="/blog" className="hover:text-white transition-colors">{t.home.footerBlog}</Link></li>
@@ -51,6 +52,7 @@ export default function FooterFull() {
         <div className="flex gap-4 text-white/40">
           <Link href="/privacy" className="hover:text-white transition-colors">{t.common.privacyPolicy}</Link>
           <Link href="/terms" className="hover:text-white transition-colors">{t.common.termsOfService}</Link>
+          <Link href="/admin/login" className="hover:text-white transition-colors">{locale === 'th' ? 'เข้าระบบทีมงาน' : 'Staff'}</Link>
         </div>
       </div>
     </footer>

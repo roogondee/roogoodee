@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import LabUploader from '@/components/admin/lab/LabUploader'
+import ClaimCodeButton from '@/components/admin/lab/ClaimCodeButton'
 import type { LabReport, RiskLevel } from '@/lib/lab/types'
 
 export const revalidate = 0
@@ -15,7 +16,7 @@ export default async function PatientPage({ params }: { params: { patientId: str
 
   const { data: patient } = await supabaseAdmin
     .from('patients')
-    .select('id, name, phone, gender, dob')
+    .select('id, name, phone, gender, dob, line_id')
     .eq('id', params.patientId)
     .maybeSingle()
   if (!patient) notFound()
@@ -32,6 +33,10 @@ export default async function PatientPage({ params }: { params: { patientId: str
         <Link href="/admin/lab" className="text-sm text-gray-400 hover:text-forest">← กลับ</Link>
         <h1 className="font-display text-2xl text-forest mt-1">{patient.name}</h1>
         <p className="text-sm text-gray-500">{patient.phone}</p>
+      </div>
+
+      <div className="bg-white rounded-2xl p-4 border border-gray-100">
+        <ClaimCodeButton patientId={patient.id} linked={!!patient.line_id} />
       </div>
 
       <LabUploader patientId={patient.id} />
