@@ -26,7 +26,7 @@ export default function LINEFloat() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={t.common.lineConsultFree}
-      className={`fixed bottom-24 right-4 z-40 flex items-center gap-2 bg-[#06C755] text-white rounded-full shadow-2xl ring-2 ring-white transition-all duration-500 hover:shadow-xl hover:scale-105 active:scale-95 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'} md:bottom-6 md:right-6`}
+      className={`fixed bottom-24 right-4 z-40 flex items-center gap-2 bg-[#06C755] text-white rounded-full shadow-2xl ring-2 ring-white transition-all duration-500 hover:shadow-xl hover:scale-105 active:scale-95 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'} md:right-6`}
     >
       <span className="absolute inset-0 rounded-full bg-[#06C755] animate-ping opacity-30" />
       <span className="absolute inset-0 rounded-full bg-[#06C755] animate-pulse opacity-40" />
