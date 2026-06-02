@@ -22,7 +22,7 @@ export default function LINEFloat() {
 
   return (
     <a
-      href="https://line.me/ti/p/@roogondee"
+      href="https://line.me/R/ti/p/@roogondee"
       target="_blank"
       rel="noopener noreferrer"
       aria-label={t.common.lineConsultFree}

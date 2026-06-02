@@ -103,7 +103,7 @@ export default function AboutClient() {
           <p className="text-white/70 text-sm mb-6">{a.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/contact" className="bg-white text-forest px-8 py-3.5 rounded-full font-bold text-sm hover:bg-cream transition-all">{a.ctaConsult}</Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-white/15 border border-white/30 text-white px-8 py-3.5 rounded-full font-semibold text-sm hover:bg-white/25 transition-all">💬 LINE: @roogondee</a>
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-white/15 border border-white/30 text-white px-8 py-3.5 rounded-full font-semibold text-sm hover:bg-white/25 transition-all">💬 LINE: @roogondee</a>
           </div>
         </div>
       </div>

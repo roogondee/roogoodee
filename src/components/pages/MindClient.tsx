@@ -89,7 +89,7 @@ export default function MindClient() {
             <Link href="/quiz/mind" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">
               {t.mind.ctaConsult}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 border-2 border-violet-300 text-violet-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-violet-50 transition-all">
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 border-2 border-violet-300 text-violet-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-violet-50 transition-all">
               {t.mind.ctaLine}
             </a>
           </div>
@@ -226,7 +226,7 @@ export default function MindClient() {
             <Link href="/quiz/mind" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
               {t.mind.ctaConsult}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
               {t.common.lineConsultFree}
             </a>
           </div>

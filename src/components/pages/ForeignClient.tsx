@@ -145,7 +145,7 @@ export default function ForeignClient() {
           <p className="text-muted mb-8">{f.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/contact?service=foreign" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">{f.ctaQuoteShort}</Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
           </div>
         </div>
       </section>

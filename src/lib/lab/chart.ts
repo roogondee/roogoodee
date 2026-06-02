@@ -129,5 +129,15 @@ export function buildChartSeries(t: AnalyteTimeline, opts: ChartOpts = {}): Char
     label: p.report_date.slice(0, 7), // YYYY-MM
   }))
 
+  // Guard: a non-finite coordinate (NaN/Infinity from degenerate data) makes the
+  // PDF renderer throw deep in SVG layout. Skip the chart rather than crash.
+  const coords = [
+    ...points.flatMap((p) => [p.x, p.y]),
+    ...(refBand ? [refBand.yTop, refBand.yBottom] : []),
+    ...(targetLine ? [targetLine.y] : []),
+    ...(projection ? [projection.x, projection.y] : []),
+  ]
+  if (coords.some((n) => !Number.isFinite(n))) return null
+
   return { width, height, points, polyline, refBand, targetLine, projection, yTicks, xTicks }
 }

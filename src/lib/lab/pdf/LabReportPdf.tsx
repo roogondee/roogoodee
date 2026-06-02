@@ -89,14 +89,15 @@ export interface LabReportPdfProps {
   qrDataUrl?: string
   verifyUrl?: string
   lang?: 'th' | 'en'
+  includeCharts?: boolean
 }
 
-export function LabReportPdf({ patientName, report, timeline, qrDataUrl, verifyUrl, lang = 'th' }: LabReportPdfProps) {
+export function LabReportPdf({ patientName, report, timeline, qrDataUrl, verifyUrl, lang = 'th', includeCharts = true }: LabReportPdfProps) {
   const interp: LabInterpretation | undefined =
     (lang === 'en' && report.interpretation_en) ? report.interpretation_en : (report.interpretation ?? undefined)
   const risk = report.risk_level ?? interp?.risk_level ?? 'green'
   const score = report.health_score ?? interp?.health_score ?? 0
-  const charts = timeline.analytes.filter((a) => a.points.length >= 2).slice(0, 6)
+  const charts = includeCharts ? timeline.analytes.filter((a) => a.points.length >= 2).slice(0, 6) : []
 
   return (
     <Document>
