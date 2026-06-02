@@ -432,7 +432,7 @@ export default function QuizRunner({ definition }: Props) {
           </div>
 
           <a
-            href="https://line.me/ti/p/@roogondee"
+            href="https://line.me/R/ti/p/@roogondee"
             target="_blank" rel="noopener noreferrer"
             className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
           >

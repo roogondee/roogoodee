@@ -80,7 +80,7 @@ export default function TermsClient() {
                   <p><strong>บริษัท เจียรักษา จำกัด</strong></p>
                   <p>สมุทรสาคร, ประเทศไทย</p>
                   <p>อีเมล: <a href="mailto:legal@roogondee.com" className="text-forest underline">legal@roogondee.com</a></p>
-                  <p>LINE OA: <a href="https://line.me/ti/p/@roogondee" className="text-forest underline">@roogondee</a></p>
+                  <p>LINE OA: <a href="https://line.me/R/ti/p/@roogondee" className="text-forest underline">@roogondee</a></p>
                 </div>
               </section>
             </>
@@ -145,7 +145,7 @@ export default function TermsClient() {
                   <p><strong>Jia Raksa Co., Ltd.</strong></p>
                   <p>Samut Sakhon, Thailand</p>
                   <p>Email: <a href="mailto:legal@roogondee.com" className="text-forest underline">legal@roogondee.com</a></p>
-                  <p>LINE OA: <a href="https://line.me/ti/p/@roogondee" className="text-forest underline">@roogondee</a></p>
+                  <p>LINE OA: <a href="https://line.me/R/ti/p/@roogondee" className="text-forest underline">@roogondee</a></p>
                 </div>
               </section>
             </>

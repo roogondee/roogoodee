@@ -76,7 +76,7 @@ export default function MobileNav() {
             <Link href="/contact" className="block text-center bg-forest text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-sage transition-all">
               📝 {t.common.consultFree}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer"
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer"
               className="block text-center bg-[#06C755] text-white px-6 py-3 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
               💬 LINE @roogondee
             </a>
