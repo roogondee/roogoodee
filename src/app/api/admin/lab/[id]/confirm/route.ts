@@ -22,6 +22,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     confirmed_by: me.id,
     confirmed_at: new Date().toISOString(),
     public_token: randomUUID().replace(/-/g, ''),
+    // Secret capability-URL token: lets the patient read their own confirmed
+    // report at /lab/r/<token> without an account. Long + unguessable.
+    patient_token: (randomUUID() + randomUUID()).replace(/-/g, ''),
     reviewer_name: body.reviewerName?.trim() || me.name || me.email,
     reviewer_license: body.reviewerLicense?.trim() || null,
   }
@@ -35,14 +38,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     update.risk_level = risk_level
   }
 
-  // Preserve an existing token if already confirmed once.
+  // Preserve existing tokens if already confirmed once (keep links stable).
   const { data: current } = await supabaseAdmin
     .from('lab_reports')
-    .select('public_token, patient_id')
+    .select('public_token, patient_token, patient_id')
     .eq('id', params.id)
     .maybeSingle()
   if (!current) return NextResponse.json({ error: 'not found' }, { status: 404 })
   if (current.public_token) update.public_token = current.public_token
+  if (current.patient_token) update.patient_token = current.patient_token
 
   const { data, error } = await supabaseAdmin
     .from('lab_reports')
