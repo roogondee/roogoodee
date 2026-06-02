@@ -39,7 +39,7 @@ const s = StyleSheet.create({
   tr: { flexDirection: 'row', paddingVertical: 2, paddingHorizontal: 4, borderBottom: '0.5px solid #eee' },
   cName: { width: '40%' }, cVal: { width: '20%' }, cRef: { width: '25%' }, cFlag: { width: '15%' },
   finding: { marginBottom: 2 },
-  disclaimer: { fontSize: 7, fontStyle: 'italic', color: '#6B8C72', marginTop: 6, borderTop: '0.5px solid #ddd', paddingTop: 4 },
+  disclaimer: { fontSize: 7, color: '#6B8C72', marginTop: 6, borderTop: '0.5px solid #ddd', paddingTop: 4 },
   signoff: { fontSize: 8, color: FOREST, marginTop: 10 },
   footer: { position: 'absolute', bottom: 20, left: 32, right: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   qr: { width: 56, height: 56 },
