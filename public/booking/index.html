@@ -421,6 +421,14 @@
 </div>
 
 <script>
+  // The booking page is deployed on a separate Vercel project (booking-dun-mu.vercel.app),
+  // so a relative /api/booking-notify call would 404 and never reach the LINE group.
+  // Point it at the roogondee app that actually hosts the API (CORS already allows this origin).
+  // When served from roogondee.com itself, the relative path still works fine.
+  const NOTIFY_ENDPOINT = /(^|\.)roogondee\.com$/.test(location.hostname)
+    ? '/api/booking-notify'
+    : 'https://www.roogondee.com/api/booking-notify';
+
   const state = {
     clinic: '',
     clinicService: '',
@@ -584,7 +592,7 @@
     ].filter(Boolean).join(' | ');
 
     try {
-      await fetch('/api/booking-notify', {
+      await fetch(NOTIFY_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
