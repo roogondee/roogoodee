@@ -18,7 +18,7 @@ const HOSPITAL_STEPS = [
   { num: '1', title: 'ลงทะเบียน + ตรวจเอกสาร', desc: 'หนังสือเดินทาง (Passport) + เอกสารนายจ้าง' },
   { num: '2', title: 'ตรวจสุขภาพทั่วไป', desc: 'น้ำหนัก / ส่วนสูง / ความดันโลหิต / ชีพจร โดยแพทย์' },
   { num: '3', title: 'คัดกรอง 6 โรคต้องห้าม', desc: 'เรื้อน, วัณโรค, เท้าช้าง, ติดยา, สุราเรื้อรัง, ซิฟิลิสระยะ 3' },
-  { num: '4', title: 'ตรวจห้องปฏิบัติการ', desc: 'ปัสสาวะ + เลือด — ห้องแล็บรับรอง LA 7044P/2568' },
+  { num: '4', title: 'ตรวจห้องปฏิบัติการ', desc: 'ปัสสาวะ + เลือด — ห้องแล็บมาตรฐาน MOPH LAB' },
   { num: '5', title: 'เอกซเรย์ปอด', desc: 'Chest X-ray คัดกรองวัณโรค' },
   { num: '6', title: 'สแกนม่านตา + Facial Recognition', desc: 'ยืนยันตัวตนตามมาตรฐานกรมควบคุมโรค — ทีมผ่านการอบรมและได้รับประกาศนียบัตร', highlight: true },
   { num: '7', title: 'รับใบรับรองแพทย์', desc: 'รอผลประมาณ 1.5–2 ชั่วโมง (กลุ่ม ≥ 50 คน อาจรับวันรุ่งขึ้น)' },
@@ -118,7 +118,7 @@ export default function ForeignClient() {
             ))}
           </div>
           <div className="mt-8 bg-mint/5 border border-mint/15 rounded-2xl p-5 text-xs text-muted leading-relaxed">
-            <strong className="text-forest">ใบรับรองและมาตรฐาน:</strong> ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569 · ห้องแล็บรับรอง LA 7044P/2568 (กรมวิทยาศาสตร์การแพทย์) · ทีมงานผ่านการอบรม Iris Scan & Facial Recognition จากอธิบดีกรมควบคุมโรค ·{' '}
+            <strong className="text-forest">ใบรับรองและมาตรฐาน:</strong> ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569 · ห้องแล็บมาตรฐาน MOPH LAB (มาตรฐานห้องปฏิบัติการทางการแพทย์ กระทรวงสาธารณสุข) · ทีมงานผ่านการอบรม Iris Scan & Facial Recognition จากอธิบดีกรมควบคุมโรค ·{' '}
             <a href="https://mrd.hss.moph.go.th/mrd1_hss/?p=12942" target="_blank" rel="noopener noreferrer" className="text-mint hover:underline">ตรวจสอบรายชื่อ รพ. ที่ได้รับอนุญาต</a>
           </div>
         </div>
