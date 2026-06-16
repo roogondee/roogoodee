@@ -112,7 +112,12 @@ def generate_caption(post: dict, link: str) -> str:
         "- ลงท้ายด้วย CTA อ่านต่อที่ลิงก์ + ติดต่อ LINE @roogondee\n"
         "- จบด้วย hashtag ที่เกี่ยวข้อง 3-5 อัน\n"
         "- ห้ามใช้ Markdown เช่น ** หรือ ##\n"
-        "- ห้ามใส่ emoji เกิน 4 ตัวในทั้ง caption"
+        "- ห้ามใส่ emoji เกิน 4 ตัวในทั้ง caption\n"
+        "- ภาษาต้องเข้าใจง่ายระดับคนทั่วไป — ห้ามใช้ศัพท์แพทย์ยากๆ เช่น "
+        "'กลุ่มเมตาบอลิก', 'กลุ่ม NCDs', 'metabolic syndrome', 'comorbidity' "
+        "ในเนื้อหา ถ้าจำเป็นต้องอ้างถึงให้ขยายความเป็นภาษาชาวบ้านก่อน เช่น "
+        "'คนที่เสี่ยงเบาหวาน/ความดัน/ไขมัน (กลุ่มโรค NCDs)' "
+        "หรือใช้ตัวอย่างโรคแทน เช่น 'เบาหวาน ความดัน ไขมันในเลือดสูง'"
     )
     if is_mens:
         system_prompt += (
@@ -149,6 +154,7 @@ Hashtag แนะนำ: {tags}
 
     from compliance import (
         check_caption_compliance,
+        check_jargon,
         check_thai_language,
         review_thai_with_llm,
     )
@@ -166,6 +172,18 @@ Hashtag แนะนำ: {tags}
             attempt += 1
         if not ok:
             raise RuntimeError(f"mens caption compliance ไม่ผ่าน: {' | '.join(issues)}")
+
+    # Plain-language gate — retry if Claude uses medical jargon (advisory,
+    # doesn't block publish if every retry still trips it).
+    for attempt in range(3):
+        ok_j, issues_j = check_jargon(caption)
+        if ok_j:
+            break
+        print(f"  ⚠️ jargon fail (try {attempt + 1}): {issues_j}")
+        if attempt == 2:
+            print(f"  ℹ️ ใช้ caption รอบสุดท้ายแม้ยังพบ jargon")
+            break
+        caption = _call_claude()
 
     # Thai language QA — retry on hallucinated/misspelled words.
     # Layer 1 (blocklist) is mandatory: blocks publish on every retry.
