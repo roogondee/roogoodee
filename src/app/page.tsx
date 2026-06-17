@@ -19,7 +19,7 @@ export default async function Home() {
       .limit(3),
     supabase
       .from('posts')
-      .select('id,title,slug,excerpt,service,image_url,published_at,meta_desc,category')
+      .select('id,title,slug,excerpt,service,news_pillar,image_url,published_at,meta_desc,category')
       .eq('status', 'published')
       .eq('service', 'news')
       .order('published_at', { ascending: false })

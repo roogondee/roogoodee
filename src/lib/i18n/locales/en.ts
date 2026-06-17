@@ -19,6 +19,7 @@ const en = {
     ckd: '🫘 CKD Kidney Clinic', foreign: '🧪 Foreign Worker Checkup', mens: '🧔 Men\'s Health 40+',
     women: '🌸 Women\'s Health', mind: '🧠 Mind & Relationships',
     tools: '🧮 Health Calculators', ask: '💬 Ask Expert', blog: '📚 Health Articles',
+    news: '📰 News',
   },
   home: {
     heroTagline: 'Private, Safe Health Consultation',
@@ -85,7 +86,7 @@ const en = {
     footerWomen: 'Women\'s Health',
     footerMind: 'Mind & Relationships',
     footerCalc: 'Health Calculators', footerAsk: 'Ask Expert',
-    footerBlog: 'Health Articles', footerFaq: 'FAQ', footerAbout: 'About Us', footerEnglish: 'English',
+    footerBlog: 'Health Articles', footerNews: 'News', footerFaq: 'FAQ', footerAbout: 'About Us', footerEnglish: 'English',
   },
   contact: {
     title: 'Health Consultation', titleHighlight: 'Free & Non-judgmental',

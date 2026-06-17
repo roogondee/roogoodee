@@ -6,6 +6,9 @@ import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
 import MediaBlock from '@/components/ui/MediaBlock'
+import { SERVICES } from '@/types'
+
+const PILLAR_QUIZ = ['glp1', 'std', 'ckd', 'mens', 'women', 'mind']
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,6 +65,14 @@ export default async function NewsPostPage({ params }: { params: { slug: string 
     .order('published_at', { ascending: false })
     .limit(3)
 
+  const pillar: string | undefined = post.news_pillar || undefined
+  const pillarMeta = pillar ? SERVICES[pillar as keyof typeof SERVICES] : null
+  const ctaHref = pillar
+    ? (PILLAR_QUIZ.includes(pillar)
+        ? `/quiz/${pillar}?utm_source=news&utm_medium=news_cta&utm_campaign=${post.slug}`
+        : `/${pillar}?utm_source=news&utm_medium=news_cta&utm_campaign=${post.slug}`)
+    : null
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -110,7 +121,8 @@ export default async function NewsPostPage({ params }: { params: { slug: string 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 md:mb-10">
           <p className="text-muted text-sm">
             {post.published_at ? new Date(post.published_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-            {post.category && <span className="ml-3 text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{post.category}</span>}
+            {pillarMeta && <span className="ml-3 text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{pillarMeta.emoji} {pillarMeta.name}</span>}
+            {post.category && <span className="ml-2 text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{post.category}</span>}
           </p>
           <div className="sm:ml-auto">
             <ShareButtons url={`https://roogondee.com/news/${post.slug}`} title={post.title} />
@@ -119,15 +131,28 @@ export default async function NewsPostPage({ params }: { params: { slug: string 
 
         <div className="article-body" dangerouslySetInnerHTML={{ __html: post.content || '' }} />
 
-        {/* Generic CTA */}
+        {/* CTA — pillar-aware funnel when the news is tagged to a pillar */}
         <div className="mt-10 bg-gradient-to-br from-forest to-sage rounded-3xl p-7 md:p-10 text-white text-center">
-          <div className="text-4xl mb-3">💬</div>
-          <h3 className="font-display text-xl md:text-2xl mb-2">สนใจตรวจคัดกรองฟรีกับรู้ก่อนดี?</h3>
-          <p className="text-white/75 text-sm mb-5">ทำแบบประเมินสั้นๆ รับ voucher ตรวจฟรี ที่ W Medical Hospital สมุทรสาคร</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
-            <Link href="/" className="inline-flex items-center justify-center gap-2 bg-white text-forest px-7 py-3 rounded-full font-bold hover:bg-cream transition-all">ดูบริการทั้งหมด</Link>
-          </div>
+          <div className="text-4xl mb-3">{pillarMeta ? pillarMeta.emoji : '💬'}</div>
+          {pillarMeta && ctaHref ? (
+            <>
+              <h3 className="font-display text-xl md:text-2xl mb-2">สนใจ{pillarMeta.name}กับรู้ก่อนดี?</h3>
+              <p className="text-white/75 text-sm mb-5">ทำแบบประเมินสั้นๆ รับ voucher ตรวจ/ปรึกษาฟรี ที่ W Medical Hospital สมุทรสาคร</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={ctaHref} className="inline-flex items-center justify-center gap-2 bg-white text-forest px-7 py-3 rounded-full font-bold hover:bg-cream transition-all">{pillarMeta.cta}</Link>
+                <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+              </div>
+            </>
+          ) : (
+            <>
+              <h3 className="font-display text-xl md:text-2xl mb-2">สนใจตรวจคัดกรองฟรีกับรู้ก่อนดี?</h3>
+              <p className="text-white/75 text-sm mb-5">ทำแบบประเมินสั้นๆ รับ voucher ตรวจฟรี ที่ W Medical Hospital สมุทรสาคร</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+                <Link href="/" className="inline-flex items-center justify-center gap-2 bg-white text-forest px-7 py-3 rounded-full font-bold hover:bg-cream transition-all">ดูบริการทั้งหมด</Link>
+              </div>
+            </>
+          )}
         </div>
 
         {related && related.length > 0 && (

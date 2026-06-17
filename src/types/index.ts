@@ -7,6 +7,7 @@ export interface Post {
   content: string
   excerpt: string
   service: Service
+  news_pillar?: Service
   category: string
   focus_kw: string
   meta_desc: string

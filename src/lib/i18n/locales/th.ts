@@ -43,6 +43,7 @@ const th = {
     tools: '🧮 เครื่องคำนวณสุขภาพ',
     ask: '💬 ถามผู้เชี่ยวชาญ',
     blog: '📚 บทความสุขภาพ',
+    news: '📰 ข่าวสาร',
   },
   home: {
     heroTagline: 'ปรึกษาสุขภาพ ส่วนตัว ปลอดภัย',
@@ -112,7 +113,7 @@ const th = {
     footerWomen: 'สุขภาพเพศหญิง',
     footerMind: 'สุขภาพจิต & ความสัมพันธ์',
     footerCalc: 'เครื่องคำนวณสุขภาพ', footerAsk: 'ถามผู้เชี่ยวชาญ',
-    footerBlog: 'บทความสุขภาพ', footerFaq: 'คำถามที่พบบ่อย',
+    footerBlog: 'บทความสุขภาพ', footerNews: 'ข่าวสาร', footerFaq: 'คำถามที่พบบ่อย',
     footerAbout: 'เกี่ยวกับเรา', footerEnglish: 'English',
   },
   contact: {
