@@ -13,6 +13,12 @@ const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || ''
 const LINE_BOT_USER_ID = process.env.LINE_BOT_USER_ID || ''
 
+// Kill switch: set LINE_BOT_ENABLED=false in the env to silence the bot
+// without removing the webhook. We still ack 200 so LINE keeps the webhook
+// registered and stops retrying — flip it back to re-enable, no redeploy of
+// the handler logic needed.
+const LINE_BOT_ENABLED = process.env.LINE_BOT_ENABLED !== 'false'
+
 function verifySignature(body: string, signature: string): boolean {
   if (!LINE_CHANNEL_SECRET) return true // skip if not configured
   const hash = crypto
@@ -48,6 +54,12 @@ export async function POST(req: NextRequest) {
     if (!verifySignature(rawBody, signature)) {
       console.error('Invalid LINE signature')
       return NextResponse.json({ error: 'invalid signature' }, { status: 403 })
+    }
+
+    // Bot disabled via kill switch: ack so LINE keeps the webhook healthy,
+    // but process nothing (no AI reply, no voucher link, no welcome).
+    if (!LINE_BOT_ENABLED) {
+      return NextResponse.json({ ok: true, disabled: true })
     }
 
     const body = JSON.parse(rawBody)
