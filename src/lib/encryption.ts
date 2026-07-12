@@ -36,6 +36,14 @@ export function hashNationalId(id: string): string {
   return createHash('sha256').update(normalized).digest('hex')
 }
 
+// Passport (and other alphanumeric) documents share patients.national_id_hash;
+// normalize to uppercase alphanumerics instead of digits-only. Existing Thai-ID
+// rows keep hashNationalId semantics — never change that function.
+export function hashIdentityDoc(doc: string): string {
+  const normalized = (doc || '').replace(/[^0-9a-z]/gi, '').toUpperCase()
+  return createHash('sha256').update(normalized).digest('hex')
+}
+
 export function encryptJson(value: unknown): unknown {
   const key = getKey()
   if (!key) return value // fail-open for local/dev

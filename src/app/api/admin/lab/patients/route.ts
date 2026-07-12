@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionUser } from '@/lib/auth'
 import { logLeadAccess, requestIp } from '@/lib/audit'
-import { encryptJson, hashNationalId } from '@/lib/encryption'
+import { upsertPatient, validatePatientInput, type IdType } from '@/lib/certs/patients'
 
 export const runtime = 'nodejs'
 
@@ -28,39 +28,27 @@ export async function POST(req: NextRequest) {
   if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json().catch(() => null)
-  const name = (body?.name ?? '').trim()
-  const nationalId = (body?.national_id ?? '').replace(/\D/g, '')
-  if (!name || nationalId.length !== 13) {
-    return NextResponse.json({ error: 'ต้องระบุชื่อ และเลขบัตรประชาชน 13 หลัก' }, { status: 400 })
+  const input = {
+    name: (body?.name ?? '').trim(),
+    id_type: (body?.id_type ?? 'thai_id') as IdType,
+    national_id: (body?.national_id ?? '').trim(),
+    phone: body?.phone,
+    dob: body?.dob,
+    gender: body?.gender,
+    nationality: body?.nationality,
+    consent_pdpa: !!body?.consent_pdpa,
+    created_by: me.id,
   }
+  const invalid = validatePatientInput(input)
+  if (invalid) return NextResponse.json({ error: invalid }, { status: 400 })
 
-  const hash = hashNationalId(nationalId)
-
-  const { data: existing } = await supabaseAdmin
-    .from('patients')
-    .select(SELECT)
-    .eq('national_id_hash', hash)
-    .maybeSingle()
-  if (existing) return NextResponse.json({ patient: existing, existed: true })
-
-  const { data, error } = await supabaseAdmin
-    .from('patients')
-    .insert([{
-      name,
-      national_id_hash: hash,
-      national_id_enc: encryptJson(nationalId),
-      phone: body?.phone?.trim() || null,
-      dob: body?.dob || null,
-      gender: body?.gender || null,
-      consent_pdpa: !!body?.consent_pdpa,
-      consent_at: body?.consent_pdpa ? new Date().toISOString() : null,
-      created_by: me.id,
-    }])
-    .select(SELECT)
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  logLeadAccess({ actor: me.email, action: 'lab_create', details: { patient_id: data.id }, ip: requestIp(req) })
-  return NextResponse.json({ patient: data, existed: false })
+  try {
+    const patient = await upsertPatient(input)
+    if (!patient.existed) {
+      logLeadAccess({ actor: me.email, action: 'lab_create', details: { patient_id: patient.id }, ip: requestIp(req) })
+    }
+    return NextResponse.json({ patient, existed: patient.existed })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'error' }, { status: 500 })
+  }
 }

@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 export type AuditAction =
   | 'view' | 'update' | 'redeem' | 'delete' | 'export' | 'activity'
   | 'lab_view' | 'lab_create' | 'lab_confirm' | 'lab_export' | 'lab_send'
+  | 'cert_create' | 'cert_issue' | 'cert_revoke' | 'cert_export' | 'cert_import'
 
 interface LogInput {
   leadId?: string | null
