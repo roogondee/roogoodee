@@ -7,6 +7,7 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       '/api/admin/lab/**': ['./src/lib/lab/fonts/**'],
+      '/api/admin/certs/**': ['./src/lib/lab/fonts/**'],
     },
   },
   async rewrites() {
