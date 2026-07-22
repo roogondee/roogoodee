@@ -61,6 +61,9 @@ export default function ForeignClient() {
               <div key={text} className="flex items-center gap-2 text-sm text-muted"><span className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center text-xs">{icon}</span>{text}</div>
             ))}
           </div>
+          <Link href="/foreign/mou" className="inline-flex items-center gap-2 mt-6 text-sm font-semibold text-amber-700 hover:text-amber-800 underline underline-offset-4">
+            ตรวจเพื่อทำ MOU / Work Permit? ดูรายละเอียดและราคา →
+          </Link>
         </div>
       </section>
 
