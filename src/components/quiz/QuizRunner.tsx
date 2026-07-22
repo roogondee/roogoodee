@@ -9,7 +9,7 @@ import { useTranslation } from '@/lib/i18n/context'
 declare global {
   interface Window {
     gtag?: (command: 'event', name: string, params?: Record<string, unknown>) => void
-    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>) => void
+    fbq?: (command: 'track' | 'trackCustom', name: string, params?: Record<string, unknown>, options?: { eventID?: string }) => void
     ttq?: {
       track: (name: string, params?: Record<string, unknown>, options?: { event_id?: string }) => void
       page?: () => void

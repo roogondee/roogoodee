@@ -12,15 +12,28 @@ const ALLOWED_SOURCES = new Set([
   'line-broadcast',
   'fb-broadcast',
   'campaign',
+  'mou-landing',
 ])
+
+// UTM values come straight from the URL — keep only short plain strings.
+function cleanUtm(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value.slice(0, 120) : null
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { service, first_name, last_name, phone, age, gender, note } = body
+    const { service, first_name, last_name, phone, age, gender } = body
+    const note = typeof body.note === 'string' ? body.note.slice(0, 2000) : body.note
 
     if (!first_name || !phone) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อและเบอร์โทร' }, { status: 400 })
+    }
+
+    // Honeypot — real forms render this field hidden and leave it empty.
+    // Fake-accept so bots don't learn they were filtered.
+    if (typeof body.website === 'string' && body.website.trim() !== '') {
+      return NextResponse.json({ success: true, id: null })
     }
 
     const rawSource = typeof body.source === 'string' ? body.source : ''
@@ -33,7 +46,14 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('leads')
-      .insert([{ service, first_name, last_name, phone, age, gender, note, source, line_id }])
+      .insert([{
+        service, first_name, last_name, phone, age, gender, note, source, line_id,
+        consent_pdpa: body.consent_pdpa === true,
+        consent_at: typeof body.consent_at === 'string' ? body.consent_at : null,
+        utm_source: cleanUtm(body.utm_source),
+        utm_medium: cleanUtm(body.utm_medium),
+        utm_campaign: cleanUtm(body.utm_campaign),
+      }])
       .select()
 
     if (error) throw error
