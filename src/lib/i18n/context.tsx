@@ -46,7 +46,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setLocaleState(getInitialLocale())
+    // ?lang=<code> in the URL wins over cookie/browser language — lets ads and
+    // shared links force a language (e.g. /foreign/mou?lang=th for Thai-targeted
+    // campaigns, ?lang=my for Burmese ones). Persisted so navigation keeps it.
+    const urlLang = new URLSearchParams(window.location.search).get('lang')
+    if (urlLang && isValidLocale(urlLang)) {
+      setLocaleState(urlLang)
+      setCookie(LOCALE_COOKIE, urlLang)
+      document.documentElement.lang = urlLang
+    } else {
+      setLocaleState(getInitialLocale())
+    }
     setMounted(true)
   }, [])
 
