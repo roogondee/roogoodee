@@ -14,9 +14,10 @@ const SERVICE_LABELS: Record<string, string> = {
   mens:    '👨 Men',
   women:   '🌸 Women',
   mind:    '🧠 Mind',
+  dna:     '🧬 DNA',
 }
 
-const SERVICES: Service[] = ['glp1', 'std', 'ckd', 'mens', 'women', 'mind', 'foreign']
+const SERVICES: Service[] = ['glp1', 'std', 'ckd', 'mens', 'women', 'mind', 'dna', 'foreign']
 const DAY_OPTIONS = [7, 30, 90] as const
 
 interface FunnelRow {
@@ -31,30 +32,38 @@ interface ServiceStats {
   totalSessions: number
   submitted: number
   reachedContact: number
+  lineClicks: number
+  callClicks: number
   perQuestion: { index: number; question_id: string; reached: number }[]
 }
 
 function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
   const def = QUIZZES[service]
-  const sessions = new Map<string, { maxIdx: number; reachedContact: boolean; submitted: boolean }>()
+  const sessions = new Map<string, { maxIdx: number; reachedContact: boolean; submitted: boolean; lineClick: boolean; callClick: boolean }>()
   for (const r of rows) {
     if (r.service !== service) continue
-    const cur = sessions.get(r.session_id) ?? { maxIdx: -1, reachedContact: false, submitted: false }
+    const cur = sessions.get(r.session_id) ?? { maxIdx: -1, reachedContact: false, submitted: false, lineClick: false, callClick: false }
     if (r.event === 'progress' && typeof r.question_index === 'number' && r.question_index > cur.maxIdx) {
       cur.maxIdx = r.question_index
     }
     if (r.event === 'complete') cur.reachedContact = true
     if (r.event === 'submit_success') cur.submitted = true
+    if (r.event === 'line_click') cur.lineClick = true
+    if (r.event === 'call_click') cur.callClick = true
     sessions.set(r.session_id, cur)
   }
 
   const totalSessions = sessions.size
   let reachedContact = 0
   let submitted = 0
+  let lineClicks = 0
+  let callClicks = 0
   const reachCounts = new Array(def.questions.length).fill(0)
   for (const s of Array.from(sessions.values())) {
     if (s.reachedContact) reachedContact += 1
     if (s.submitted) submitted += 1
+    if (s.lineClick) lineClicks += 1
+    if (s.callClick) callClicks += 1
     for (let i = 0; i <= s.maxIdx && i < reachCounts.length; i += 1) {
       reachCounts[i] += 1
     }
@@ -65,6 +74,8 @@ function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
     totalSessions,
     submitted,
     reachedContact,
+    lineClicks,
+    callClicks,
     perQuestion: def.questions.map((q, i) => ({
       index: i,
       question_id: q.id,
@@ -159,8 +170,11 @@ export default async function QuizFunnelPage({
               <h2 className="font-semibold text-gray-800">{SERVICE_LABELS[s.service]}</h2>
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-gray-500">{s.totalSessions} sessions</span>
+                <span className="text-[#06C755] font-bold">
+                  LINE/โทร {pct(s.lineClicks + s.callClicks, s.totalSessions)}
+                </span>
                 <span className="text-forest font-bold">
-                  Conversion {pct(s.submitted, s.totalSessions)}
+                  Form {pct(s.submitted, s.totalSessions)}
                 </span>
               </div>
             </header>
@@ -201,14 +215,32 @@ export default async function QuizFunnelPage({
                   })}
                   <tr className="bg-mint/5">
                     <td className="px-4 py-3 text-xs text-gray-400">✓</td>
-                    <td className="px-4 py-3 font-semibold text-forest">ถึงหน้ากรอกข้อมูลติดต่อ</td>
+                    <td className="px-4 py-3 font-semibold text-forest">เห็นหน้าผลประเมิน (LINE / โทร / ฟอร์ม)</td>
                     <td className="px-4 py-3 text-right font-mono">{s.reachedContact}</td>
                     <td className="px-4 py-3 text-right text-xs text-gray-500">
                       {pct(s.reachedContact, s.totalSessions)}
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-gray-500">
-                      −{Math.max(0, s.reachedContact - s.submitted)}
+                      −{Math.max(0, s.reachedContact - s.submitted - s.lineClicks - s.callClicks)}
                     </td>
+                  </tr>
+                  <tr className="bg-[#06C755]/5">
+                    <td className="px-4 py-3 text-xs text-gray-400">💬</td>
+                    <td className="px-4 py-3 font-semibold text-[#06855c]">กดทัก LINE จากหน้าผล</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold">{s.lineClicks}</td>
+                    <td className="px-4 py-3 text-right text-xs text-gray-500">
+                      {pct(s.lineClicks, s.totalSessions)}
+                    </td>
+                    <td className="px-4 py-3" />
+                  </tr>
+                  <tr className="bg-[#06C755]/5">
+                    <td className="px-4 py-3 text-xs text-gray-400">📞</td>
+                    <td className="px-4 py-3 font-semibold text-[#06855c]">กดโทรจากหน้าผล</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold">{s.callClicks}</td>
+                    <td className="px-4 py-3 text-right text-xs text-gray-500">
+                      {pct(s.callClicks, s.totalSessions)}
+                    </td>
+                    <td className="px-4 py-3" />
                   </tr>
                   <tr className="bg-forest/5">
                     <td className="px-4 py-3 text-xs text-gray-400">🎟</td>

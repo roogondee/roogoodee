@@ -3,8 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { Question, QuizDefinition } from '@/lib/quiz/questions'
-import type { LeadTier } from '@/types'
+import { scoreQuiz } from '@/lib/quiz/scoring'
+import { generateInsight } from '@/lib/quiz/insight'
+import { SERVICES, type LeadTier } from '@/types'
 import { useTranslation } from '@/lib/i18n/context'
+import thDict from '@/lib/i18n/locales/th'
 
 declare global {
   interface Window {
@@ -126,14 +129,32 @@ const EMPTY_CONTACT: ContactForm = {
 
 const STORAGE_VERSION = 1
 
+// Flatten the composite BMI/basic step into scoring-compatible answers
+function flattenAnswers(answers: Record<string, unknown>): Record<string, unknown> {
+  const flat: Record<string, unknown> = { ...answers }
+  const composite = (answers['bmi'] || answers['basic']) as Record<string, unknown> | undefined
+  if (composite) {
+    Object.assign(flat, composite)
+    delete flat['bmi']
+    delete flat['basic']
+  }
+  return flat
+}
+
+const PHONE_DISPLAY = '081-902-3540'
+const PHONE_TEL = 'tel:0819023540'
+
 export default function QuizRunner({ definition }: Props) {
   const { t } = useTranslation()
-  const tq = t.quiz
+  // Fallback locales (my/lo/km/…) don't carry a quiz section — fall back to
+  // Thai so the runner never crashes on a missing dictionary branch.
+  const tq = t.quiz ?? thDict.quiz
   const searchParams = useSearchParams()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, unknown>>({})
   const [contact, setContact] = useState<ContactForm>(EMPTY_CONTACT)
   const [consent, setConsent] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<VoucherResult | null>(null)
@@ -232,6 +253,35 @@ export default function QuizRunner({ definition }: Props) {
     : null
   const isContactStep = step === definition.questions.length
 
+  // Client-side preview of tier + insight, shown the moment the questions are
+  // done — no form gate. Same pure functions the API uses server-side.
+  const preview = useMemo(() => {
+    if (!isContactStep || definition.questions.length === 0) return null
+    const flat = flattenAnswers(answers)
+    const scoring = scoreQuiz(definition.service, flat)
+    return { tier: scoring.tier, insight: generateInsight(definition.service, flat, scoring.tier) }
+  }, [isContactStep, answers, definition.service, definition.questions.length])
+
+  // LINE deep link with a prefilled message — Thai service name so the OA
+  // bot's detectService() catches the vertical and captureBotLead fires.
+  const linePrefillHref = useMemo(() => {
+    const label = SERVICES[definition.service]?.name || definition.service
+    const text = `สนใจปรึกษาเรื่อง ${label} (ทำแบบประเมินบนเว็บแล้ว)`
+    return `https://line.me/R/oaMessage/%40roogondee/?${new URLSearchParams({ text }).toString()}`
+  }, [definition.service])
+
+  const trackContactClick = (kind: 'line' | 'call') => {
+    track(`quiz_${kind}_click`, { service: definition.service, tier: preview?.tier })
+    trackFunnel({
+      session_id: sessionIdRef.current,
+      service: definition.service,
+      event: `${kind}_click`,
+      total_questions: definition.questions.length,
+    })
+    try { window.fbq?.('track', 'Contact', { content_category: definition.service }) } catch {}
+    try { window.ttq?.track('Contact', { content_id: `quiz-${definition.service}`, content_type: 'lead' }) } catch {}
+  }
+
   const canProceed = useMemo(() => {
     if (!currentQuestion) return true
     const val = answers[currentQuestion.id]
@@ -276,16 +326,8 @@ export default function QuizRunner({ definition }: Props) {
     if (!consent) { setError(tq.errorConsent); return }
     submitLatchRef.current = true
 
-    // Flatten BMI/basic step into scoring-compatible answers
-    const flat: Record<string, unknown> = { ...answers }
-    const bmi = answers['bmi'] as Record<string, unknown> | undefined
-    const basic = answers['basic'] as Record<string, unknown> | undefined
-    const composite = bmi || basic
-    if (composite) {
-      Object.assign(flat, composite)
-      delete flat['bmi']
-      delete flat['basic']
-    }
+    const flat = flattenAnswers(answers)
+    const composite = (answers['bmi'] || answers['basic']) as Record<string, unknown> | undefined
 
     setLoading(true)
     try {
@@ -506,10 +548,74 @@ export default function QuizRunner({ definition }: Props) {
     </div>
   ) : null
 
+  // ── Result step (insight + LINE/call first, form as opt-in) ──────
+  if (isContactStep && !showForm) {
+    const insight = preview?.insight
+    return (
+      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)} backLabel={tq.back} homeLabel={tq.backHome}>
+        {resumeBanner}
+        <h2 className={`font-display text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>{tq.resultTitle}</h2>
+        <p className={`text-sm mb-5 ${dark ? 'text-white/60' : 'text-muted'}`}>{tq.resultDesc}</p>
+
+        {insight && (
+          <div className={`rounded-2xl p-4 mb-5 border ${
+            insight.urgent
+              ? (dark ? 'bg-red-900/30 border-red-500/50' : 'bg-red-50 border-red-200')
+              : (dark ? 'bg-neutral-900 border-white/10' : 'bg-amber-50 border-amber-200')
+          }`}>
+            <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${
+              insight.urgent ? 'text-red-500' : (dark ? 'text-mint' : 'text-amber-700')
+            }`}>
+              💡 {tq.insightLabel}
+            </p>
+            <h3 className={`font-display text-base md:text-lg mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
+              {insight.headline}
+            </h3>
+            <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-white/80' : 'text-rtext'}`}>
+              {insight.body}
+            </p>
+            <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-white/70' : 'text-muted'}`}>
+              <span className="font-semibold">{tq.insightRecommend} </span>{insight.recommendation}
+            </p>
+            <p className={`text-xs italic border-t pt-2 ${dark ? 'text-white/40 border-white/10' : 'text-muted border-amber-200'}`}>
+              ⚕️ {insight.disclaimer}
+            </p>
+          </div>
+        )}
+
+        <a
+          href={linePrefillHref}
+          target="_blank" rel="noopener noreferrer"
+          onClick={() => trackContactClick('line')}
+          className="block text-center bg-[#06C755] text-white py-3.5 rounded-full font-bold text-base mb-3 hover:bg-[#00B04B] transition-all"
+        >
+          {tq.lineCta}
+        </a>
+        <a
+          href={PHONE_TEL}
+          onClick={() => trackContactClick('call')}
+          className={`block text-center py-3.5 rounded-full font-bold text-base mb-3 border-2 transition-all ${dark ? 'border-mint text-mint hover:bg-mint/10' : 'border-forest text-forest hover:bg-mint/10'}`}
+        >
+          {tq.callCta}
+        </a>
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className={`w-full text-center py-3 rounded-full font-semibold text-sm border ${dark ? 'border-white/15 text-white/70 hover:text-white hover:border-white/30' : 'border-gray-200 text-muted hover:text-forest hover:border-mint'} transition-all`}
+        >
+          {tq.formCta}
+        </button>
+        <p className={`text-xs text-center mt-2 ${dark ? 'text-white/40' : 'text-muted'}`}>
+          {tq.formCtaHint}
+        </p>
+      </QuizShell>
+    )
+  }
+
   // ── Contact step ──────────────────────────────────────────────────
   if (isContactStep) {
     return (
-      <QuizShell dark={dark} progress={100} onBack={() => setStep(step - 1)} backLabel={tq.back} homeLabel={tq.backHome}>
+      <QuizShell dark={dark} progress={100} onBack={() => setShowForm(false)} backLabel={tq.back} homeLabel={tq.backHome}>
         {resumeBanner}
         <h2 className={`font-display text-2xl mb-1 ${dark ? 'text-white' : 'text-forest'}`}>{tq.contactTitle}</h2>
         <p className={`text-sm mb-5 ${dark ? 'text-white/60' : 'text-muted'}`}>

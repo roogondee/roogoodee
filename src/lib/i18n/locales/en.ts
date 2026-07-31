@@ -535,6 +535,12 @@ const en = {
     title: 'Page Not Found', desc: 'The page you are looking for may have been moved or deleted.', backHome: 'Back to Home',
   },
   quiz: {
+    resultTitle: 'Your assessment is ready',
+    resultDesc: 'No form needed — pick whichever channel is easiest for you',
+    lineCta: '💬 Chat on LINE @roogondee',
+    callCta: '📞 Call 081-902-3540',
+    formCta: '🎟 Get voucher + request a callback',
+    formCtaHint: 'A short name + phone form, for those who prefer we reach out',
     question: 'Question',
     of: '/',
     next: 'Next →',
