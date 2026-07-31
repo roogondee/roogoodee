@@ -54,6 +54,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocaleState(urlLang)
       setCookie(LOCALE_COOKIE, urlLang)
       document.documentElement.lang = urlLang
+      // One-shot: drop the param once applied, otherwise a reload would keep
+      // overriding a language the visitor later picks with the switcher.
+      const url = new URL(window.location.href)
+      url.searchParams.delete('lang')
+      window.history.replaceState(window.history.state, '', url)
     } else {
       setLocaleState(getInitialLocale())
     }
