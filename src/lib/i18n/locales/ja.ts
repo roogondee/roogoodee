@@ -584,7 +584,7 @@ const ja = {
     heroTitle1: 'Migrant Worker Health Check',
     heroTitle2: 'for MOU & Work Permit',
     heroTitle3: 'Same-Day Results',
-    heroDesc: 'MOPH-licensed hospital for migrant worker health checks in Samut Sakhon\nGroup bookings for employers/HR and walk-in workers welcome',
+    heroDesc: 'Hospital licensed by the Ministry of Public Health and the Department of Employment, Ministry of Labour — Samut Sakhon\nGroup bookings for employers/HR and walk-in workers welcome',
     ctaCall: 'Call Now 081-902-3540',
     ctaCallSub: 'Tap to call, open daily',
     ctaForm: 'Request a callback',
