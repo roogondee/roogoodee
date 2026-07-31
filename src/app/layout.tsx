@@ -48,7 +48,13 @@ const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 // the stored choice (denied when unanswered) and Pixels.tsx sends
 // gtag('consent','update') when the banner is answered. 'pdpa_consent' must
 // stay in sync with CONSENT_KEY in src/lib/analytics/consent.ts.
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-THP6CDXR0L'
+// G-THP6CDXR0L is the property linked to the Google Ads account and always
+// fires; a different NEXT_PUBLIC_GA_ID adds a second property alongside it
+// (Vercel prod currently sets G-TS4XWH5NJD) rather than replacing it, so
+// neither property loses data. gtag events fan out to every configured ID.
+const GA_ID = 'G-THP6CDXR0L'
+const GA_EXTRA_ID = process.env.NEXT_PUBLIC_GA_ID
+const GA_IDS = GA_EXTRA_ID && GA_EXTRA_ID !== GA_ID ? [GA_ID, GA_EXTRA_ID] : [GA_ID]
 const GTAG_INIT = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -61,7 +67,7 @@ gtag('consent', 'default', {
   analytics_storage: pdpaOk ? 'granted' : 'denied'
 });
 gtag('js', new Date());
-gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+${GA_IDS.map((id) => `gtag('config', '${id}', { page_path: window.location.pathname });`).join('\n')}
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
