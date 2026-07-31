@@ -6,11 +6,20 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 const scryptAsync = promisify(scrypt)
 
+export type AdminRole = 'manager' | 'sale' | 'viewer'
+
 export interface SessionUser {
   id: string | null    // null = legacy pseudo-manager (pre-ACL deploy)
   email: string
   name?: string | null
-  role: 'manager' | 'sale'
+  role: AdminRole
+}
+
+// Read-only accounts (e.g. hospital / รพ. staff) may browse the registry and
+// monthly summaries but must never create, edit, issue, revoke, import, or
+// correct a certificate. Every write route and every write button checks this.
+export function canWrite(user: SessionUser | null | undefined): boolean {
+  return !!user && user.role !== 'viewer'
 }
 
 // ── Password hashing (scrypt, built-in, no native deps) ────────────────
@@ -92,7 +101,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role as 'manager' | 'sale',
+    role: user.role as AdminRole,
   }
 }
 

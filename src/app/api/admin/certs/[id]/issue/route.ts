@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, canWrite } from '@/lib/auth'
 import { logLeadAccess, requestIp } from '@/lib/audit'
-import { newCertToken, nextCertNo, buildPatientSnapshot, defaultValidUntil } from '@/lib/certs/issue'
+import { newCertToken, nextCertNo, buildPatientSnapshot, defaultValidUntil, generateVerifyCode } from '@/lib/certs/issue'
 
 export const runtime = 'nodejs'
 
@@ -13,12 +13,13 @@ export const runtime = 'nodejs'
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const me = await getSessionUser()
   if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canWrite(me)) return NextResponse.json({ error: 'บัญชีนี้เป็นแบบดูอย่างเดียว' }, { status: 403 })
 
   const body = await req.json().catch(() => ({}))
 
   const { data: cert } = await supabaseAdmin
     .from('medical_certificates')
-    .select('id, status, cert_type, patient_id, visit_date, cert_no, public_token, doctor_name, doctor_license, exam')
+    .select('id, status, cert_type, patient_id, visit_date, cert_no, public_token, verify_code, doctor_name, doctor_license, exam')
     .eq('id', params.id)
     .maybeSingle()
   if (!cert) return NextResponse.json({ error: 'ไม่พบใบรับรอง' }, { status: 404 })
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     status: 'issued',
     cert_no: cert.cert_no ?? await nextCertNo(cert.visit_date),
     public_token: cert.public_token ?? newCertToken(),
+    verify_code: cert.verify_code ?? generateVerifyCode(),
     patient_snapshot: snapshot,
     doctor_name: doctorName,
     doctor_license: doctorLicense,
@@ -65,10 +67,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .from('medical_certificates')
     .update(update)
     .eq('id', params.id)
-    .select('id, cert_no, public_token')
+    .select('id, cert_no, public_token, verify_code')
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   logLeadAccess({ actor: me.email, action: 'cert_issue', details: { cert_id: params.id, cert_no: data.cert_no }, ip: requestIp(req) })
-  return NextResponse.json({ id: data.id, cert_no: data.cert_no, public_token: data.public_token })
+  return NextResponse.json({ id: data.id, cert_no: data.cert_no, public_token: data.public_token, verify_code: data.verify_code })
 }

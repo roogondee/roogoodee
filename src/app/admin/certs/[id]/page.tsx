@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, canWrite } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { CERT_TYPE_LABEL, FIT_STATUS_LABEL, type MedicalCertificate } from '@/lib/certs/types'
 import type { LabAnalyte } from '@/lib/lab/types'
 import IssueCertButton from '@/components/admin/certs/IssueCertButton'
 import RevokeCertButton from '@/components/admin/certs/RevokeCertButton'
+import CorrectNameButton from '@/components/admin/certs/CorrectNameButton'
 import CertLinkCopy from '@/components/admin/certs/CertLinkCopy'
 
 export const revalidate = 0
@@ -26,6 +27,7 @@ export default async function CertDetailPage({ params }: { params: { id: string 
   const analytes = (cert.lab_analytes ?? []) as LabAnalyte[]
   const isDraft = cert.status === 'draft'
   const isIssued = cert.status === 'issued'
+  const writable = canWrite(me)
 
   return (
     <div className="max-w-3xl mx-auto space-y-5">
@@ -44,13 +46,20 @@ export default async function CertDetailPage({ params }: { params: { id: string 
       {/* Actions */}
       <section className="bg-white rounded-2xl p-5 border border-gray-100 space-y-4">
         <div className="flex flex-wrap gap-2">
-          {isDraft && <IssueCertButton certId={cert.id} defaultName={cert.doctor_name} defaultLicense={cert.doctor_license} />}
-          {isDraft && <Link href={`/admin/certs/${cert.id}/edit`} className="border border-gray-200 px-4 py-2.5 rounded-xl text-sm text-gray-600 hover:border-forest">แก้ไข</Link>}
+          {isDraft && writable && <IssueCertButton certId={cert.id} defaultName={cert.doctor_name} defaultLicense={cert.doctor_license} />}
+          {isDraft && writable && <Link href={`/admin/certs/${cert.id}/edit`} className="border border-gray-200 px-4 py-2.5 rounded-xl text-sm text-gray-600 hover:border-forest">แก้ไข</Link>}
           {(isIssued || cert.status === 'revoked') && (
             <a href={`/api/admin/certs/${cert.id}/pdf`} className="bg-forest text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-sage">ดาวน์โหลด PDF</a>
           )}
+          {isIssued && writable && <CorrectNameButton certId={cert.id} currentName={cert.patient_snapshot?.name ?? patient?.name ?? ''} />}
           {isIssued && me.role === 'manager' && <RevokeCertButton certId={cert.id} />}
         </div>
+        {cert.verify_code && (isIssued || cert.status === 'revoked') && (
+          <div className="rounded-xl bg-mint/10 border border-mint/30 px-4 py-3">
+            <p className="text-xs text-gray-500">รหัสตรวจสอบส่วนบุคคล (แจ้งคนไข้ — ใช้ค้นหน้าเว็บตรวจสอบ)</p>
+            <p className="font-mono text-lg tracking-[0.3em] text-forest">{cert.verify_code}</p>
+          </div>
+        )}
         {cert.public_token && (
           <div>
             <p className="text-xs text-gray-500 mb-1">ลิงก์ตรวจสอบ (QR ปลายทาง)</p>
