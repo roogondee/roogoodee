@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto'
+import { randomUUID, randomInt } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toBuddhistYear, formatCertNo, WORK_PERMIT_VALID_DAYS, type PatientSnapshot } from '@/lib/certs/types'
 import { decryptJson } from '@/lib/encryption'
@@ -7,6 +7,14 @@ import { idLast4 } from '@/lib/certs/patients'
 // ~244-bit unguessable capability token for the public verify URL.
 export function newCertToken(): string {
   return (randomUUID() + randomUUID()).replace(/-/g, '')
+}
+
+// One-time 6-digit personal code printed on the certificate and given to the
+// patient. Public name/cert-number search reveals a certificate only when this
+// code matches, so a lookup by name alone never discloses PDPA-protected data.
+// 100000-999999 so a leading zero is never lost in a spreadsheet.
+export function generateVerifyCode(): string {
+  return String(randomInt(100000, 1000000))
 }
 
 export async function nextCertNo(visitDate: string): Promise<string> {

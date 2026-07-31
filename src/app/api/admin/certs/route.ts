@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, canWrite } from '@/lib/auth'
 import { logLeadAccess, requestIp } from '@/lib/audit'
 import { seedDiseaseItems, type CertType } from '@/lib/certs/types'
 
@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const me = await getSessionUser()
   if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canWrite(me)) return NextResponse.json({ error: 'บัญชีนี้เป็นแบบดูอย่างเดียว' }, { status: 403 })
 
   const body = await req.json().catch(() => null)
   const patientId = body?.patient_id

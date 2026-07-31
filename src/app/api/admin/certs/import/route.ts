@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, canWrite } from '@/lib/auth'
 import { logLeadAccess, requestIp } from '@/lib/audit'
 import { parseCsv, mapCsvRows, parseThaiDate, type CsvCertRow } from '@/lib/certs/csv'
+import { readSpreadsheet } from '@/lib/certs/spreadsheet'
 import { upsertPatient, isValidThaiId, type IdType } from '@/lib/certs/patients'
 import { buildAnalyte } from '@/lib/certs/labs'
-import { newCertToken, nextCertNo, buildPatientSnapshot, defaultValidUntil } from '@/lib/certs/issue'
+import { newCertToken, nextCertNo, buildPatientSnapshot, defaultValidUntil, generateVerifyCode } from '@/lib/certs/issue'
 import { seedDiseaseItems, type CertType, type FitStatus, type CertDiseaseItem } from '@/lib/certs/types'
 
 export const runtime = 'nodejs'
@@ -63,19 +64,29 @@ function buildDiseaseItems(r: CsvCertRow, certType: CertType): CertDiseaseItem[]
 export async function POST(req: NextRequest) {
   const me = await getSessionUser()
   if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canWrite(me)) return NextResponse.json({ error: 'บัญชีนี้เป็นแบบดูอย่างเดียว' }, { status: 403 })
 
   const form = await req.formData()
   const file = form.get('file')
   const mode = (form.get('mode') ?? 'validate').toString()
   const defaults: BatchDefaults = JSON.parse((form.get('defaults') ?? '{}').toString())
 
-  if (!(file instanceof File)) return NextResponse.json({ error: 'ไม่พบไฟล์ CSV' }, { status: 400 })
+  if (!(file instanceof File)) return NextResponse.json({ error: 'ไม่พบไฟล์' }, { status: 400 })
   if (!CERT_TYPES.includes(defaults.cert_type)) {
     return NextResponse.json({ error: 'ต้องเลือกประเภทใบรับรองสำหรับทั้งไฟล์' }, { status: 400 })
   }
 
-  const text = await file.text()
-  const { rows, unknownHeaders } = mapCsvRows(parseCsv(text))
+  // Accept both CSV and Excel (.xlsx/.xls). Both are normalised to a raw
+  // string grid, then fed through the same header-mapping/validation pipeline.
+  let grid: string[][]
+  try {
+    grid = /\.xlsx?$/i.test(file.name)
+      ? await readSpreadsheet(Buffer.from(await file.arrayBuffer()))
+      : parseCsv(await file.text())
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'อ่านไฟล์ไม่สำเร็จ' }, { status: 400 })
+  }
+  const { rows, unknownHeaders } = mapCsvRows(grid)
   if (rows.length === 0) return NextResponse.json({ error: 'ไฟล์ว่างหรือไม่มีข้อมูล' }, { status: 400 })
   if (rows.length > MAX_ROWS) {
     return NextResponse.json({ error: `จำกัด ${MAX_ROWS} แถวต่อไฟล์ (พบ ${rows.length})` }, { status: 400 })
@@ -146,6 +157,7 @@ export async function POST(req: NextRequest) {
         lab_analytes: analytes, summary: f.summary || null,
         fit_status: (f.fit_status as FitStatus) || null,
         status: 'issued', cert_no: await nextCertNo(visitDate), public_token: newCertToken(),
+        verify_code: generateVerifyCode(),
         valid_until: defaultValidUntil(defaults.cert_type, visitDate),
         doctor_name: doctorName, doctor_license: defaults.doctor_license || null,
         issued_by: me.id, issued_at: new Date().toISOString(),

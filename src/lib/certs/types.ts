@@ -110,6 +110,7 @@ export interface MedicalCertificate {
   valid_until?: string | null
   status: CertStatus
   public_token?: string | null
+  verify_code?: string | null   // 6-digit personal code gating public search
   doctor_name?: string | null
   doctor_license?: string | null
   issued_by?: string | null

@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const body = await req.json() as {
     action?: 'disable' | 'enable' | 'reset_password' | 'set_role'
     password?: string
-    role?: 'manager' | 'sale'
+    role?: 'manager' | 'sale' | 'viewer'
   }
 
   const update: Record<string, unknown> = {}
@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     }
     update.password_hash = await hashPassword(body.password)
   } else if (body.action === 'set_role') {
-    if (body.role !== 'manager' && body.role !== 'sale') {
+    if (body.role !== 'manager' && body.role !== 'sale' && body.role !== 'viewer') {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
     if (params.id === me.id && body.role !== 'manager') {

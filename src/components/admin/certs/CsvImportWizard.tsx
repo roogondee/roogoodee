@@ -19,7 +19,7 @@ export default function CsvImportWizard() {
   const [committed, setCommitted] = useState<{ batch_id: string; success_count: number; error_count: number } | null>(null)
 
   async function run(mode: 'validate' | 'commit') {
-    if (!file) { setMessage('กรุณาเลือกไฟล์ CSV'); return }
+    if (!file) { setMessage('กรุณาเลือกไฟล์ Excel หรือ CSV'); return }
     setBusy(true); setMessage('')
     const fd = new FormData()
     fd.append('file', file)
@@ -80,9 +80,9 @@ export default function CsvImportWizard() {
 
       {/* File */}
       <section className="bg-white rounded-2xl p-5 border border-gray-100 space-y-3">
-        <h2 className="font-semibold text-forest">ไฟล์ CSV</h2>
-        <p className="text-xs text-gray-500">ส่งออกจาก Excel เป็น &quot;CSV UTF-8&quot; · คอลัมน์: name, id_type, national_id/passport_no, visit_date, weight_kg, height_cm, bp_sys, bp_dia, pulse, fit_status, summary และ lab แบบ <code>lab:FBS</code>, <code>lab:HIV</code></p>
-        <input type="file" accept=".csv,text/csv" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPreview(null); setErrors([]) }} className="text-sm" />
+        <h2 className="font-semibold text-forest">ไฟล์ Excel / CSV</h2>
+        <p className="text-xs text-gray-500">อัปโหลด Excel (.xlsx) ได้โดยตรง หรือ CSV UTF-8 · แถวแรกเป็นหัวคอลัมน์: name, id_type, national_id/passport_no, visit_date, weight_kg, height_cm, bp_sys, bp_dia, pulse, fit_status, summary และ lab แบบ <code>lab:FBS</code>, <code>lab:HIV</code></p>
+        <input type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPreview(null); setErrors([]) }} className="text-sm" />
         <div className="flex gap-2">
           <button onClick={() => run('validate')} disabled={busy || !file} className="bg-forest text-white px-5 py-2.5 rounded-xl text-sm disabled:opacity-50">{busy ? '...' : 'ตรวจสอบไฟล์'}</button>
           {preview && !hasErrors && <button onClick={() => run('commit')} disabled={busy} className="bg-mint text-white px-5 py-2.5 rounded-xl text-sm disabled:opacity-50">ออกใบรับรองทั้งชุด →</button>}

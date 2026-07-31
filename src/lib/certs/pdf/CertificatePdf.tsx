@@ -221,6 +221,7 @@ export function CertificatePages({ cert, qrDataUrl, verifyUrl, photoDataUrl }: C
       <View style={s.footer}>
         <Text style={s.footerNote}>
           {verifyUrl ? `สแกนเพื่อตรวจสอบความถูกต้อง / Scan to verify: ${verifyUrl}` : ''}
+          {cert.verify_code ? `\nรหัสตรวจสอบส่วนบุคคล / Personal code: ${cert.verify_code} (ใช้ค้นที่หน้าเว็บตรวจสอบ)` : ''}
           {cert.issued_at ? `\nออกเมื่อ ${new Date(cert.issued_at).toISOString().slice(0, 10)}` : ''}
         </Text>
         {qrDataUrl ? <Image src={qrDataUrl} style={s.qr} /> : null}

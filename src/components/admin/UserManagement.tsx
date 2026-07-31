@@ -73,7 +73,7 @@ export default function UserManagement({ initial, currentUserId }: { initial: Us
 function AddUserForm({ onCreated }: { onCreated: () => void }) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
-  const [role, setRole] = useState<'manager' | 'sale'>('sale')
+  const [role, setRole] = useState<'manager' | 'sale' | 'viewer'>('sale')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -104,10 +104,11 @@ function AddUserForm({ onCreated }: { onCreated: () => void }) {
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-forest" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <select value={role} onChange={e => setRole(e.target.value as 'manager' | 'sale')}
+        <select value={role} onChange={e => setRole(e.target.value as 'manager' | 'sale' | 'viewer')}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-forest">
           <option value="sale">Sale (เห็นเฉพาะ lead ที่ได้รับมอบหมาย)</option>
           <option value="manager">Manager (เห็นทั้งหมด + จัดการ user)</option>
+          <option value="viewer">Viewer (ดูอย่างเดียว — เช่น รพ. · ออก/แก้ใบรับรองไม่ได้)</option>
         </select>
         <input required type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="รหัสผ่าน (ขั้นต่ำ 8 ตัว)"
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-forest" />

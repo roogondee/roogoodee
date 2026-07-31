@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, canWrite } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
@@ -15,6 +15,7 @@ const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', '
 export async function POST(req: NextRequest) {
   const me = await getSessionUser()
   if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!canWrite(me)) return NextResponse.json({ error: 'บัญชีนี้เป็นแบบดูอย่างเดียว' }, { status: 403 })
 
   const form = await req.formData()
   const file = form.get('file')

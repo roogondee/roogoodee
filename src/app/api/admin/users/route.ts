@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json() as { email?: string; name?: string; role?: string; password?: string }
   const email = body.email?.trim().toLowerCase() || ''
-  const role = body.role === 'manager' ? 'manager' : 'sale'
+  const role = body.role === 'manager' ? 'manager' : body.role === 'viewer' ? 'viewer' : 'sale'
   const password = body.password || ''
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
