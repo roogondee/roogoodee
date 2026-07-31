@@ -1,4 +1,4 @@
-export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women' | 'mind'
+export type Service = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women' | 'mind' | 'dna'
 
 export interface Post {
   id: string
@@ -156,5 +156,13 @@ export const SERVICES = {
     target: 'ทุกเพศ ทุกวัย เน้น 20-50 ปี ที่กังวลเรื่องอารมณ์/ความสัมพันธ์/ความเครียด',
     tone: 'ฟังด้วยใจ ไม่ตัดสิน Safe space ภายใต้ผู้เชี่ยวชาญ',
     cta: 'ปรึกษานักจิตวิทยาฟรี'
+  },
+  dna: {
+    name: 'ตรวจ DNA พิสูจน์บิดา-บุตร',
+    emoji: '🧬',
+    color: '#E0F2FE',
+    target: 'ครอบครัวที่ต้องพิสูจน์ความสัมพันธ์ทางสายเลือด — จดรับรองบุตร คดีความ มรดก สัญชาติ หรือความสบายใจ',
+    tone: 'เป็นความลับ ไม่ตัดสิน ต้องมีความยินยอมทุกฝ่าย ตรวจโดยสถานพยาบาล/แล็บมาตรฐาน',
+    cta: 'ปรึกษาฟรี เป็นความลับ'
   }
 } as const

@@ -428,6 +428,71 @@ function insightMind(a: Answers, _tier: LeadTier): HealthInsight {
   }
 }
 
+// ── DNA Paternity (พิสูจน์บิดา-บุตร) ────────────────────────────────
+// Not a medical pillar — the disclaimer is legal/consent-first, not the
+// medical one. RED LINES baked into the copy:
+//   1. no_consent → consult about consent only; we never offer secret
+//      sample testing (PDPA sensitive data + inadmissible + labs refuse).
+//   2. prenatal → medical procedure (NIPP blood draw) → doctor consult
+//      only, never a direct test booking.
+//   3. Never guarantee legal outcomes; accuracy claims belong to the lab.
+// These branches MUST NOT be softened downstream.
+const DNA_DISCLAIMER = 'ข้อมูลนี้เป็นการให้ข้อมูลเบื้องต้นเท่านั้น ไม่ใช่คำแนะนำทางกฎหมายหรือการวินิจฉัยทางการแพทย์ การเก็บตัวอย่างและการตรวจดำเนินการโดยสถานพยาบาล/ห้องปฏิบัติการที่ได้มาตรฐานเท่านั้น และต้องได้รับความยินยอมจากทุกฝ่ายที่เกี่ยวข้อง (ผู้เยาว์ต้องมีผู้ปกครองตามกฎหมายยินยอม)'
+
+function insightDna(a: Answers, _tier: LeadTier): HealthInsight {
+  const purpose = asString(a.purpose)
+  const consent = asString(a.consent_status)
+  const deadline = asString(a.deadline)
+  const childAge = asString(a.child_age)
+
+  if (consent === 'no_consent') {
+    return {
+      headline: 'การตรวจ DNA ต้องได้รับความยินยอมจากทุกฝ่าย',
+      body: 'ข้อมูลพันธุกรรมเป็นข้อมูลส่วนบุคคลอ่อนไหวตาม PDPA — การเก็บตัวอย่างของผู้อื่นโดยไม่ยินยอม (เช่น เส้นผม แปรงสีฟัน) ห้องปฏิบัติการมาตรฐานไม่รับตรวจ และผลใช้อ้างอิงทางกฎหมายไม่ได้ แต่เคสแบบนี้มีทางออกที่ถูกต้อง เช่น การขอความยินยอม หรือกระบวนการทางศาลที่สั่งให้ตรวจได้',
+      recommendation: 'ทีมงานยินดีให้คำปรึกษาฟรีเรื่องแนวทางขอความยินยอมและขั้นตอนทางกฎหมายที่ทำได้จริง — เรายังนัดตรวจให้ไม่ได้จนกว่าทุกฝ่ายจะยินยอม',
+      disclaimer: DNA_DISCLAIMER,
+    }
+  }
+
+  if (purpose === 'prenatal' || childAge === 'prenatal') {
+    return {
+      headline: 'ตรวจระหว่างตั้งครรภ์ — ต้องอยู่ในการดูแลของแพทย์',
+      body: 'การตรวจพิสูจน์บิดาก่อนคลอดแบบปลอดภัย (NIPP) ใช้การเจาะเลือดของคุณแม่ตั้งแต่ประมาณสัปดาห์ที่ 8-10 ซึ่งเป็นหัตถการทางการแพทย์ — ความเหมาะสม ช่วงเวลา และความปลอดภัยต้องให้แพทย์ประเมินเป็นรายกรณี',
+      recommendation: 'ใช้ voucher ปรึกษาฟรี ทีมงานจะนัดหมายให้คุณคุยกับแพทย์ที่สถานพยาบาลก่อน — เราไม่รับจองตรวจก่อนคลอดโดยตรงโดยไม่ผ่านแพทย์',
+      disclaimer: DNA_DISCLAIMER,
+    }
+  }
+
+  if (purpose === 'legal_register' || purpose === 'legal_court' || purpose === 'citizenship') {
+    const urgentLine = deadline === 'urgent_2w'
+      ? ' คุณมีกำหนดเวลาใกล้แล้ว — ทีมงานจะติดต่อกลับโดยเร็วที่สุดเพื่อให้ทันนัด'
+      : ''
+    return {
+      headline: 'ต้องใช้ผลทางกฎหมาย — ต้องตรวจแบบมี chain of custody',
+      body: 'ผลที่ใช้กับศาล/ราชการได้ ต้องเก็บตัวอย่างต่อหน้าเจ้าหน้าที่ที่สถานพยาบาล พร้อมเอกสารยืนยันตัวตนและบันทึก chain of custody โดยห้องปฏิบัติการที่ได้มาตรฐาน (ISO/IEC 17025) — ชุดตรวจเก็บเองที่บ้านใช้ทางกฎหมายไม่ได้' + urgentLine,
+      recommendation: 'ใช้ voucher ปรึกษาฟรี ทีมงานจะแนะนำเอกสารที่ต้องเตรียม ช่วงราคา และนัดหมายเก็บตัวอย่างที่สถานพยาบาลคู่ค้าให้ครบในครั้งเดียว',
+      disclaimer: DNA_DISCLAIMER,
+      urgent: deadline === 'urgent_2w',
+    }
+  }
+
+  if (purpose === 'peace_of_mind') {
+    return {
+      headline: 'ตรวจเพื่อความสบายใจ — ขั้นตอนง่ายกว่า ราคาถูกกว่า',
+      body: 'การตรวจเพื่อความสบายใจให้ผลแม่นยำเท่ากับแบบกฎหมาย แต่ขั้นตอนเก็บตัวอย่างยืดหยุ่นกว่าและราคาต่ำกว่า ข้อจำกัดเดียวคือผลนำไปใช้กับศาล/ราชการไม่ได้ — หากอนาคตอาจต้องใช้ทางกฎหมาย ควรเลือกแบบ legal ตั้งแต่แรกเพื่อไม่ต้องตรวจซ้ำ',
+      recommendation: 'ใช้ voucher ปรึกษาฟรี ทีมงานช่วยเลือกประเภทการตรวจที่คุ้มที่สุดสำหรับเคสของคุณ พร้อมแจ้งช่วงราคาก่อนตัดสินใจ — ทุกฝ่ายที่ตรวจต้องยินยอม',
+      disclaimer: DNA_DISCLAIMER,
+    }
+  }
+
+  return {
+    headline: 'ยังไม่แน่ใจ — เริ่มจากคุยกับทีมงานก่อนได้',
+    body: 'การตรวจ DNA พิสูจน์ความสัมพันธ์มี 2 แบบหลัก: แบบใช้ทางกฎหมาย (จดรับรองบุตร คดีความ สัญชาติ) และแบบเพื่อความสบายใจ — ต่างกันที่ขั้นตอนเก็บตัวอย่าง เอกสาร และราคา การเลือกผิดแบบอาจต้องเสียเงินตรวจซ้ำ',
+    recommendation: 'ใช้ voucher ปรึกษาฟรี ไม่มีข้อผูกมัด — ทีมงานอธิบายขั้นตอน ราคา และเอกสารให้ครบก่อนตัดสินใจ เป็นความลับทุกขั้นตอน',
+    disclaimer: DNA_DISCLAIMER,
+  }
+}
+
 export function generateInsight(service: Service, answers: Answers, tier: LeadTier): HealthInsight | null {
   switch (service) {
     case 'glp1':    return insightGLP1(answers, tier)
@@ -436,6 +501,7 @@ export function generateInsight(service: Service, answers: Answers, tier: LeadTi
     case 'mens':    return insightMens(answers, tier)
     case 'women':   return insightWomen(answers, tier)
     case 'mind':    return insightMind(answers, tier)
+    case 'dna':     return insightDna(answers, tier)
     case 'foreign': return null
   }
 }

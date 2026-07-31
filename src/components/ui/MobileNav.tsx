@@ -19,6 +19,7 @@ export default function MobileNav() {
     { href: '/mens', label: t.nav.mens },
     { href: '/women', label: t.nav.women },
     { href: '/mind', label: t.nav.mind },
+    { href: '/dna', label: t.nav.dna },
     { href: '/tools', label: t.nav.tools },
     { href: '/ask', label: t.nav.ask },
     { href: '/blog', label: t.nav.blog },

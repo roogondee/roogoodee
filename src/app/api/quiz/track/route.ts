@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { Service } from '@/types'
 
-const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind']
+const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna']
 const VALID_EVENTS = ['start', 'progress', 'complete', 'submit_success'] as const
 type Event = (typeof VALID_EVENTS)[number]
 

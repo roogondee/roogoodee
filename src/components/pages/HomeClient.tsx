@@ -47,6 +47,7 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
     { key: 'mens',   emoji: '🧔', tag: 'Men\'s Health 40+', color: 'from-slate-50 to-indigo-100 border-indigo-200', name: t.home.mensName,    desc: t.home.mensDesc,    features: [t.home.mensFeature1, t.home.mensFeature2, t.home.mensFeature3],         href: '/mens' },
     { key: 'women',  emoji: '🌸', tag: 'Women\'s Health',   color: 'from-pink-50 to-rose-100 border-pink-200',      name: t.home.womenName,   desc: t.home.womenDesc,   features: [t.home.womenFeature1, t.home.womenFeature2, t.home.womenFeature3],     href: '/women' },
     { key: 'mind',   emoji: '🧠', tag: 'Mind & Relationships', color: 'from-violet-50 to-indigo-100 border-violet-200', name: t.home.mindName, desc: t.home.mindDesc, features: [t.home.mindFeature1, t.home.mindFeature2, t.home.mindFeature3],           href: '/mind' },
+    { key: 'dna',    emoji: '🧬', tag: 'DNA Paternity',        color: 'from-sky-50 to-blue-100 border-sky-200',        name: t.home.dnaName,  desc: t.home.dnaDesc,  features: [t.home.dnaFeature1, t.home.dnaFeature2, t.home.dnaFeature3],               href: '/dna' },
   ]
 
   const STEPS = [

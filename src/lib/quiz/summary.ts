@@ -408,6 +408,77 @@ function summarizeMind(a: Answers): string[] {
   return lines
 }
 
+// ── DNA Paternity (พิสูจน์บิดา-บุตร) ────────────────────────────────
+const DNA_PURPOSE: Record<string, string> = {
+  legal_register: 'จดรับรองบุตร/สูติบัตร (legal)',
+  legal_court:    'คดีความ/มรดก (legal)',
+  citizenship:    'สัญชาติ/วีซ่า (legal)',
+  peace_of_mind:  'เพื่อความสบายใจ',
+  prenatal:       'ตรวจระหว่างตั้งครรภ์ (ต้องพบแพทย์)',
+  unsure:         'ยังไม่แน่ใจ',
+}
+const DNA_WHO: Record<string, string> = {
+  father_child: 'พ่อ-ลูก',
+  mother_child: 'แม่-ลูก',
+  siblings:     'พี่น้อง',
+  grandparent:  'ปู่ย่าตายาย-หลาน',
+  other:        'อื่นๆ',
+}
+const DNA_CHILD_AGE: Record<string, string> = {
+  prenatal: 'ในครรภ์',
+  under_1:  '< 1 ปี',
+  '1_7':    '1-7 ปี',
+  '8_19':   '8-19 ปี',
+  adult:    '20+ ปี',
+}
+const DNA_CONSENT: Record<string, string> = {
+  all_consent:      'ทุกฝ่ายยินยอมแล้ว',
+  guardian_consent: 'ผู้ปกครองยินยอมแล้ว',
+  not_yet:          '⚠️ ยังไม่ได้คุยกับอีกฝ่าย',
+  no_consent:       '🚩 อีกฝ่ายไม่ยินยอม — ห้ามนัดตรวจ ให้คำปรึกษาเรื่อง consent เท่านั้น',
+}
+const DNA_DEADLINE: Record<string, string> = {
+  urgent_2w: '🚨 นัดศาล/ราชการ < 2 สัปดาห์',
+  '1m':      'ภายใน 1 เดือน',
+  '1-3m':    '1-3 เดือน',
+  none:      'ไม่มีกำหนด',
+}
+const DNA_CONTACT: Record<string, string> = {
+  line_only: '⚠️ LINE เท่านั้น (ห้ามโทร)',
+  call_ok:   'โทรได้',
+  email:     'Email',
+}
+
+function summarizeDna(a: Answers): string[] {
+  const lines: string[] = []
+
+  const consent = asString(a.consent_status)
+  if (consent === 'no_consent') {
+    lines.push(DNA_CONSENT.no_consent)
+  }
+
+  const contact = asString(a.contact_channel)
+  if (contact) lines.push(`ช่องทาง: ${DNA_CONTACT[contact] || contact}`)
+
+  const purpose = asString(a.purpose)
+  if (purpose) lines.push(`วัตถุประสงค์: ${DNA_PURPOSE[purpose] || purpose}`)
+
+  const who = asString(a.who_tested)
+  if (who) lines.push(`พิสูจน์: ${DNA_WHO[who] || who}`)
+
+  const childAge = asString(a.child_age)
+  if (childAge) lines.push(`อายุผู้ตรวจ: ${DNA_CHILD_AGE[childAge] || childAge}`)
+
+  if (consent && consent !== 'no_consent') {
+    lines.push(`ความยินยอม: ${DNA_CONSENT[consent] || consent}`)
+  }
+
+  const deadline = asString(a.deadline)
+  if (deadline) lines.push(`กำหนดใช้ผล: ${DNA_DEADLINE[deadline] || deadline}`)
+
+  return lines
+}
+
 export function summarizeAnswers(service: Service, answers: Answers): string[] {
   switch (service) {
     case 'glp1':    return summarizeGLP1(answers)
@@ -416,6 +487,7 @@ export function summarizeAnswers(service: Service, answers: Answers): string[] {
     case 'mens':    return summarizeMens(answers)
     case 'women':   return summarizeWomen(answers)
     case 'mind':    return summarizeMind(answers)
+    case 'dna':     return summarizeDna(answers)
     case 'foreign': return []
   }
 }
