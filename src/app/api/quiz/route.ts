@@ -24,7 +24,11 @@ const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'me
 const MONTHLY_QUOTA = 50
 
 function normalizePhone(p: string): string {
-  return p.replace(/[-\s]/g, '')
+  let s = p.replace(/[-\s().]/g, '')
+  // Accept E.164-style Thai numbers pasted from LINE/contacts
+  if (s.startsWith('+66')) s = '0' + s.slice(3)
+  else if (s.startsWith('66') && s.length >= 10) s = '0' + s.slice(2)
+  return s
 }
 
 export async function POST(req: NextRequest) {
@@ -45,21 +49,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'กรุณายอมรับเงื่อนไข PDPA' }, { status: 400 })
     }
 
-    // reCAPTCHA v3 — fails open if RECAPTCHA_SECRET_KEY is unset
+    // reCAPTCHA v3 — advisory only, never blocks the submission. Ad-blockers
+    // and data-saver browsers routinely prevent the Google script from
+    // loading, which used to reject real customers after they had completed
+    // the whole quiz. The outcome is stored on the lead (recaptcha_ok /
+    // recaptcha_reason) so the team can screen suspicious entries; the IP
+    // rate limit below stays as the bot backstop.
     const captcha = await verifyRecaptcha(body.recaptcha_token, `quiz_${body.service}`)
     if (!captcha.success) {
-      console.warn('quiz: recaptcha rejected', captcha)
-      return NextResponse.json(
-        { error: 'ตรวจพบการใช้งานผิดปกติ กรุณารีเฟรชหน้านี้แล้วลองใหม่' },
-        { status: 400 },
-      )
+      console.warn('quiz: recaptcha not verified (continuing)', captcha)
     }
 
     // IP rate limit — protect against bot/scraper exhausting the monthly
-    // service quota. Counts vouchers issued from the same IP within the last
-    // 24 hours; threshold is generous (10/day) since multiple family members
-    // may legitimately share an IP. Fails OPEN on `leads.client_ip` column
-    // missing so existing deployments without the column don't break.
+    // service quota. Counts leads created from the same IP within the last
+    // 24 hours. Threshold is 30/day: Thai mobile carriers put many users
+    // behind one CGNAT IP, so a lower limit blocks real customers. Fails
+    // OPEN on `leads.client_ip` column missing so existing deployments
+    // without the column don't break.
     const clientIp = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
     if (clientIp) {
       const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
@@ -68,7 +74,7 @@ export async function POST(req: NextRequest) {
         .select('id', { count: 'exact', head: true })
         .eq('client_ip', clientIp)
         .gte('created_at', dayAgo)
-      if (!ipErr && (ipCount ?? 0) >= 10) {
+      if (!ipErr && (ipCount ?? 0) >= 30) {
         console.warn('quiz: ip rate limit exceeded', { clientIp, ipCount })
         return NextResponse.json(
           { error: 'ระบบตรวจพบคำขอจาก IP นี้มากเกินไป กรุณาลองใหม่ในวันพรุ่งนี้ หรือติดต่อ LINE @roogondee' },
@@ -92,7 +98,32 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Spec §5.2: monthly quota 50/service/month
+    // Same phone re-submitting within 24h without a voucher (waitlisted, or
+    // an earlier submission whose voucher issuance failed) — don't insert a
+    // duplicate lead, reply with the same "team will contact you" outcome.
+    const recentSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: recentLeads } = await supabaseAdmin
+      .from('leads')
+      .select('id, lead_tier, lead_score')
+      .eq('phone', phone)
+      .eq('service', body.service)
+      .gte('created_at', recentSince)
+      .limit(1)
+    if (recentLeads && recentLeads.length > 0) {
+      return NextResponse.json({
+        success: true,
+        waitlist: true,
+        lead_id: recentLeads[0].id,
+        tier: recentLeads[0].lead_tier,
+        score: recentLeads[0].lead_score,
+        voucher: null,
+        insight: null,
+      })
+    }
+
+    // Spec §5.2: monthly quota 50/service/month. When the quota is full the
+    // lead is still captured (status 'waitlist', no voucher) so a successful
+    // campaign never silently discards customers mid-month.
     const monthStart = new Date()
     monthStart.setDate(1)
     monthStart.setHours(0, 0, 0, 0)
@@ -102,12 +133,7 @@ export async function POST(req: NextRequest) {
       .eq('service', body.service)
       .gte('issued_at', monthStart.toISOString())
 
-    if ((monthCount ?? 0) >= MONTHLY_QUOTA) {
-      return NextResponse.json(
-        { error: 'สิทธิ์ประจำเดือนเต็มแล้ว — กลับมาใหม่เดือนหน้า หรือติดต่อ LINE @roogondee' },
-        { status: 429 },
-      )
-    }
+    const quotaFull = (monthCount ?? 0) >= MONTHLY_QUOTA
 
     const answers = body.answers ?? {}
     const scoring = scoreQuiz(body.service, answers)
@@ -141,14 +167,26 @@ export async function POST(req: NextRequest) {
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
         utm_campaign:  body.utm_campaign || null,
-        status:        'new',
+        status:        quotaFull ? 'waitlist' : 'new',
+        recaptcha_ok:     captcha.success,
+        recaptcha_reason: captcha.reason || null,
       }])
       .select()
       .single()
 
     if (insertError) throw insertError
 
-    const voucher = await issueVoucher({ leadId: inserted.id, service: body.service })
+    // Voucher issuance can fail (code collisions, DB hiccup). The lead row
+    // already exists at this point, so never turn that into a user-facing
+    // error — fall back to the waitlist outcome and let the team follow up.
+    let voucher: Awaited<ReturnType<typeof issueVoucher>> | null = null
+    if (!quotaFull) {
+      try {
+        voucher = await issueVoucher({ leadId: inserted.id, service: body.service })
+      } catch (err) {
+        console.error('issueVoucher failed — falling back to waitlist outcome:', err)
+      }
+    }
 
     const notifyPayload = {
       name:               `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
@@ -158,8 +196,8 @@ export async function POST(req: NextRequest) {
       service:            body.service,
       tier:               scoring.tier,
       score:              scoring.score,
-      voucher_code:       voucher.code,
-      voucher_expires_at: voucher.expires_at,
+      voucher_code:       voucher ? voucher.code : 'ไม่มี — waitlist รอติดต่อกลับ',
+      voucher_expires_at: voucher?.expires_at,
       reasons:            scoring.reasons,
       answer_summary:     summarizeAnswers(body.service, answers),
     } as const
@@ -182,7 +220,7 @@ export async function POST(req: NextRequest) {
         try {
           await pushMindCrisisReplyToUser(inserted.line_id, {
             name: notifyPayload.name,
-            voucher_code: voucher.code,
+            voucher_code: voucher?.code || '-',
           })
         } catch (err) {
           console.error('pushMindCrisisReplyToUser failed:', err)
@@ -201,10 +239,10 @@ export async function POST(req: NextRequest) {
       phone:   inserted.phone,
       service: body.service,
       source:  `quiz (${scoring.tier.toUpperCase()} score ${scoring.score})`,
-      note:    `Voucher: ${voucher.code}`,
+      note:    voucher ? `Voucher: ${voucher.code}` : 'Waitlist — no voucher issued',
     })
 
-    if (inserted.email) {
+    if (inserted.email && voucher) {
       void sendVoucherToUser({
         to:         inserted.email,
         name:       `${inserted.first_name} ${inserted.last_name || ''}`.trim(),
@@ -219,45 +257,49 @@ export async function POST(req: NextRequest) {
     // call in QuizRunner.
     const ip = clientIp || undefined
     const userAgent = req.headers.get('user-agent') || undefined
-    void sendTikTokEvent({
-      event_name: 'SubmitForm',
-      event_id: voucher.code,
-      service: body.service,
-      user: {
-        email: inserted.email || undefined,
-        phone: inserted.phone,
-        external_id: voucher.code,
-        ip,
-        user_agent: userAgent,
-        ttclid: body.ttclid,
-        ttp: body.ttp,
-      },
-      properties: {
-        content_id: voucher.code,
-        content_name: `${body.service.toUpperCase()} Voucher`,
-        content_type: 'lead',
-        value: scoring.score,
-        currency: 'THB',
-        lead_score: scoring.tier,
-        vertical: body.service,
-      },
-    })
+    if (voucher) {
+      const voucherCode = voucher.code
+      void sendTikTokEvent({
+        event_name: 'SubmitForm',
+        event_id: voucherCode,
+        service: body.service,
+        user: {
+          email: inserted.email || undefined,
+          phone: inserted.phone,
+          external_id: voucherCode,
+          ip,
+          user_agent: userAgent,
+          ttclid: body.ttclid,
+          ttp: body.ttp,
+        },
+        properties: {
+          content_id: voucherCode,
+          content_name: `${body.service.toUpperCase()} Voucher`,
+          content_type: 'lead',
+          value: scoring.score,
+          currency: 'THB',
+          lead_score: scoring.tier,
+          vertical: body.service,
+        },
+      })
+    }
 
     return NextResponse.json({
       success: true,
       lead_id: inserted.id,
       tier: scoring.tier,
       score: scoring.score,
-      voucher: {
-        code: voucher.code,
-        expires_at: voucher.expires_at,
-      },
+      waitlist: !voucher,
+      voucher: voucher
+        ? { code: voucher.code, expires_at: voucher.expires_at }
+        : null,
       insight: generateInsight(body.service, answers, scoring.tier),
     })
   } catch (err) {
+    // Never leak raw (English) error strings into the Thai UI
     console.error('quiz submit error:', err)
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' },
+      { error: 'ขออภัย ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อ LINE @roogondee' },
       { status: 500 },
     )
   }

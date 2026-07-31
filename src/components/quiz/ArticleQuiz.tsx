@@ -129,7 +129,7 @@ export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
         <p className="text-sm text-muted mb-4">{quiz.intro}</p>
 
         <div className="h-1.5 bg-mint/10 rounded-full overflow-hidden mb-5">
-          <div className="h-full bg-mint transition-all duration-300" style={{ width: `${((step) / total) * 100}%` }} />
+          <div className="h-full bg-mint transition-all duration-300" style={{ width: `${((step + 1) / total) * 100}%` }} />
         </div>
 
         <h3 className="font-display text-lg md:text-xl text-forest mb-4">{current.title}</h3>

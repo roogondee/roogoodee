@@ -144,11 +144,6 @@ export async function POST(req: NextRequest) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleEvent(event: any): Promise<void> {
-  // Log group ID when bot is added to a group or receives group message
-  if (event.source?.type === 'group') {
-    console.log('GROUP_ID:', event.source.groupId)
-  }
-
   // Spec §5.3: follow event = user added the OA. Send welcome + ask for
   // voucher code so we can link their userId to a lead for future push.
   if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {

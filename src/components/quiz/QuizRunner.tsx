@@ -32,14 +32,28 @@ function readCookie(name: string): string | undefined {
 
 async function getRecaptchaToken(action: string): Promise<string | undefined> {
   if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined' || !window.grecaptcha) return undefined
-  return new Promise<string | undefined>(resolve => {
-    window.grecaptcha!.ready(async () => {
-      try {
-        const token = await window.grecaptcha!.execute(RECAPTCHA_SITE_KEY, { action })
-        resolve(token)
-      } catch { resolve(undefined) }
-    })
+  // Race against a timeout — a blocked or half-loaded grecaptcha must never
+  // leave the submit button spinning forever. The server treats a missing
+  // token as advisory, not a rejection.
+  const token = new Promise<string | undefined>(resolve => {
+    try {
+      window.grecaptcha!.ready(async () => {
+        try {
+          resolve(await window.grecaptcha!.execute(RECAPTCHA_SITE_KEY, { action }))
+        } catch { resolve(undefined) }
+      })
+    } catch { resolve(undefined) }
   })
+  const timeout = new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 3000))
+  return Promise.race([token, timeout])
+}
+
+function normalizePhone(p: string): string {
+  let s = p.replace(/[-\s().]/g, '')
+  // Accept E.164-style Thai numbers pasted from LINE/contacts
+  if (s.startsWith('+66')) s = '0' + s.slice(3)
+  else if (s.startsWith('66') && s.length >= 10) s = '0' + s.slice(2)
+  return s
 }
 
 // Spec §7.2 — fan out events to GA4, Meta Pixel, and TikTok Pixel when available
@@ -89,8 +103,8 @@ interface ContactForm {
 }
 
 interface VoucherResult {
-  code: string
-  expires_at: string
+  code: string | null       // null = waitlisted, no voucher issued
+  expires_at: string | null
   tier: LeadTier
   score: number
   insight?: {
@@ -128,6 +142,7 @@ export default function QuizRunner({ definition }: Props) {
   const startedRef = useRef(false)
   const lastProgressRef = useRef(-1)
   const completeFiredRef = useRef(false)
+  const submitLatchRef = useRef(false)
   const sessionIdRef = useRef<string>('')
   const storageKey = `rgd-quiz-${definition.service}-v${STORAGE_VERSION}`
 
@@ -136,14 +151,17 @@ export default function QuizRunner({ definition }: Props) {
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
-        const { step: s, answers: a, session_id } = JSON.parse(saved) as {
+        const { step: s, answers: a, session_id, contact: c, consent: agreed } = JSON.parse(saved) as {
           step: number; answers: Record<string, unknown>; session_id?: string
+          contact?: Partial<ContactForm>; consent?: boolean
         }
         if (typeof s === 'number' && s > 0) {
           setStep(s)
           setAnswers(a || {})
           setResumed(true)
         }
+        if (c && typeof c === 'object') setContact({ ...EMPTY_CONTACT, ...c })
+        if (typeof agreed === 'boolean') setConsent(agreed)
         if (typeof session_id === 'string' && session_id) {
           sessionIdRef.current = session_id
         }
@@ -153,15 +171,17 @@ export default function QuizRunner({ definition }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Persist progress whenever step or answers change
+  // Persist progress (incl. contact + consent, so a refresh on the contact
+  // step doesn't force the user to re-type everything)
   useEffect(() => {
-    if (step === 0 && Object.keys(answers).length === 0) return
+    const hasContact = Object.values(contact).some(v => v !== '')
+    if (step === 0 && Object.keys(answers).length === 0 && !hasContact && !consent) return
     try {
       localStorage.setItem(storageKey, JSON.stringify({
-        step, answers, session_id: sessionIdRef.current,
+        step, answers, session_id: sessionIdRef.current, contact, consent,
       }))
     } catch {}
-  }, [step, answers, storageKey])
+  }, [step, answers, contact, consent, storageKey])
 
   const utm = useMemo(() => ({
     utm_source:   searchParams?.get('utm_source')   || undefined,
@@ -203,7 +223,8 @@ export default function QuizRunner({ definition }: Props) {
   }, [searchParams])
 
   const totalSteps = definition.questions.length + 1 // +1 for contact step
-  const progress = Math.round((step / totalSteps) * 100)
+  // step+1 / totalSteps+1 so Q1 already shows visible progress instead of 0%
+  const progress = Math.round(((step + 1) / (totalSteps + 1)) * 100)
   const dark = definition.darkMode
 
   const currentQuestion: Question | null = step < definition.questions.length
@@ -247,11 +268,13 @@ export default function QuizRunner({ definition }: Props) {
   }
 
   const handleSubmit = async () => {
+    if (submitLatchRef.current) return // guard against fast double-taps
     setError(null)
     if (!contact.first_name.trim()) { setError(tq.errorName); return }
-    const phone = contact.phone.replace(/[-\s]/g, '')
+    const phone = normalizePhone(contact.phone)
     if (!/^0\d{8,9}$/.test(phone)) { setError(tq.errorPhone); return }
     if (!consent) { setError(tq.errorConsent); return }
+    submitLatchRef.current = true
 
     // Flatten BMI/basic step into scoring-compatible answers
     const flat: Record<string, unknown> = { ...answers }
@@ -299,14 +322,14 @@ export default function QuizRunner({ definition }: Props) {
       }
       try { localStorage.removeItem(storageKey) } catch {}
       setResult({
-        code: data.voucher.code,
-        expires_at: data.voucher.expires_at,
+        code: data.voucher?.code ?? null,
+        expires_at: data.voucher?.expires_at ?? null,
         tier: data.tier,
         score: data.score,
         insight: data.insight,
       })
       track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
-      track('voucher_sent', { service: definition.service, code: data.voucher.code })
+      if (data.voucher?.code) track('voucher_sent', { service: definition.service, code: data.voucher.code })
       trackFunnel({
         session_id: sessionIdRef.current,
         service: definition.service,
@@ -319,7 +342,7 @@ export default function QuizRunner({ definition }: Props) {
       } catch {}
       // TikTok standard events — event_id = voucher code so the server-side
       // Events API call from /api/quiz dedupes against this client-side fire.
-      try {
+      if (data.voucher?.code) try {
         window.ttq?.track('SubmitForm', {
           content_id: data.voucher.code,
           content_name: `${definition.service.toUpperCase()} Voucher`,
@@ -336,6 +359,7 @@ export default function QuizRunner({ definition }: Props) {
     } catch {
       setError(tq.errorGeneral)
     } finally {
+      submitLatchRef.current = false
       setLoading(false)
     }
   }
@@ -372,27 +396,34 @@ export default function QuizRunner({ definition }: Props) {
 
   // ── Success screen ────────────────────────────────────────────────
   if (result) {
-    const expires = new Date(result.expires_at).toLocaleDateString('th-TH', {
-      day: '2-digit', month: 'short', year: 'numeric',
-    })
+    const waitlisted = !result.code
+    const expires = result.expires_at
+      ? new Date(result.expires_at).toLocaleDateString('th-TH', {
+          day: '2-digit', month: 'short', year: 'numeric',
+        })
+      : null
     return (
       <main className={`min-h-screen flex items-center justify-center p-5 ${dark ? 'bg-neutral-900 text-white' : 'bg-gradient-to-br from-forest via-sage to-mint'}`}>
         <div className={`max-w-md w-full rounded-3xl p-8 shadow-2xl ${dark ? 'bg-neutral-800 border border-white/10' : 'bg-white'}`}>
-          <div className="text-6xl text-center mb-4">🎟</div>
+          <div className="text-6xl text-center mb-4">{waitlisted ? '✅' : '🎟'}</div>
           <h1 className={`font-display text-3xl text-center mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
-            {tq.successTitle}
+            {waitlisted ? (tq.waitlistTitle || 'บันทึกข้อมูลเรียบร้อย!') : tq.successTitle}
           </h1>
           <p className={`text-center text-sm mb-6 ${dark ? 'text-white/70' : 'text-muted'}`}>
-            {tq.successDesc}
+            {waitlisted
+              ? (tq.waitlistDesc || 'สิทธิ์ฟรีของเดือนนี้เต็มแล้ว — ทีมงานจะติดต่อกลับเพื่อจัดคิวให้คุณโดยเร็วที่สุด')
+              : tq.successDesc}
           </p>
 
-          <div className={`rounded-2xl p-5 text-center mb-5 ${dark ? 'bg-neutral-900 border border-mint/30' : 'bg-mint/10 border border-mint/30'}`}>
-            <div className={`text-xs mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>{tq.voucherCodeLabel}</div>
-            <div className="font-mono text-2xl font-bold tracking-wider mb-2">{result.code}</div>
-            <div className={`text-xs ${dark ? 'text-white/60' : 'text-muted'}`}>
-              {tq.voucherExpires} {expires} {tq.voucherDays}
+          {result.code && (
+            <div className={`rounded-2xl p-5 text-center mb-5 ${dark ? 'bg-neutral-900 border border-mint/30' : 'bg-mint/10 border border-mint/30'}`}>
+              <div className={`text-xs mb-1 ${dark ? 'text-white/50' : 'text-muted'}`}>{tq.voucherCodeLabel}</div>
+              <div className="font-mono text-2xl font-bold tracking-wider mb-2">{result.code}</div>
+              <div className={`text-xs ${dark ? 'text-white/60' : 'text-muted'}`}>
+                {tq.voucherExpires} {expires} {tq.voucherDays}
+              </div>
             </div>
-          </div>
+          )}
 
           {result.insight && (
             <div className={`rounded-2xl p-4 mb-5 border ${
@@ -422,14 +453,16 @@ export default function QuizRunner({ definition }: Props) {
             </div>
           )}
 
-          <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
-            <p className="font-semibold mb-2">📱 {tq.linePrompt}</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>{tq.lineStep1}</li>
-              <li>{tq.lineStep2}: <span className={`font-mono font-bold ${dark ? 'text-mint' : 'text-forest'}`}>{result.code}</span></li>
-              <li>{tq.lineStep3}</li>
-            </ol>
-          </div>
+          {result.code && (
+            <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
+              <p className="font-semibold mb-2">📱 {tq.linePrompt}</p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>{tq.lineStep1}</li>
+                <li>{tq.lineStep2}: <span className={`font-mono font-bold ${dark ? 'text-mint' : 'text-forest'}`}>{result.code}</span></li>
+                <li>{tq.lineStep3}</li>
+              </ol>
+            </div>
+          )}
 
           <a
             href="https://line.me/ti/p/@roogondee"
@@ -635,6 +668,15 @@ export default function QuizRunner({ definition }: Props) {
       >
         {tq.next}
       </button>
+      {!q.required && (
+        <button
+          type="button"
+          onClick={() => setStep(step + 1)}
+          className={`w-full mt-3 text-sm underline underline-offset-2 ${dark ? 'text-white/50 hover:text-white/80' : 'text-muted hover:text-forest'}`}
+        >
+          {tq.skip || 'ข้ามข้อนี้ →'}
+        </button>
+      )}
     </QuizShell>
   )
 }
