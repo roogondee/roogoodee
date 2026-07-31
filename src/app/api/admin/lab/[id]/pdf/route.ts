@@ -48,15 +48,29 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const verifyUrl = report.public_token ? `${base}/verify/lab/${report.public_token}` : undefined
   const qrDataUrl = verifyUrl ? await QRCode.toDataURL(verifyUrl, { margin: 1, width: 120 }) : undefined
 
-  const element = React.createElement(LabReportPdf, {
-    patientName: patient?.name ?? '-',
-    report: report as LabReport,
-    timeline,
-    qrDataUrl,
-    verifyUrl,
-    lang,
-  }) as unknown as Parameters<typeof renderToBuffer>[0]
-  const buffer = await renderToBuffer(element)
+  const render = (includeCharts: boolean) => {
+    const element = React.createElement(LabReportPdf, {
+      patientName: patient?.name ?? '-',
+      report: report as LabReport,
+      timeline,
+      qrDataUrl,
+      verifyUrl,
+      lang,
+      includeCharts,
+    }) as unknown as Parameters<typeof renderToBuffer>[0]
+    return renderToBuffer(element)
+  }
+
+  // The trend charts are the only part that depends on multi-report timeline
+  // geometry; if anything in that SVG path throws, still deliver the report
+  // (analytes + interpretation) without the charts rather than failing the export.
+  let buffer: Buffer
+  try {
+    buffer = await render(true)
+  } catch (err) {
+    console.error(`[lab pdf] chart render failed for report ${params.id}, retrying without charts:`, err)
+    buffer = await render(false)
+  }
 
   logLeadAccess({ actor: me.email, action: 'lab_export', details: { patient_id: report.patient_id, report_id: params.id }, ip: requestIp(req) })
 

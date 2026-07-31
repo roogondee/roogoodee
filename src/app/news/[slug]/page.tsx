@@ -125,7 +125,7 @@ export default async function NewsPostPage({ params }: { params: { slug: string 
           <h3 className="font-display text-xl md:text-2xl mb-2">สนใจตรวจคัดกรองฟรีกับรู้ก่อนดี?</h3>
           <p className="text-white/75 text-sm mb-5">ทำแบบประเมินสั้นๆ รับ voucher ตรวจฟรี ที่ W Medical Hospital สมุทรสาคร</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-[#06C755] text-white px-7 py-3 rounded-full font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
             <Link href="/" className="inline-flex items-center justify-center gap-2 bg-white text-forest px-7 py-3 rounded-full font-bold hover:bg-cream transition-all">ดูบริการทั้งหมด</Link>
           </div>
         </div>

@@ -110,7 +110,7 @@ export default function ChatWidget() {
           {leadCaptured && (
             <div className="bg-mint/10 border-b border-mint/20 px-4 py-2 text-xs text-forest text-center flex-shrink-0">
               {t.chat.leadCaptured}
-              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="block font-bold mt-0.5 text-sage">💬 LINE @roogondee</a>
+              <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="block font-bold mt-0.5 text-sage">💬 LINE @roogondee</a>
             </div>
           )}
 

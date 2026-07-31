@@ -140,7 +140,7 @@ function WaitlistState() {
           <Link href="/quiz/mind" className="bg-forest text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
             ลงทะเบียนรับ voucher ก่อน
           </Link>
-          <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
+          <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-7 py-3 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
             💬 LINE @roogondee
           </a>
         </div>

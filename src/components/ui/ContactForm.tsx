@@ -88,7 +88,7 @@ export default function ContactPage() {
               <div className="text-6xl mb-4">✅</div>
               <h3 className="font-display text-2xl text-forest mb-2">{t.contact.successTitle}</h3>
               <p className="text-muted text-sm leading-relaxed mb-6">{t.contact.successDesc}</p>
-              <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm">
+              <a href="https://line.me/R/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm">
                 💬 {t.contact.successLine}
               </a>
               <a href="tel:0819023540" className="flex items-center justify-center gap-2 bg-forest text-white px-6 py-3 rounded-full font-bold text-sm mt-2">

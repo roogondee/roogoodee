@@ -88,12 +88,12 @@ export async function sendVoucherToUser(input: {
           </div>
           <p style="color: #555; line-height: 1.6; font-size: 14px;">
             <strong>วิธีใช้:</strong><br/>
-            1. Add LINE OA <a href="https://line.me/ti/p/@roogondee" style="color: #2D4A3E;">@roogondee</a> เพื่อนัดหมาย<br/>
+            1. Add LINE OA <a href="https://line.me/R/ti/p/@roogondee" style="color: #2D4A3E;">@roogondee</a> เพื่อนัดหมาย<br/>
             2. นำ voucher code พร้อมบัตรประชาชนมาที่ W Medical Hospital<br/>
             3. ตรวจและปรึกษาแพทย์ฟรี
           </p>
           <div style="margin-top: 20px; text-align: center;">
-            <a href="https://line.me/ti/p/@roogondee" style="background: #06C755; color: white; padding: 12px 24px; border-radius: 20px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">💬 Add LINE เพื่อนัดหมาย</a>
+            <a href="https://line.me/R/ti/p/@roogondee" style="background: #06C755; color: white; padding: 12px 24px; border-radius: 20px; text-decoration: none; font-size: 14px; font-weight: bold; display: inline-block;">💬 Add LINE เพื่อนัดหมาย</a>
           </div>
           <p style="color: #888; font-size: 12px; margin-top: 24px; line-height: 1.5;">
             voucher นี้ไม่สามารถโอนให้ผู้อื่น — ต้องแสดงบัตรประชาชนตอนใช้<br/>
