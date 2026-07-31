@@ -1,4 +1,4 @@
-export type DetectedService = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women' | 'mind' | 'general'
+export type DetectedService = 'std' | 'glp1' | 'ckd' | 'foreign' | 'mens' | 'women' | 'mind' | 'dna' | 'general'
 
 const SERVICE_KEYWORDS: Record<Exclude<DetectedService, 'general'>, string[]> = {
   std:     ['std', 'hiv', 'prep', 'pep', 'ซิฟิลิส', 'หนองใน', 'เริม', 'ตรวจเลือด', 'ตรวจโรค', 'เพศสัมพันธ์'],
@@ -8,6 +8,7 @@ const SERVICE_KEYWORDS: Record<Exclude<DetectedService, 'general'>, string[]> = 
   mens:    ['วัยทองชาย', 'andropause', 'testosterone', 'ฮอร์โมนเพศชาย', 'นกเขาไม่ขัน', 'หย่อนสมรรถภาพ', 'แข็งตัว', 'sex ชาย', 'สมรรถภาพชาย'],
   women:   ['สูตินรี', 'pap smear', 'แปปสเมียร์', 'hpv', 'ตรวจภายใน', 'ตกขาว', 'ประจำเดือน', 'มะเร็งปากมดลูก', 'วัยทอง', 'menopause', 'pcos', 'คุมกำเนิด', 'ยาคุม', 'ปวดท้องน้อย'],
   mind:    ['ซึมเศร้า', 'depression', 'วิตกกังวล', 'anxiety', 'panic', 'นอนไม่หลับ', 'insomnia', 'burnout', 'เครียด', 'อกหัก', 'หย่า', 'หย่าร้าง', 'ครอบครัวมีปัญหา', 'นักจิตวิทยา', 'จิตแพทย์', 'จิตเวช', 'ปรึกษาใจ', 'ทำร้ายตัวเอง', 'ไม่อยากอยู่', 'ความสัมพันธ์', 'แฟนทะเลาะ', 'self esteem'],
+  dna:     ['dna', 'ดีเอ็นเอ', 'paternity', 'พิสูจน์บุตร', 'พิสูจน์พ่อ', 'รับรองบุตร', 'พ่อลูก', 'ความเป็นพ่อ', 'สายเลือด', 'ตรวจพันธุกรรมพ่อ', 'ลูกใคร'],
 }
 
 export function detectService(text: string): DetectedService {
@@ -18,7 +19,7 @@ export function detectService(text: string): DetectedService {
   return 'general'
 }
 
-export const VOUCHER_REGEX = /RGD-(GLP1|CKD|STD|FRN|MENS|WMN|MND)-[A-Z0-9]{6}/
+export const VOUCHER_REGEX = /RGD-(GLP1|CKD|STD|FRN|MENS|WMN|MND|DNA)-[A-Z0-9]{6}/
 
 export function extractVoucherCode(text: string): string | null {
   const m = text.trim().toUpperCase().match(VOUCHER_REGEX)

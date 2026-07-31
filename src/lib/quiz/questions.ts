@@ -567,6 +567,95 @@ const MIND_QUESTIONS: Question[] = [
   },
 ]
 
+// ── DNA Paternity (พิสูจน์บิดา-บุตร) ────────────────────────────────
+// Need-qualification quiz, NOT symptom scoring — the two axes that
+// matter are purpose (legal vs peace-of-mind) and urgency (court /
+// registry deadline). RED LINE: `consent_status = no_consent` means we
+// only offer a consultation about consent — never a test booking.
+// Secret sample testing is refused (PDPA sensitive data + inadmissible).
+// Voucher = ปรึกษาฟรี (ไม่ใช่ตรวจฟรี) — team advises which test type
+// fits, documents needed, and price, then books at partner facility.
+const DNA_QUESTIONS: Question[] = [
+  {
+    id: 'purpose',
+    type: 'radio',
+    title: 'ต้องการตรวจเพื่ออะไร?',
+    subtitle: 'คำตอบนี้กำหนดประเภทการตรวจและขั้นตอน — เป็นความลับ',
+    required: true,
+    options: [
+      { value: 'legal_register', label: 'จดทะเบียนรับรองบุตร / เพิ่มชื่อในสูติบัตร' },
+      { value: 'legal_court',    label: 'ใช้ในคดีความ / มรดก' },
+      { value: 'citizenship',    label: 'สัญชาติ / วีซ่าติดตามครอบครัว' },
+      { value: 'peace_of_mind',  label: 'เพื่อความสบายใจ (ไม่ใช้ทางกฎหมาย)' },
+      { value: 'prenatal',       label: 'ต้องการตรวจระหว่างตั้งครรภ์' },
+      { value: 'unsure',         label: 'ยังไม่แน่ใจ — อยากปรึกษาก่อน' },
+    ],
+  },
+  {
+    id: 'who_tested',
+    type: 'radio',
+    title: 'ต้องการพิสูจน์ความสัมพันธ์ระหว่างใคร?',
+    required: true,
+    options: [
+      { value: 'father_child',  label: 'พ่อ - ลูก' },
+      { value: 'mother_child',  label: 'แม่ - ลูก' },
+      { value: 'siblings',      label: 'พี่น้อง' },
+      { value: 'grandparent',   label: 'ปู่ย่าตายาย - หลาน' },
+      { value: 'other',         label: 'ความสัมพันธ์อื่น' },
+    ],
+  },
+  {
+    id: 'child_age',
+    type: 'radio',
+    title: 'บุตร/ผู้ที่จะตรวจอายุเท่าไหร่?',
+    subtitle: 'ผู้เยาว์ต้องมีผู้ปกครองตามกฎหมายให้ความยินยอม',
+    required: true,
+    options: [
+      { value: 'prenatal', label: 'ยังอยู่ในครรภ์' },
+      { value: 'under_1',  label: 'ต่ำกว่า 1 ปี' },
+      { value: '1_7',      label: '1-7 ปี' },
+      { value: '8_19',     label: '8-19 ปี' },
+      { value: 'adult',    label: 'บรรลุนิติภาวะแล้ว (20+)' },
+    ],
+  },
+  {
+    id: 'consent_status',
+    type: 'radio',
+    title: 'ทุกฝ่ายที่ต้องตรวจ ทราบและยินยอมหรือยัง?',
+    subtitle: 'การตรวจ DNA ต้องได้รับความยินยอมจากทุกฝ่าย (ผู้เยาว์ = ผู้ปกครองตามกฎหมาย)',
+    required: true,
+    options: [
+      { value: 'all_consent',      label: 'ทุกฝ่ายยินยอมแล้ว พร้อมตรวจ' },
+      { value: 'guardian_consent', label: 'เด็กยังเล็ก — ผู้ปกครองตามกฎหมายยินยอมแล้ว' },
+      { value: 'not_yet',          label: 'ยังไม่ได้คุยกับอีกฝ่าย — อยากปรึกษาวิธีเริ่มก่อน' },
+      { value: 'no_consent',       label: 'อีกฝ่ายไม่ยินยอม / ไม่อยากให้อีกฝ่ายรู้', badge: '⚠️' },
+    ],
+  },
+  {
+    id: 'deadline',
+    type: 'radio',
+    title: 'มีกำหนดเวลาที่ต้องใช้ผลไหม?',
+    required: true,
+    options: [
+      { value: 'urgent_2w', label: 'มีนัดศาล/ราชการภายใน 2 สัปดาห์', badge: '🚨 ด่วน' },
+      { value: '1m',        label: 'ภายใน 1 เดือน' },
+      { value: '1-3m',      label: '1-3 เดือน' },
+      { value: 'none',      label: 'ไม่มีกำหนด / แค่อยากรู้ข้อมูลก่อน' },
+    ],
+  },
+  {
+    id: 'contact_channel',
+    type: 'radio',
+    title: 'ช่องทางติดต่อ',
+    required: true,
+    options: [
+      { value: 'line_only', label: 'LINE เท่านั้น' },
+      { value: 'call_ok',   label: 'โทรได้' },
+      { value: 'email',     label: 'อีเมล' },
+    ],
+  },
+]
+
 export const QUIZZES: Record<Service, QuizDefinition> = {
   glp1: {
     service: 'glp1',
@@ -611,6 +700,13 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
     landingHeadline: 'ปรึกษานักจิตวิทยาฟรี — ส่วนตัว ไม่ตัดสิน',
     subHeadline: 'สุขภาพจิต ความเครียด ความสัมพันธ์ การสูญเสีย — ลงทะเบียนรับ voucher ไว้ก่อน ทีมกำลังคัดเลือกผู้เชี่ยวชาญที่เหมาะกับคุณ จะติดต่อกลับภายใน 1-2 สัปดาห์ (วิกฤตเร่งด่วน โทร 1323)',
     questions: MIND_QUESTIONS,
+    allowAnonymous: true,
+  },
+  dna: {
+    service: 'dna',
+    landingHeadline: 'ปรึกษาการตรวจ DNA พิสูจน์บิดา-บุตร ฟรี',
+    subHeadline: 'ทีมงานช่วยประเมินว่าเคสของคุณควรตรวจแบบใช้ทางกฎหมายหรือเพื่อความสบายใจ พร้อมนัดหมายเก็บตัวอย่างกับสถานพยาบาล/ห้องปฏิบัติการมาตรฐาน — เป็นความลับ ไม่ตัดสิน ทุกการตรวจต้องมีความยินยอมจากทุกฝ่าย',
+    questions: DNA_QUESTIONS,
     allowAnonymous: true,
   },
 }

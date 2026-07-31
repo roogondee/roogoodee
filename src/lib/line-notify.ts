@@ -9,6 +9,7 @@ const SERVICE_LABELS: Record<string, string> = {
   mens: 'สุขภาพชายวัย 40+',
   women: 'สุขภาพเพศหญิง',
   mind: 'สุขภาพจิต & ความสัมพันธ์',
+  dna: 'ตรวจ DNA พิสูจน์บิดา-บุตร',
   general: 'ทั่วไป',
   'chat-widget': 'Chat Widget',
 }

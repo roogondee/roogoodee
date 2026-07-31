@@ -400,6 +400,74 @@ export function scoreMind(a: MindAnswers): ScoringResult {
   return { score, tier, reasons }
 }
 
+// ── DNA Paternity (พิสูจน์บิดา-บุตร) ────────────────────────────────
+// Need-qualification, not medical scoring. Tier drivers: legal purpose
+// + hard deadline. RED LINE: consent_status = 'no_consent' caps the
+// lead at cold with a consult-about-consent-only reason — the team
+// must never book a test for that lead until consent is resolved.
+// This gate MUST NOT be relaxed downstream (PDPA sensitive data).
+interface DnaAnswers {
+  purpose?: string
+  who_tested?: string
+  child_age?: string
+  consent_status?: string
+  deadline?: string
+  contact_channel?: string
+}
+
+const DNA_LEGAL_PURPOSES = ['legal_register', 'legal_court', 'citizenship']
+
+export function scoreDna(a: DnaAnswers): ScoringResult {
+  if (a.consent_status === 'no_consent') {
+    return {
+      score: 0,
+      tier: 'cold',
+      reasons: ['🚩 ยังไม่มีความยินยอมจากอีกฝ่าย — ให้คำปรึกษาเรื่องความยินยอม/ขั้นตอนกฎหมายเท่านั้น ห้ามนัดตรวจ'],
+    }
+  }
+
+  let score = 0
+  const reasons: string[] = []
+
+  if (a.purpose && DNA_LEGAL_PURPOSES.includes(a.purpose)) {
+    score += 4
+    reasons.push('ต้องใช้ผลทางกฎหมาย (chain of custody)')
+  } else if (a.purpose === 'peace_of_mind') {
+    score += 2
+    reasons.push('ตรวจเพื่อความสบายใจ')
+  } else if (a.purpose === 'prenatal') {
+    score += 2
+    reasons.push('ตั้งครรภ์ — ต้องปรึกษาแพทย์ก่อน (NIPP)')
+  }
+
+  if (a.deadline === 'urgent_2w') {
+    score += 5
+    reasons.push('🚨 มีนัดศาล/ราชการภายใน 2 สัปดาห์')
+  } else if (a.deadline === '1m') {
+    score += 3
+    reasons.push('ต้องใช้ผลภายใน 1 เดือน')
+  } else if (a.deadline === '1-3m') {
+    score += 1
+  }
+
+  if (a.consent_status === 'all_consent' || a.consent_status === 'guardian_consent') {
+    score += 3
+    reasons.push('ทุกฝ่ายยินยอมแล้ว พร้อมนัดเก็บตัวอย่าง')
+  } else if (a.consent_status === 'not_yet') {
+    score += 1
+    reasons.push('ยังไม่ได้คุยกับอีกฝ่าย — ต้องแนะนำเรื่องความยินยอมก่อน')
+  }
+
+  if (a.child_age && a.child_age !== 'adult' && a.child_age !== 'prenatal') {
+    reasons.push('ผู้เยาว์ — ตรวจสอบความยินยอมผู้ปกครองตามกฎหมาย')
+  }
+
+  // No 'urgent' tier for dna — that tier is reserved for medical/safety
+  // red flags. A court date is hot, not a crisis.
+  const tier: LeadTier = score >= 8 ? 'hot' : score >= 4 ? 'warm' : 'cold'
+  return { score, tier, reasons }
+}
+
 export function scoreQuiz(service: Service, answers: Record<string, unknown>): ScoringResult {
   switch (service) {
     case 'glp1':    return scoreGLP1(answers as GLP1Answers)
@@ -408,6 +476,7 @@ export function scoreQuiz(service: Service, answers: Record<string, unknown>): S
     case 'mens':    return scoreMens(answers as MensAnswers)
     case 'women':   return scoreWomen(answers as WomenAnswers)
     case 'mind':    return scoreMind(answers as MindAnswers)
+    case 'dna':     return scoreDna(answers as DnaAnswers)
     case 'foreign': return { score: 0, tier: 'warm', reasons: ['B2B lead'] }
   }
 }

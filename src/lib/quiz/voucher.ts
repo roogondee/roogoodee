@@ -12,6 +12,7 @@ const SERVICE_CODE: Record<Service, string> = {
   mens: 'MENS',
   women: 'WMN',
   mind: 'MND',
+  dna: 'DNA',
 }
 
 // A-Z + 2-9 (avoid 0/1/O/I for voice/SMS readability)

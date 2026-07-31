@@ -7,6 +7,10 @@ const SERVICE_LABELS: Record<string, string> = {
   glp1: 'GLP-1 ลดน้ำหนัก',
   ckd: 'CKD โรคไต',
   foreign: 'แรงงานต่างด้าว',
+  mens: 'สุขภาพชายวัย 40+',
+  women: 'สุขภาพเพศหญิง',
+  mind: 'สุขภาพจิต & ความสัมพันธ์',
+  dna: 'ตรวจ DNA พิสูจน์บิดา-บุตร',
   general: 'ทั่วไป',
 }
 
