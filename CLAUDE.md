@@ -41,7 +41,7 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - No emojis in code or commit messages unless user explicitly asks
 
 ## Tracking
-- GA4 measurement ID `G-THP6CDXR0L` — default in `src/components/analytics/Pixels.tsx`, overridable via `NEXT_PUBLIC_GA_ID`
+- GA4 measurement ID `G-THP6CDXR0L` — gtag.js server-rendered in `src/app/layout.tsx` (so Google tag checkers detect it), overridable via `NEXT_PUBLIC_GA_ID`. Google Consent Mode: defaults denied (cookieless pings) until PDPA banner accepted; `Pixels.tsx` fires `gtag('consent','update')`. Meta/TikTok pixels stay fully consent-gated in `Pixels.tsx`
 - **Meta Pixel** via `NEXT_PUBLIC_META_PIXEL_ID` — fires `PageView`, `Lead`, `CompleteRegistration`
 - **TikTok Pixel** via `NEXT_PUBLIC_TIKTOK_PIXEL_ID` — fires `page()`, `InitiateCheckout` (quiz start), `SubmitForm` + `CompleteRegistration` (quiz success)
 - **TikTok Events API** (server-side) via `TIKTOK_ACCESS_TOKEN` in `src/lib/tiktok-events.ts`, called from `src/app/api/quiz/route.ts` after voucher issued. `event_id = voucher.code` so client and server dedup. Captures `ttclid` (URL → 30d cookie) and `_ttp` cookie, hashes email/phone (E.164) with SHA-256.
