@@ -59,51 +59,9 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
     <main className="min-h-screen bg-cream">
       <NavBar />
 
-      {/* HERO */}
-      {locale === 'th' ? (
-        <VoucherHero />
-      ) : (
-        <section className="min-h-screen grid grid-cols-1 md:grid-cols-2 pt-16 md:pt-20">
-        <div className="flex flex-col justify-center px-6 md:px-20 py-16 md:py-20">
-          <div className="inline-flex items-center gap-2 bg-mint/10 border border-mint/30 text-sage px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8 w-fit">
-            <span className="w-2 h-2 bg-mint rounded-full animate-pulse"></span>
-            {t.home.heroTagline}
-          </div>
-          <h1 className="font-display text-4xl md:text-6xl text-forest leading-tight mb-4 md:mb-6">
-            {t.home.heroTitle1}<br/><em className="text-mint">{t.home.heroTitle2}</em>
-          </h1>
-          <p className="text-base md:text-lg text-muted leading-relaxed mb-8 md:mb-10 max-w-md whitespace-pre-line">{t.home.heroDesc}</p>
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-            <Link href="/contact" className="flex items-center justify-center gap-2 bg-forest text-white px-6 md:px-8 py-3.5 md:py-4 rounded-full text-sm md:text-base font-semibold hover:bg-sage transition-all hover:-translate-y-0.5 shadow-lg hover:shadow-xl">
-              {t.home.ctaConsult}
-            </Link>
-            <Link href="/blog" className="flex items-center justify-center gap-2 border-2 border-forest text-forest px-5 md:px-7 py-3.5 md:py-4 rounded-full text-sm md:text-base font-semibold hover:bg-forest hover:text-white transition-all">
-              {t.home.ctaArticles}
-            </Link>
-          </div>
-          <div className="flex flex-wrap gap-4 md:gap-6 mt-8 md:mt-12">
-            {[['✓', t.home.trustFree], ['🔒', t.home.trustSafe], ['⚡', t.home.trustFast]].map(([icon, text]) => (
-              <div key={text} className="flex items-center gap-2 text-xs md:text-sm text-muted font-medium">
-                <div className="w-6 h-6 bg-mint/15 rounded-full flex items-center justify-center text-xs flex-shrink-0">{icon}</div>
-                {text}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="relative bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center overflow-hidden py-16 md:py-0 min-h-64 md:min-h-0">
-          {homepageImages.hero ? (
-            <Image src={homepageImages.hero} alt="W Medical Hospital" fill className="object-cover" priority sizes="50vw" />
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-br from-forest/70 via-sage/60 to-mint/50" />
-          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-10 w-72 md:w-80 z-10 relative">
-            <div className="w-12 md:w-14 h-12 md:h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl md:text-3xl mb-4 md:mb-5">🌿</div>
-            <h3 className="font-display text-xl md:text-2xl text-white mb-2 md:mb-3">{t.home.heroCardTitle}</h3>
-            <p className="text-white/70 text-sm leading-relaxed mb-5 md:mb-6">{t.home.heroCardDesc}</p>
-            <div className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-white text-sm font-semibold">💬 LINE: @roogondee</div>
-          </div>
-        </div>
-      </section>
-      )}
+      {/* HERO — voucher-quiz cards for every locale (EN fallback for non-Thai)
+          so the primary conversion path is never Thai-only */}
+      <VoucherHero en={locale !== 'th'} />
 
       {/* TRUST STATS */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
@@ -227,8 +185,8 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
             {posts.map(post => (
               <Link key={post.id} href={`/blog/${post.slug}`} className="bg-white rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
                 {post.image_url && (
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
-                    <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />
+                  <div className="aspect-video bg-gray-100 overflow-hidden relative">
+                    <Image src={post.image_url} alt={post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
                   </div>
                 )}
                 <div className="p-5 md:p-6">
@@ -262,8 +220,8 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
             {news.map(item => (
               <Link key={item.id} href={`/news/${item.slug}`} className="bg-white rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
                 {item.image_url && (
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
-                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                  <div className="aspect-video bg-gray-100 overflow-hidden relative">
+                    <Image src={item.image_url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
                   </div>
                 )}
                 <div className="p-5 md:p-6">
@@ -348,47 +306,67 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
   )
 }
 
-function VoucherHero() {
+function VoucherHero({ en = false }: { en?: boolean }) {
   const OFFERS = [
     {
       emoji: '💉',
       tag: 'GLP-1',
-      title: 'ตรวจเบาหวานฟรี',
+      title: en ? 'Free Diabetes Screening' : 'ตรวจเบาหวานฟรี',
       value: 'FBS + HbA1c',
-      price: 'มูลค่า 500฿',
-      desc: 'ประเมินก่อนเริ่ม GLP-1',
+      price: en ? 'Worth 500฿' : 'มูลค่า 500฿',
+      desc: en ? 'Assessment before starting GLP-1' : 'ประเมินก่อนเริ่ม GLP-1',
       href: '/quiz/glp1',
       accent: 'from-emerald-400 to-emerald-600',
     },
     {
       emoji: '🫘',
       tag: 'CKD',
-      title: 'ตรวจโรคไตฟรี',
+      title: en ? 'Free Kidney Screening' : 'ตรวจโรคไตฟรี',
       value: 'Urine Protein',
-      price: 'มูลค่า 200฿',
-      desc: 'สัญญาณเริ่มต้นของโรคไต',
+      price: en ? 'Worth 200฿' : 'มูลค่า 200฿',
+      desc: en ? 'Catch early signs of kidney disease' : 'สัญญาณเริ่มต้นของโรคไต',
       href: '/quiz/ckd',
       accent: 'from-blue-400 to-blue-600',
     },
     {
       emoji: '🔴',
       tag: 'STD / PrEP',
-      title: 'ตรวจ HIV ฟรี',
+      title: en ? 'Free HIV Test' : 'ตรวจ HIV ฟรี',
       value: 'HIV + Syphilis',
-      price: 'มูลค่า 800฿',
-      desc: 'ส่วนตัว ไม่ตัดสิน',
+      price: en ? 'Worth 800฿' : 'มูลค่า 800฿',
+      desc: en ? 'Private, judgement-free' : 'ส่วนตัว ไม่ตัดสิน',
       href: '/quiz/std',
       accent: 'from-rose-400 to-rose-600',
     },
     {
       emoji: '🧔',
       tag: "Men's Health 40+",
-      title: 'ปรึกษาแพทย์ฟรี',
-      value: 'ตรวจประเมินสุขภาพชาย',
-      price: 'มูลค่า 1,500฿',
-      desc: 'พลังงาน อารมณ์ ฮอร์โมน',
+      title: en ? 'Free Doctor Consult' : 'ปรึกษาแพทย์ฟรี',
+      value: en ? "Men's health assessment" : 'ตรวจประเมินสุขภาพชาย',
+      price: en ? 'Worth 1,500฿' : 'มูลค่า 1,500฿',
+      desc: en ? 'Energy, mood, hormones' : 'พลังงาน อารมณ์ ฮอร์โมน',
       href: '/quiz/mens',
       accent: 'from-slate-500 to-indigo-700',
+    },
+    {
+      emoji: '🌸',
+      tag: "Women's Health",
+      title: en ? 'Free OB-GYN Consult' : 'ปรึกษาสูตินรีแพทย์ฟรี',
+      value: en ? 'Initial assessment' : 'ตรวจประเมินเบื้องต้น',
+      price: en ? 'No cost' : 'ฟรี ไม่มีค่าใช้จ่าย',
+      desc: en ? 'HPV/Pap, discharge, menopause' : 'HPV/Pap • ตกขาว • วัยทอง',
+      href: '/quiz/women',
+      accent: 'from-pink-400 to-rose-500',
+    },
+    {
+      emoji: '🧠',
+      tag: 'Mind',
+      title: en ? 'Free Psychologist Session' : 'ปรึกษานักจิตวิทยาฟรี',
+      value: en ? '30-min telehealth' : 'Telehealth 30 นาที',
+      price: en ? 'No cost' : 'ฟรี ไม่มีค่าใช้จ่าย',
+      desc: en ? 'Stress, sleep, relationships' : 'เครียด นอนไม่หลับ ความสัมพันธ์',
+      href: '/quiz/mind',
+      accent: 'from-violet-400 to-violet-600',
     },
   ]
 
@@ -400,20 +378,26 @@ function VoucherHero() {
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8">
           <span className="w-2 h-2 bg-mint rounded-full animate-pulse" />
-          🎁 แจกฟรี • จำกัด 50 สิทธิ์ / service / เดือน
+          {en ? '🎁 Free • limited to 50 slots / service / month' : '🎁 แจกฟรี • จำกัด 50 สิทธิ์ / service / เดือน'}
         </div>
 
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
-          รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>
-          ที่ W Medical Hospital
+          {en ? (
+            <>Get a <em className="text-mint not-italic">Free Lab Test</em><br/>at W Medical Hospital</>
+          ) : (
+            <>รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>ที่ W Medical Hospital</>
+          )}
         </h1>
 
         <p className="text-base md:text-xl text-white/80 leading-relaxed mb-8 md:mb-10 max-w-2xl">
-          ตอบคำถามคัดกรอง <span className="font-bold text-white">2 นาที</span> รับ voucher ทันที
-          พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร
+          {en ? (
+            <>Answer a <span className="font-bold text-white">2-minute</span> screening quiz, get your voucher instantly, and see a doctor at our Samut Sakhon hospital.</>
+          ) : (
+            <>ตอบคำถามคัดกรอง <span className="font-bold text-white">2 นาที</span> รับ voucher ทันที พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร</>
+          )}
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8 md:mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-8 md:mb-10">
           {OFFERS.map(o => (
             <Link
               key={o.href}
@@ -431,17 +415,17 @@ function VoucherHero() {
               <p className="text-xs text-mint font-bold mb-3">{o.price}</p>
               <p className="text-xs md:text-sm text-muted leading-relaxed mb-4">{o.desc}</p>
               <span className="inline-flex items-center gap-1 text-sm font-bold text-forest group-hover:gap-2 transition-all">
-                ทำ quiz 2 นาที <span>→</span>
+                {en ? 'Take the 2-min quiz' : 'ทำ quiz 2 นาที'} <span>→</span>
               </span>
             </Link>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm text-white/70">
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> ฟรี ไม่มีค่าใช้จ่าย</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> Voucher หมดอายุ 14 วัน</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> ผลตรวจส่วนตัว</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> พบแพทย์ 15 นาที</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Completely free' : 'ฟรี ไม่มีค่าใช้จ่าย'}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Voucher valid 14 days' : 'Voucher หมดอายุ 14 วัน'}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Results kept private' : 'ผลตรวจส่วนตัว'}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'See a doctor in 15 min' : 'พบแพทย์ 15 นาที'}</span>
         </div>
       </div>
     </section>

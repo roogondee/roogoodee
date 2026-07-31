@@ -153,6 +153,7 @@ export default async function AdminPage({
           { label: 'Contacted', value: 'contacted' },
           { label: 'Qualified', value: 'qualified' },
           { label: 'Booked', value: 'booked' },
+          { label: 'Waitlist', value: 'waitlist' },
         ].map(f => (
           <a key={f.value}
             href={`/admin?service=${filterService}&tier=${filterTier}&status=${f.value}`}

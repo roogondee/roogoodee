@@ -86,7 +86,7 @@ export async function pushVoucherToUser(userId: string, params: {
     `🎫 รหัส: ${params.code}`,
     `📅 หมดอายุ: ${expires}`,
     `📍 W Medical Hospital สมุทรสาคร`,
-    `📞 ติดต่อจองคิว: 034-XXX-XXX${urgency}`,
+    `💬 จองคิวทาง LINE: @roogondee${urgency}`,
   ].join('\n')
   return pushLine(userId, text)
 }

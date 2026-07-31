@@ -12,9 +12,11 @@ const SERVICE_LABELS: Record<string, string> = {
   ckd:     '🫘 CKD',
   foreign: '🧪 แรงงาน',
   mens:    '👨 Men',
+  women:   '🌸 Women',
+  mind:    '🧠 Mind',
 }
 
-const SERVICES: Service[] = ['glp1', 'std', 'ckd', 'mens', 'foreign']
+const SERVICES: Service[] = ['glp1', 'std', 'ckd', 'mens', 'women', 'mind', 'foreign']
 const DAY_OPTIONS = [7, 30, 90] as const
 
 interface FunnelRow {
