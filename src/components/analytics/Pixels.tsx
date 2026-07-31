@@ -5,7 +5,9 @@ import { usePathname } from 'next/navigation'
 import Script from 'next/script'
 import { CONSENT_EVENT, hasConsent, type ConsentValue } from '@/lib/analytics/consent'
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+// Google tag (gtag.js) — measurement IDs are public by design, so the site's
+// ID ships as the default; the env var still overrides for staging/testing.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-THP6CDXR0L'
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
 // Per-vertical pixel separation — mens vertical is at higher ad-policy risk
