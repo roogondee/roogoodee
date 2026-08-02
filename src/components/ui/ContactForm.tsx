@@ -10,18 +10,25 @@ export default function ContactPage() {
   const searchParams = useSearchParams()
   const [form, setForm] = useState({ service: '', first_name: '', last_name: '', phone: '', age: '', gender: '', note: '' })
 
+  // Labels come from t.nav — the only dictionary section that carries all
+  // eight verticals in every locale.
   const SERVICES = [
-    { value: 'std',     label: t.contact.serviceStd },
-    { value: 'glp1',   label: t.contact.serviceGlp1 },
-    { value: 'ckd',    label: t.contact.serviceCkd },
-    { value: 'foreign',label: t.contact.serviceForeign },
+    { value: 'std',     label: t.nav.std },
+    { value: 'glp1',    label: t.nav.glp1 },
+    { value: 'ckd',     label: t.nav.ckd },
+    { value: 'foreign', label: t.nav.foreign },
+    { value: 'mens',    label: t.nav.mens },
+    { value: 'women',   label: t.nav.women },
+    { value: 'mind',    label: t.nav.mind },
+    { value: 'dna',     label: t.nav.dna },
   ]
 
   useEffect(() => {
     const s = searchParams.get('service')
-    if (s && ['std', 'glp1', 'ckd', 'foreign'].includes(s)) {
+    if (s && SERVICES.some(x => x.value === s)) {
       setForm(prev => ({ ...prev, service: s }))
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -98,8 +105,29 @@ export default function ContactPage() {
           ) : (
             <>
               <div className="inline-flex items-center gap-2 bg-mint/10 border border-mint/20 text-sage px-3 py-1.5 rounded-full text-xs font-semibold mb-4">🌿 {t.contact.formTag}</div>
-              <h2 className="font-display text-xl md:text-2xl text-forest mb-1">{t.contact.formTitle}</h2>
-              <p className="text-muted text-sm mb-5 md:mb-6">{t.contact.formDesc}</p>
+              <h2 className="font-display text-xl md:text-2xl text-forest mb-1">{t.contact.quickTitle}</h2>
+              <p className="text-muted text-sm mb-4">{t.contact.quickDesc}</p>
+
+              <a
+                href="https://line.me/ti/p/@roogondee"
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 bg-[#06C755] text-white py-3.5 rounded-full font-bold text-base mb-2.5 hover:bg-[#00B04B] transition-all"
+              >
+                💬 {t.common.lineConsultFree}
+              </a>
+              <a
+                href="tel:0819023540"
+                className="flex items-center justify-center gap-2 border-2 border-forest text-forest py-3.5 rounded-full font-bold text-base hover:bg-mint/10 transition-all"
+              >
+                {t.contact.successCall}
+              </a>
+
+              <div className="flex items-center gap-3 my-5">
+                <span className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs text-muted">{t.contact.orForm}</span>
+                <span className="h-px flex-1 bg-gray-200" />
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
