@@ -213,6 +213,9 @@ const vi = {
     footerEnglish: 'English',
   },
   contact: {
+    quickTitle: 'ปรึกษาฟรี ไม่ต้องกรอกฟอร์ม',
+    quickDesc: 'ทักไลน์หรือโทรหาเราได้เลย ทีมผู้เชี่ยวชาญพร้อมตอบทุกวัน ไม่มีวันหยุด',
+    orForm: 'หรือให้เราติดต่อกลับ',
     title: 'Liên hệ',
     titleHighlight: 'chúng tôi',
     desc: 'Đội ngũ y tế sẵn sàng giải đáp mọi thắc mắc. Miễn phí, bảo mật, không phán xét.',
