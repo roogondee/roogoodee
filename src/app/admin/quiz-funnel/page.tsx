@@ -34,15 +34,16 @@ interface ServiceStats {
   reachedContact: number
   lineClicks: number
   callClicks: number
+  lineClaims: number
   perQuestion: { index: number; question_id: string; reached: number }[]
 }
 
 function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
   const def = QUIZZES[service]
-  const sessions = new Map<string, { maxIdx: number; reachedContact: boolean; submitted: boolean; lineClick: boolean; callClick: boolean }>()
+  const sessions = new Map<string, { maxIdx: number; reachedContact: boolean; submitted: boolean; lineClick: boolean; callClick: boolean; lineClaim: boolean }>()
   for (const r of rows) {
     if (r.service !== service) continue
-    const cur = sessions.get(r.session_id) ?? { maxIdx: -1, reachedContact: false, submitted: false, lineClick: false, callClick: false }
+    const cur = sessions.get(r.session_id) ?? { maxIdx: -1, reachedContact: false, submitted: false, lineClick: false, callClick: false, lineClaim: false }
     if (r.event === 'progress' && typeof r.question_index === 'number' && r.question_index > cur.maxIdx) {
       cur.maxIdx = r.question_index
     }
@@ -50,6 +51,7 @@ function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
     if (r.event === 'submit_success') cur.submitted = true
     if (r.event === 'line_click') cur.lineClick = true
     if (r.event === 'call_click') cur.callClick = true
+    if (r.event === 'line_claim_success') cur.lineClaim = true
     sessions.set(r.session_id, cur)
   }
 
@@ -58,12 +60,14 @@ function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
   let submitted = 0
   let lineClicks = 0
   let callClicks = 0
+  let lineClaims = 0
   const reachCounts = new Array(def.questions.length).fill(0)
   for (const s of Array.from(sessions.values())) {
     if (s.reachedContact) reachedContact += 1
     if (s.submitted) submitted += 1
     if (s.lineClick) lineClicks += 1
     if (s.callClick) callClicks += 1
+    if (s.lineClaim) lineClaims += 1
     for (let i = 0; i <= s.maxIdx && i < reachCounts.length; i += 1) {
       reachCounts[i] += 1
     }
@@ -76,6 +80,7 @@ function aggregate(rows: FunnelRow[], service: Service): ServiceStats {
     reachedContact,
     lineClicks,
     callClicks,
+    lineClaims,
     perQuestion: def.questions.map((q, i) => ({
       index: i,
       question_id: q.id,
@@ -171,7 +176,7 @@ export default async function QuizFunnelPage({
               <div className="flex items-center gap-4 text-xs">
                 <span className="text-gray-500">{s.totalSessions} sessions</span>
                 <span className="text-[#06C755] font-bold">
-                  LINE/โทร {pct(s.lineClicks + s.callClicks, s.totalSessions)}
+                  LINE claim {pct(s.lineClaims, s.totalSessions)}
                 </span>
                 <span className="text-forest font-bold">
                   Form {pct(s.submitted, s.totalSessions)}
@@ -221,8 +226,17 @@ export default async function QuizFunnelPage({
                       {pct(s.reachedContact, s.totalSessions)}
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-gray-500">
-                      −{Math.max(0, s.reachedContact - s.submitted - s.lineClicks - s.callClicks)}
+                      −{Math.max(0, s.reachedContact - s.submitted - s.lineClaims - s.lineClicks - s.callClicks)}
                     </td>
+                  </tr>
+                  <tr className="bg-[#06C755]/5">
+                    <td className="px-4 py-3 text-xs text-gray-400">🎟</td>
+                    <td className="px-4 py-3 font-semibold text-[#06855c]">รับ voucher ทาง LINE (ไม่กรอกฟอร์ม)</td>
+                    <td className="px-4 py-3 text-right font-mono font-bold">{s.lineClaims}</td>
+                    <td className="px-4 py-3 text-right text-xs font-bold text-[#06855c]">
+                      {pct(s.lineClaims, s.totalSessions)}
+                    </td>
+                    <td className="px-4 py-3" />
                   </tr>
                   <tr className="bg-[#06C755]/5">
                     <td className="px-4 py-3 text-xs text-gray-400">💬</td>
