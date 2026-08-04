@@ -99,10 +99,7 @@ interface Props {
 
 interface ContactForm {
   first_name: string
-  last_name: string
   phone: string
-  line_id: string
-  email: string
 }
 
 interface VoucherResult {
@@ -117,14 +114,12 @@ interface VoucherResult {
     disclaimer: string
     urgent?: boolean
   } | null
+  claimed?: boolean         // true = zero-form LINE claim (no contact info yet)
 }
 
 const EMPTY_CONTACT: ContactForm = {
   first_name: '',
-  last_name: '',
   phone: '',
-  line_id: '',
-  email: '',
 }
 
 const STORAGE_VERSION = 1
@@ -156,6 +151,8 @@ export default function QuizRunner({ definition }: Props) {
   const [consent, setConsent] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<VoucherResult | null>(null)
   const [resumed, setResumed] = useState(false)
@@ -164,6 +161,7 @@ export default function QuizRunner({ definition }: Props) {
   const lastProgressRef = useRef(-1)
   const completeFiredRef = useRef(false)
   const submitLatchRef = useRef(false)
+  const claimLatchRef = useRef(false)
   const sessionIdRef = useRef<string>('')
   const storageKey = `rgd-quiz-${definition.service}-v${STORAGE_VERSION}`
 
@@ -317,6 +315,103 @@ export default function QuizRunner({ definition }: Props) {
     setAnswer(q.id, next)
   }
 
+  // Shared conversion fan-out for both lead paths (form submit / LINE claim).
+  // TikTok event_id = voucher code so the client fire dedupes against the
+  // server-side Events API call.
+  const fireConversionEvents = (
+    data: { tier: LeadTier; score: number; voucher?: { code: string } | null },
+    funnelEvent: 'submit_success' | 'line_claim_success' = 'submit_success',
+  ) => {
+    track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
+    if (data.voucher?.code) track('voucher_sent', { service: definition.service, code: data.voucher.code })
+    trackFunnel({
+      session_id: sessionIdRef.current,
+      service: definition.service,
+      event: funnelEvent,
+      total_questions: definition.questions.length,
+    })
+    try {
+      window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
+      window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+    } catch {}
+    if (data.voucher?.code) try {
+      window.ttq?.track('SubmitForm', {
+        content_id: data.voucher.code,
+        content_name: `${definition.service.toUpperCase()} Voucher`,
+        content_type: 'lead',
+        value: data.score,
+        currency: 'THB',
+      }, { event_id: data.voucher.code })
+      window.ttq?.track('CompleteRegistration', {
+        content_id: data.voucher.code,
+        content_name: `${definition.service.toUpperCase()} Lead`,
+        content_type: 'lead',
+      }, { event_id: data.voucher.code })
+    } catch {}
+  }
+
+  // Zero-form path: issue the voucher against the quiz session only; the
+  // user then sends the code in the LINE OA chat (prefilled deep link on the
+  // success screen) and the line-webhook links their userId to this lead.
+  const claimViaLine = async () => {
+    if (claimLatchRef.current) return
+    claimLatchRef.current = true
+    setClaimError(null)
+    setClaiming(true)
+    track('quiz_line_claim_click', { service: definition.service, tier: preview?.tier })
+    trackFunnel({
+      session_id: sessionIdRef.current,
+      service: definition.service,
+      event: 'line_claim_click',
+      total_questions: definition.questions.length,
+    })
+
+    const flat = flattenAnswers(answers)
+    const composite = (answers['bmi'] || answers['basic']) as Record<string, unknown> | undefined
+
+    try {
+      const recaptchaToken = await getRecaptchaToken(`quiz_claim_${definition.service}`)
+      const res = await fetch('/api/quiz/claim-line', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service: definition.service,
+          answers: flat,
+          session_id: sessionIdRef.current,
+          age:    (composite?.age as number | undefined)?.toString(),
+          gender: composite?.gender as string | undefined,
+          utm_source:   utm.utm_source,
+          utm_medium:   utm.utm_medium,
+          utm_campaign: utm.utm_campaign,
+          recaptcha_token: recaptchaToken,
+          ttclid: readCookie('ttclid'),
+          ttp:    readCookie('_ttp'),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setClaimError(data.error || tq.errorClaim)
+        return
+      }
+      // Keep localStorage (session_id included) so a re-tap after refresh
+      // reuses the same lead/voucher server-side instead of minting another.
+      setResult({
+        code: data.voucher?.code ?? null,
+        expires_at: data.voucher?.expires_at ?? null,
+        tier: data.tier,
+        score: data.score,
+        insight: data.insight,
+        claimed: true,
+      })
+      if (!data.waitlist) fireConversionEvents(data, 'line_claim_success')
+    } catch {
+      setClaimError(tq.errorClaim)
+    } finally {
+      claimLatchRef.current = false
+      setClaiming(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (submitLatchRef.current) return // guard against fast double-taps
     setError(null)
@@ -341,10 +436,7 @@ export default function QuizRunner({ definition }: Props) {
           service: definition.service,
           answers: flat,
           first_name: contact.first_name,
-          last_name:  contact.last_name || undefined,
           phone,
-          line_id:    contact.line_id || undefined,
-          email:      contact.email || undefined,
           age:        (composite?.age as number | undefined)?.toString(),
           gender:     composite?.gender as string | undefined,
           consent_pdpa: true,
@@ -370,34 +462,7 @@ export default function QuizRunner({ definition }: Props) {
         score: data.score,
         insight: data.insight,
       })
-      track('quiz_complete', { service: definition.service, tier: data.tier, score: data.score })
-      if (data.voucher?.code) track('voucher_sent', { service: definition.service, code: data.voucher.code })
-      trackFunnel({
-        session_id: sessionIdRef.current,
-        service: definition.service,
-        event: 'submit_success',
-        total_questions: definition.questions.length,
-      })
-      try {
-        window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
-        window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
-      } catch {}
-      // TikTok standard events — event_id = voucher code so the server-side
-      // Events API call from /api/quiz dedupes against this client-side fire.
-      if (data.voucher?.code) try {
-        window.ttq?.track('SubmitForm', {
-          content_id: data.voucher.code,
-          content_name: `${definition.service.toUpperCase()} Voucher`,
-          content_type: 'lead',
-          value: data.score,
-          currency: 'THB',
-        }, { event_id: data.voucher.code })
-        window.ttq?.track('CompleteRegistration', {
-          content_id: data.voucher.code,
-          content_name: `${definition.service.toUpperCase()} Lead`,
-          content_type: 'lead',
-        }, { event_id: data.voucher.code })
-      } catch {}
+      fireConversionEvents(data)
     } catch {
       setError(tq.errorGeneral)
     } finally {
@@ -444,16 +509,29 @@ export default function QuizRunner({ definition }: Props) {
           day: '2-digit', month: 'short', year: 'numeric',
         })
       : null
+    // With a voucher in hand the LINE button prefills the code — one tap to
+    // open the OA chat and send it, which links the lead via line-webhook.
+    const lineHref = result.code
+      ? `https://line.me/R/oaMessage/%40roogondee/?${new URLSearchParams({ text: result.code }).toString()}`
+      : result.claimed
+        ? linePrefillHref
+        : 'https://line.me/ti/p/@roogondee'
     return (
       <main className={`min-h-screen flex items-center justify-center p-5 ${dark ? 'bg-neutral-900 text-white' : 'bg-gradient-to-br from-forest via-sage to-mint'}`}>
         <div className={`max-w-md w-full rounded-3xl p-8 shadow-2xl ${dark ? 'bg-neutral-800 border border-white/10' : 'bg-white'}`}>
           <div className="text-6xl text-center mb-4">{waitlisted ? '✅' : '🎟'}</div>
           <h1 className={`font-display text-3xl text-center mb-2 ${dark ? 'text-white' : 'text-forest'}`}>
-            {waitlisted ? (tq.waitlistTitle || 'บันทึกข้อมูลเรียบร้อย!') : tq.successTitle}
+            {waitlisted
+              ? (result.claimed
+                  ? (tq.claimWaitlistTitle || 'สิทธิ์ฟรีเดือนนี้เต็มแล้ว')
+                  : (tq.waitlistTitle || 'บันทึกข้อมูลเรียบร้อย!'))
+              : tq.successTitle}
           </h1>
           <p className={`text-center text-sm mb-6 ${dark ? 'text-white/70' : 'text-muted'}`}>
             {waitlisted
-              ? (tq.waitlistDesc || 'สิทธิ์ฟรีของเดือนนี้เต็มแล้ว — ทีมงานจะติดต่อกลับเพื่อจัดคิวให้คุณโดยเร็วที่สุด')
+              ? (result.claimed
+                  ? (tq.claimWaitlistDesc || 'ทัก LINE @roogondee เพื่อจองคิวรอบถัดไป ทีมงานจะรีบดูแลให้เร็วที่สุด')
+                  : (tq.waitlistDesc || 'สิทธิ์ฟรีของเดือนนี้เต็มแล้ว — ทีมงานจะติดต่อกลับเพื่อจัดคิวให้คุณโดยเร็วที่สุด'))
               : tq.successDesc}
           </p>
 
@@ -507,11 +585,11 @@ export default function QuizRunner({ definition }: Props) {
           )}
 
           <a
-            href="https://line.me/ti/p/@roogondee"
+            href={lineHref}
             target="_blank" rel="noopener noreferrer"
             className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
           >
-            💬 {tq.addLine}
+            {result.code ? (tq.sendCodeCta || '💬 ส่งโค้ดยืนยันใน LINE (แตะเดียว)') : `💬 ${tq.addLine}`}
           </a>
           <a
             href="https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon"
@@ -522,7 +600,7 @@ export default function QuizRunner({ definition }: Props) {
           </a>
 
           <p className={`text-xs text-center mt-5 ${dark ? 'text-white/40' : 'text-muted'}`}>
-            {tq.teamContact}
+            {result.claimed && result.code ? (tq.claimTeamContact || 'ส่งโค้ดในแชท LINE แล้วทีมงานจะดูแลต่อให้ทันที') : tq.teamContact}
           </p>
         </div>
       </main>
@@ -583,14 +661,21 @@ export default function QuizRunner({ definition }: Props) {
           </div>
         )}
 
-        <a
-          href={linePrefillHref}
-          target="_blank" rel="noopener noreferrer"
-          onClick={() => trackContactClick('line')}
-          className="block text-center bg-[#06C755] text-white py-3.5 rounded-full font-bold text-base mb-3 hover:bg-[#00B04B] transition-all"
+        <button
+          type="button"
+          disabled={claiming}
+          onClick={claimViaLine}
+          className="block w-full text-center bg-[#06C755] text-white py-3.5 rounded-full font-bold text-base hover:bg-[#00B04B] transition-all disabled:opacity-60"
         >
-          {tq.lineCta}
-        </a>
+          {claiming ? (tq.claiming || 'กำลังออก voucher…') : (tq.claimLineCta || '🎟 รับ voucher ฟรีทาง LINE')}
+        </button>
+        <p className={`text-xs text-center mt-2 mb-3 ${dark ? 'text-white/40' : 'text-muted'}`}>
+          {tq.claimLineHint || 'ไม่ต้องกรอกฟอร์ม — รับโค้ดทันที แล้วส่งโค้ดในแชทเพื่อยืนยันสิทธิ์'}{' '}
+          {tq.claimConsentNote || 'การกดรับถือว่ายอมรับ'}{' '}
+          <Link href="/privacy" target="_blank" className="underline">{tq.pdpaLink}</Link>
+        </p>
+        {claimError && <p className="text-red-500 text-sm text-center mb-3">{claimError}</p>}
+
         <a
           href={PHONE_TEL}
           onClick={() => trackContactClick('call')}
@@ -608,6 +693,14 @@ export default function QuizRunner({ definition }: Props) {
         <p className={`text-xs text-center mt-2 ${dark ? 'text-white/40' : 'text-muted'}`}>
           {tq.formCtaHint}
         </p>
+        <a
+          href={linePrefillHref}
+          target="_blank" rel="noopener noreferrer"
+          onClick={() => trackContactClick('line')}
+          className={`block text-center mt-3 text-sm underline underline-offset-2 ${dark ? 'text-white/50 hover:text-white/80' : 'text-muted hover:text-forest'}`}
+        >
+          {tq.chatFirstCta || 'ยังไม่แน่ใจ? ทัก LINE คุยกับทีมงานก่อนได้'}
+        </a>
       </QuizShell>
     )
   }
@@ -623,25 +716,15 @@ export default function QuizRunner({ definition }: Props) {
         </p>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Field dark={dark} label={tq.firstName}>
-              <input
-                type="text"
-                value={contact.first_name}
-                onChange={e => setContact({ ...contact, first_name: e.target.value })}
-                className={inputCls(dark)}
-                placeholder={definition.allowAnonymous ? tq.nicknamePlaceholder : tq.firstNamePlaceholder}
-              />
-            </Field>
-            <Field dark={dark} label={tq.lastName}>
-              <input
-                type="text"
-                value={contact.last_name}
-                onChange={e => setContact({ ...contact, last_name: e.target.value })}
-                className={inputCls(dark)}
-              />
-            </Field>
-          </div>
+          <Field dark={dark} label={tq.firstName}>
+            <input
+              type="text"
+              value={contact.first_name}
+              onChange={e => setContact({ ...contact, first_name: e.target.value })}
+              className={inputCls(dark)}
+              placeholder={tq.nicknamePlaceholder}
+            />
+          </Field>
           <Field dark={dark} label={tq.phone}>
             <input
               type="tel"
@@ -649,23 +732,6 @@ export default function QuizRunner({ definition }: Props) {
               onChange={e => setContact({ ...contact, phone: e.target.value })}
               className={inputCls(dark)}
               placeholder={tq.phonePlaceholder}
-            />
-          </Field>
-          <Field dark={dark} label={tq.lineId}>
-            <input
-              type="text"
-              value={contact.line_id}
-              onChange={e => setContact({ ...contact, line_id: e.target.value })}
-              className={inputCls(dark)}
-              placeholder={tq.lineIdPlaceholder}
-            />
-          </Field>
-          <Field dark={dark} label={tq.email}>
-            <input
-              type="email"
-              value={contact.email}
-              onChange={e => setContact({ ...contact, email: e.target.value })}
-              className={inputCls(dark)}
             />
           </Field>
 

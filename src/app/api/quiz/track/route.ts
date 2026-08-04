@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import type { Service } from '@/types'
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna']
-const VALID_EVENTS = ['start', 'progress', 'complete', 'submit_success', 'line_click', 'call_click'] as const
+const VALID_EVENTS = ['start', 'progress', 'complete', 'submit_success', 'line_click', 'call_click', 'line_claim_click', 'line_claim_success'] as const
 type Event = (typeof VALID_EVENTS)[number]
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
