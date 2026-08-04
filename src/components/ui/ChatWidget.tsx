@@ -35,11 +35,19 @@ export default function ChatWidget() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isOpen])
 
+  // The first four keep their hand-written chat copy; the newer verticals
+  // derive theirs from t.nav, which carries all eight in every locale. The
+  // sent text includes the service name so the bot's detectService() picks
+  // the vertical up on the first message.
   const QUICK_REPLIES = [
     { label: t.chat.quickStd, text: t.chat.quickStdText },
     { label: t.chat.quickGlp1, text: t.chat.quickGlp1Text },
     { label: t.chat.quickCkd, text: t.chat.quickCkdText },
     { label: t.chat.quickForeign, text: t.chat.quickForeignText },
+    ...[t.nav.mens, t.nav.women, t.nav.mind, t.nav.dna].map(label => ({
+      label,
+      text: `${t.common.consultFree} ${label}`,
+    })),
   ]
 
   const send = async (text: string = input.trim()) => {
