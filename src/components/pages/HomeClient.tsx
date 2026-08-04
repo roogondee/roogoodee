@@ -369,6 +369,18 @@ function VoucherHero({ en = false }: { en?: boolean }) {
       href: '/quiz/mind',
       accent: 'from-violet-400 to-violet-600',
     },
+    {
+      // The only offer here that is NOT a free test — the price line has to
+      // say so plainly, because the section headline promises a free lab test.
+      emoji: '🧬',
+      tag: 'DNA',
+      title: en ? 'Free Paternity Test Consult' : 'ปรึกษาตรวจ DNA ฟรี',
+      value: en ? 'Paternity / family DNA' : 'พิสูจน์บิดา-บุตร',
+      price: en ? 'Consult free — test priced separately' : 'ปรึกษาฟรี • ค่าตรวจแยกต่างหาก',
+      desc: en ? 'Legitimation • court • peace of mind' : 'จดรับรองบุตร • คดีความ • ความสบายใจ',
+      href: '/quiz/dna',
+      accent: 'from-sky-400 to-blue-600',
+    },
   ]
 
   return (
