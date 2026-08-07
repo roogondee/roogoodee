@@ -8,6 +8,7 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { SERVICES, type LeadTier } from '@/types'
 import { useTranslation } from '@/lib/i18n/context'
 import thDict from '@/lib/i18n/locales/th'
+import type { LiffIdentity } from '@/lib/liff-client'
 
 declare global {
   interface Window {
@@ -95,6 +96,9 @@ function newSessionId(): string {
 
 interface Props {
   definition: QuizDefinition
+  // Present when rendered inside the LIFF wrapper with a logged-in LINE user.
+  // idToken gets server-verified on claim; null/absent = anonymous web flow.
+  liff?: LiffIdentity | null
 }
 
 interface ContactForm {
@@ -115,6 +119,7 @@ interface VoucherResult {
     urgent?: boolean
   } | null
   claimed?: boolean         // true = zero-form LINE claim (no contact info yet)
+  liffLinked?: boolean      // true = claim carried a verified LINE identity; voucher already pushed to chat
 }
 
 const EMPTY_CONTACT: ContactForm = {
@@ -139,7 +144,7 @@ function flattenAnswers(answers: Record<string, unknown>): Record<string, unknow
 const PHONE_DISPLAY = '081-902-3540'
 const PHONE_TEL = 'tel:0819023540'
 
-export default function QuizRunner({ definition }: Props) {
+export default function QuizRunner({ definition, liff }: Props) {
   const { t } = useTranslation()
   // Fallback locales (my/lo/km/…) don't carry a quiz section — fall back to
   // Thai so the runner never crashes on a missing dictionary branch.
@@ -386,6 +391,7 @@ export default function QuizRunner({ definition }: Props) {
           recaptcha_token: recaptchaToken,
           ttclid: readCookie('ttclid'),
           ttp:    readCookie('_ttp'),
+          liff_id_token: liff?.idToken || undefined,
         }),
       })
       const data = await res.json()
@@ -402,6 +408,7 @@ export default function QuizRunner({ definition }: Props) {
         score: data.score,
         insight: data.insight,
         claimed: true,
+        liffLinked: !!data.liff_linked,
       })
       if (!data.waitlist) fireConversionEvents(data, 'line_claim_success')
     } catch {
@@ -573,7 +580,12 @@ export default function QuizRunner({ definition }: Props) {
             </div>
           )}
 
-          {result.code && (
+          {result.code && result.liffLinked && (
+            <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
+              <p className="font-semibold">✅ {tq.liffSentDesc || 'ส่งรหัสเข้าแชท LINE ของคุณแล้ว — ทีมงานติดต่อกลับทางแชทได้เลย ไม่ต้องทำอะไรเพิ่ม'}</p>
+            </div>
+          )}
+          {result.code && !result.liffLinked && (
             <div className={`rounded-xl p-4 mb-4 text-xs leading-relaxed ${dark ? 'bg-mint/10 border border-mint/20 text-white/80' : 'bg-mint/10 border border-mint/20 text-rtext'}`}>
               <p className="font-semibold mb-2">📱 {tq.linePrompt}</p>
               <ol className="list-decimal list-inside space-y-1">
@@ -584,13 +596,25 @@ export default function QuizRunner({ definition }: Props) {
             </div>
           )}
 
-          <a
-            href={lineHref}
-            target="_blank" rel="noopener noreferrer"
-            className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
-          >
-            {result.code ? (tq.sendCodeCta || '💬 ส่งโค้ดยืนยันใน LINE (แตะเดียว)') : `💬 ${tq.addLine}`}
-          </a>
+          {result.liffLinked && liff?.close ? (
+            <button
+              type="button"
+              onClick={liff.close}
+              className="block w-full text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
+            >
+              {tq.liffCloseCta || '💬 กลับไปที่แชท LINE'}
+            </button>
+          ) : (
+            <a
+              href={result.liffLinked ? 'https://line.me/ti/p/@roogondee' : lineHref}
+              target="_blank" rel="noopener noreferrer"
+              className="block text-center bg-[#06C755] text-white py-3 rounded-full font-bold text-sm mb-3"
+            >
+              {result.code && !result.liffLinked
+                ? (tq.sendCodeCta || '💬 ส่งโค้ดยืนยันใน LINE (แตะเดียว)')
+                : `💬 ${tq.addLine}`}
+            </a>
+          )}
           <a
             href="https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon"
             target="_blank" rel="noopener noreferrer"
@@ -600,7 +624,11 @@ export default function QuizRunner({ definition }: Props) {
           </a>
 
           <p className={`text-xs text-center mt-5 ${dark ? 'text-white/40' : 'text-muted'}`}>
-            {result.claimed && result.code ? (tq.claimTeamContact || 'ส่งโค้ดในแชท LINE แล้วทีมงานจะดูแลต่อให้ทันที') : tq.teamContact}
+            {result.liffLinked
+              ? (tq.liffTeamContact || 'ทีมงานจะทักคุณทางแชท LINE ภายใน 24 ชั่วโมง')
+              : result.claimed && result.code
+                ? (tq.claimTeamContact || 'ส่งโค้ดในแชท LINE แล้วทีมงานจะดูแลต่อให้ทันที')
+                : tq.teamContact}
           </p>
         </div>
       </main>
@@ -667,10 +695,16 @@ export default function QuizRunner({ definition }: Props) {
           onClick={claimViaLine}
           className="block w-full text-center bg-[#06C755] text-white py-3.5 rounded-full font-bold text-base hover:bg-[#00B04B] transition-all disabled:opacity-60"
         >
-          {claiming ? (tq.claiming || 'กำลังออก voucher…') : (tq.claimLineCta || '🎟 รับ voucher ฟรีทาง LINE')}
+          {claiming
+            ? (tq.claiming || 'กำลังออก voucher…')
+            : liff?.idToken
+              ? (tq.claimLiffCta || '🎟 รับ voucher เลย — ส่งเข้าแชท LINE นี้')
+              : (tq.claimLineCta || '🎟 รับ voucher ฟรีทาง LINE')}
         </button>
         <p className={`text-xs text-center mt-2 mb-3 ${dark ? 'text-white/40' : 'text-muted'}`}>
-          {tq.claimLineHint || 'ไม่ต้องกรอกฟอร์ม — รับโค้ดทันที แล้วส่งโค้ดในแชทเพื่อยืนยันสิทธิ์'}{' '}
+          {liff?.idToken
+            ? (tq.claimLiffHint || 'เชื่อมกับ LINE ของคุณแล้ว — ไม่ต้องกรอกอะไรทั้งนั้น')
+            : (tq.claimLineHint || 'ไม่ต้องกรอกฟอร์ม — รับโค้ดทันที แล้วส่งโค้ดในแชทเพื่อยืนยันสิทธิ์')}{' '}
           {tq.claimConsentNote || 'การกดรับถือว่ายอมรับ'}{' '}
           <Link href="/privacy" target="_blank" className="underline">{tq.pdpaLink}</Link>
         </p>

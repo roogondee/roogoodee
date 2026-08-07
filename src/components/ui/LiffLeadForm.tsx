@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Script from 'next/script'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { LIFF_SDK_URL, type LiffProfile } from '@/lib/liff-client'
 
 const SERVICE_LABELS: Record<string, { label: string; emoji: string; pitch: string }> = {
   std: {
@@ -34,28 +35,6 @@ const SERVICE_LABELS: Record<string, { label: string; emoji: string; pitch: stri
 }
 
 const VALID_SERVICES = ['std', 'glp1', 'ckd', 'foreign', 'general'] as const
-
-// LIFF SDK type declarations (we load it via <Script> from CDN to avoid an
-// extra npm dep just for this one page).
-interface LiffProfile {
-  userId: string
-  displayName: string
-  pictureUrl?: string
-}
-
-interface LiffSDK {
-  init: (config: { liffId: string }) => Promise<void>
-  isLoggedIn: () => boolean
-  isInClient: () => boolean
-  getProfile: () => Promise<LiffProfile>
-  closeWindow: () => void
-}
-
-declare global {
-  interface Window {
-    liff?: LiffSDK
-  }
-}
 
 export default function LiffLeadForm({ liffId }: { liffId: string }) {
   const searchParams = useSearchParams()
@@ -168,7 +147,7 @@ export default function LiffLeadForm({ liffId }: { liffId: string }) {
   if (success) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center px-4">
-        <Script src="https://static.line-scdn.net/liff/edge/2/sdk.js" />
+        <Script src={LIFF_SDK_URL} />
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">🌿</div>
           <h1 className="text-2xl font-bold text-forest mb-2">ขอบคุณค่ะ!</h1>
@@ -196,7 +175,7 @@ export default function LiffLeadForm({ liffId }: { liffId: string }) {
   return (
     <main className="min-h-screen bg-gradient-to-br from-forest via-sage to-mint flex items-center justify-center px-4 py-8">
       <Script
-        src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+        src={LIFF_SDK_URL}
         strategy="afterInteractive"
         onLoad={() => {
           if (sdkLoadedRef.current) return
