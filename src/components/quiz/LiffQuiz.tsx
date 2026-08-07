@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import QuizRunner from '@/components/quiz/QuizRunner'
 import { QUIZZES } from '@/lib/quiz/questions'
 import { SERVICES, type Service } from '@/types'
@@ -19,7 +19,16 @@ type LiffStatus = 'init' | 'ready' | 'unavailable'
 
 export default function LiffQuiz({ liffId }: { liffId: string }) {
   const searchParams = useSearchParams()
-  const serviceParam = searchParams?.get('service') || ''
+  // Opened via https://liff.line.me/{id}?service=x the query arrives wrapped
+  // as ?liff.state=%3Fservice%3Dx — the SDK unwraps it with replaceState
+  // later, but Next's useSearchParams doesn't observe that, so unwrap here.
+  let serviceParam = searchParams?.get('service') || ''
+  const liffState = searchParams?.get('liff.state')
+  if (!serviceParam && liffState) {
+    try {
+      serviceParam = new URLSearchParams(liffState.replace(/^\?/, '')).get('service') || ''
+    } catch {}
+  }
   const service: Service | null = (SERVICE_KEYS as string[]).includes(serviceParam)
     ? (serviceParam as Service)
     : null
@@ -27,6 +36,18 @@ export default function LiffQuiz({ liffId }: { liffId: string }) {
   const [status, setStatus] = useState<LiffStatus>('init')
   const [identity, setIdentity] = useState<LiffIdentity | null>(null)
   const sdkLoadedRef = useRef(false)
+  const router = useRouter()
+
+  // Normalize the wrapped query through the Next router so QuizRunner's own
+  // useSearchParams (utm attribution, funnel events) sees the real params.
+  useEffect(() => {
+    if (!liffState) return
+    try {
+      const unwrapped = liffState.replace(/^\?/, '')
+      if (unwrapped) router.replace(`/liff/quiz?${unwrapped}`)
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liffState])
 
   const initLiff = async () => {
     if (!window.liff || !liffId) {
