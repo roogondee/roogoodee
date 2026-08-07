@@ -55,7 +55,31 @@
 
 `LINE_CHANNEL_ACCESS_TOKEN` (Messaging API เดิม) มีอยู่แล้ว — ใช้ push voucher
 
-### 5. ชี้ rich menu / broadcast เข้า LIFF
+### 5. ติดตั้ง rich menu อัตโนมัติ (แนะนำ — ไม่ต้องออกแบบภาพเอง)
+
+มีสคริปต์ `scripts/line_richmenu.py` + workflow `.github/workflows/line_richmenu.yml` ที่ compose ภาพเมนู 6 ปุ่ม (Sarabun, brand colors) แล้วติดตั้งผ่าน Messaging API ให้เสร็จ:
+
+1. GitHub → Actions → **LINE OA Rich Menu (LIFF quiz)** → Run workflow
+2. รอบแรกรันด้วย `dry_run = true` → โหลด artifact `richmenu-preview` มาดูภาพก่อน
+3. พอใจแล้วรันอีกรอบ `dry_run = false` → เมนูขึ้นเป็น default ให้ผู้ติดตามทุกคนทันที (ติ๊ก `cleanup` ถ้าอยากลบเมนูเก่าทิ้ง)
+
+ปุ่มทั้ง 6: เช็คสุขภาพฟรี (หน้าเลือก 8 บริการ) / GLP-1 / STD / สุขภาพผู้หญิง / สุขภาพใจ / ปรึกษาทีมงาน (ส่งข้อความเข้าแชท) — ลิงก์ทุกปุ่มติด `utm_source=line&utm_medium=richmenu` แล้ว
+
+### 5.1 Greeting message (ตั้งเองใน OA Manager — LINE ไม่มี API)
+
+[manager.line.biz](https://manager.line.biz/) → @roogondee → **แชทอัตโนมัติ → ข้อความทักทายเพื่อนใหม่** วางข้อความนี้:
+
+```
+ยินดีต้อนรับสู่ รู้ก่อนดี(รู้งี้) ค่ะ 🌿
+
+เช็คสุขภาพฟรีใน 2 นาที — ตอบคำถามสั้นๆ รับ voucher ตรวจฟรีที่ W Medical Hospital ส่งเข้าแชทนี้เลย ไม่ต้องกรอกฟอร์ม
+
+👉 เริ่มเลย: https://liff.line.me/2009899374-SVD8xJEn?utm_source=line&utm_medium=greeting
+
+หรือพิมพ์ถามได้เลยค่ะ ทีมงานพร้อมตอบ ฟรี ไม่ตัดสิน เป็นความลับ 💚
+```
+
+### 5.2 ชี้ rich menu / broadcast เข้า LIFF ด้วยตัวเอง (ทางเลือก)
 
 URL ที่ใช้ในปุ่ม rich menu, rich message, broadcast:
 
