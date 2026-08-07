@@ -42,6 +42,9 @@ SERVICE_LABELS = {
     "ckd":     "CKD & โรคไต",
     "foreign": "แรงงานต่างด้าว",
     "mens":    "Men's Health 40+",
+    "women":   "สุขภาพเพศหญิง",
+    "mind":    "สุขภาพจิต & ความสัมพันธ์",
+    "dna":     "DNA & พิสูจน์บิดา-บุตร",
 }
 
 # ─── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -171,11 +174,14 @@ def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str 
     """
     sb = get_sb()
 
-    # mens vertical → draft mode by default until W Medical compliance review
-    # is established as routine (set MENS_AUTO_PUBLISH=1 to bypass).
-    is_mens = plan["service"] == "mens"
-    auto_publish_mens = os.environ.get("MENS_AUTO_PUBLISH") == "1"
-    status = "draft" if (is_mens and not auto_publish_mens) else "published"
+    # Verticals whose copy carries a compliance gate land as drafts until a
+    # human signs off: mens (W Medical review, per mens-vertical-plan.md) and
+    # dna (consent/pricing red lines, and no confirmed lab partner yet).
+    # Set MENS_AUTO_PUBLISH=1 / DNA_AUTO_PUBLISH=1 to bypass once review is routine.
+    gated = {"mens": "MENS_AUTO_PUBLISH", "dna": "DNA_AUTO_PUBLISH"}
+    gate_env = gated.get(plan["service"])
+    needs_review = bool(gate_env) and os.environ.get(gate_env) != "1"
+    status = "draft" if needs_review else "published"
     published_at = datetime.now(BKK_TZ).isoformat() if status == "published" else None
 
     post_data = {
@@ -374,6 +380,27 @@ def generate_content(plan: dict) -> str:
 
     is_mens = plan.get("service") == "mens"
     is_foreign = plan.get("service") == "foreign"
+    is_dna = plan.get("service") == "dna"
+    dna_compliance_block = """
+
+⚠️ COMPLIANCE สำหรับ DNA พิสูจน์บิดา-บุตร (บังคับ — ห้ามฝ่าฝืน):
+- ห้ามเขียนหรือสื่อว่า "ตรวจ DNA ฟรี" เด็ดขาด
+  voucher ของเรา = ปรึกษาฟรี ค่าตรวจแยกต่างหาก
+- ห้ามแนะนำ อธิบายวิธี หรือทำให้ดูเป็นไปได้ ว่าจะเก็บตัวอย่างของอีกฝ่าย
+  มาตรวจโดยเขาไม่รู้ตัว — ต้องระบุเสมอว่าต้องได้รับความยินยอมจากทุกฝ่าย
+  (ผู้เยาว์ = ผู้ปกครองตามกฎหมายยินยอม)
+- ห้ามการันตีผลทางกฎหมาย เช่น "ตรวจแล้วชนะคดีแน่นอน"
+- ตัวเลขความแม่นยำและระยะเวลารอผล ต้องอ้างว่าเป็นข้อมูลของห้องปฏิบัติการ
+  ไม่ใช่คำเคลมของเรา
+- ราคา: เขียนเป็นช่วงราคาตลาดเท่านั้น ห้ามอ้างเป็นราคาของเรา
+  (พาร์ทเนอร์ห้องปฏิบัติการและ price list ยังไม่ยืนยัน)
+- หากกล่าวถึงการตรวจก่อนคลอด (NIPP) ต้องระบุว่าเป็นหัตถการทางการแพทย์
+  ต้องให้แพทย์ประเมินก่อน ห้ามชวนให้จองตรวจโดยตรง
+- ต้องมี disclaimer ท้ายบทความ:
+  "รู้ก่อนดี(รู้งี้) เป็นผู้ให้ข้อมูลและประสานงานนัดหมาย ไม่ใช่ผู้ให้บริการตรวจ
+   การเก็บตัวอย่างและการตรวจดำเนินการโดยสถานพยาบาลและห้องปฏิบัติการที่ได้มาตรฐาน
+   ข้อมูลในบทความนี้ไม่ใช่คำแนะนำทางกฎหมาย"
+- tone: เป็นความลับ ไม่ตัดสิน ห้ามใช้โทนจับผิด/จับชู้"""
     mens_compliance_block = """
 
 ⚠️ COMPLIANCE สำหรับ Men's Health (บังคับ — ห้ามฝ่าฝืน):
@@ -404,6 +431,8 @@ def generate_content(plan: dict) -> str:
 
     if is_mens:
         system_prompt += mens_compliance_block
+    if is_dna:
+        system_prompt += dna_compliance_block
 
     foreign_source_block = ""
     if is_foreign:

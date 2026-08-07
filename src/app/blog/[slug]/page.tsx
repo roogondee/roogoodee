@@ -43,21 +43,33 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
+// All eight verticals. Articles for the newer four used to render a grey
+// badge showing the raw service slug and no link back to their landing page.
 const SERVICE_LABELS: Record<string, string> = {
   std: 'STD & PrEP HIV', glp1: 'GLP-1 ลดน้ำหนัก', ckd: 'CKD Clinic', foreign: 'แรงงานต่างด้าว',
+  mens: 'สุขภาพชายวัย 40+', women: 'สุขภาพเพศหญิง', mind: 'สุขภาพจิต & ความสัมพันธ์',
+  dna: 'DNA พิสูจน์บิดา-บุตร',
 }
 const SERVICE_COLORS: Record<string, string> = {
   std: 'bg-rose-100 text-rose-700', glp1: 'bg-emerald-100 text-emerald-700',
   ckd: 'bg-blue-100 text-blue-700', foreign: 'bg-amber-100 text-amber-700',
+  mens: 'bg-indigo-100 text-indigo-700', women: 'bg-pink-100 text-pink-700',
+  mind: 'bg-violet-100 text-violet-700', dna: 'bg-sky-100 text-sky-700',
 }
 const SERVICE_PAGES: Record<string, string> = {
   std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign',
+  mens: '/mens', women: '/women', mind: '/mind', dna: '/dna',
 }
+// Verticals without a calculator point at their quiz instead.
 const SERVICE_TOOLS: Record<string, { href: string; label: string; icon: string }> = {
   std:     { href: '/tools#prep', label: 'ทำ PrEP Risk Quiz', icon: '🔴' },
   glp1:    { href: '/tools#bmi', label: 'คำนวณ BMI & GLP-1', icon: '💉' },
   ckd:     { href: '/tools#egfr', label: 'คำนวณ eGFR (CKD)', icon: '🫘' },
   foreign: { href: '/contact?service=foreign', label: 'ขอใบเสนอราคา B2B', icon: '📋' },
+  mens:    { href: '/quiz/mens', label: 'ทำแบบประเมินสุขภาพชาย', icon: '🧔' },
+  women:   { href: '/quiz/women', label: 'ทำแบบประเมินสุขภาพเพศหญิง', icon: '🌸' },
+  mind:    { href: '/quiz/mind', label: 'ทำแบบประเมินสุขภาพใจ', icon: '🧠' },
+  dna:     { href: '/quiz/dna', label: 'ประเมินเคส DNA ฟรี', icon: '🧬' },
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {

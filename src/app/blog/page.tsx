@@ -13,9 +13,12 @@ export const metadata: Metadata = {
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
-const SERVICE_COLORS: Record<string, string> = { std: 'bg-rose-100 text-rose-700', glp1: 'bg-emerald-100 text-emerald-700', ckd: 'bg-blue-100 text-blue-700', foreign: 'bg-amber-100 text-amber-700' }
-const SERVICE_LABELS: Record<string, string> = { std: 'STD & PrEP HIV', glp1: 'GLP-1', ckd: 'CKD Clinic', foreign: 'Foreign Worker' }
-const SERVICE_PAGES: Record<string, string> = { std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign' }
+// All eight verticals. Articles for the newer four used to fall through to a
+// grey badge showing the raw service slug, and their filter chip never
+// rendered at all because the chip row iterates these entries.
+const SERVICE_COLORS: Record<string, string> = { std: 'bg-rose-100 text-rose-700', glp1: 'bg-emerald-100 text-emerald-700', ckd: 'bg-blue-100 text-blue-700', foreign: 'bg-amber-100 text-amber-700', mens: 'bg-indigo-100 text-indigo-700', women: 'bg-pink-100 text-pink-700', mind: 'bg-violet-100 text-violet-700', dna: 'bg-sky-100 text-sky-700' }
+const SERVICE_LABELS: Record<string, string> = { std: 'STD & PrEP HIV', glp1: 'GLP-1', ckd: 'CKD Clinic', foreign: 'Foreign Worker', mens: 'สุขภาพชาย 40+', women: 'สุขภาพเพศหญิง', mind: 'สุขภาพจิต', dna: 'DNA พิสูจน์บิดา-บุตร' }
+const SERVICE_PAGES: Record<string, string> = { std: '/std', glp1: '/glp1', ckd: '/ckd', foreign: '/foreign', mens: '/mens', women: '/women', mind: '/mind', dna: '/dna' }
 
 export const revalidate = 60
 
