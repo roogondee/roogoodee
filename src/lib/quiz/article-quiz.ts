@@ -73,7 +73,7 @@ const GLP1: ArticleQuizDefinition = {
       body: 'ดูแลน้ำหนักแบบ lifestyle ต่อไปได้เลย หากต้องการประเมินเชิงลึก ทำแบบเต็มได้ฟรี',
     },
   },
-  ctaLabel: 'ทำแบบประเมินเต็ม รับ voucher ตรวจฟรี (3 นาที)',
+  ctaLabel: 'ทำแบบประเมินเต็มใน LINE รับ voucher ตรวจฟรี',
   ctaHref: '/quiz/glp1',
 }
 
@@ -131,7 +131,7 @@ const CKD: ArticleQuizDefinition = {
       body: 'ดูแลสุขภาพทั่วไปต่อไปได้ ตรวจสุขภาพประจำปีก็เพียงพอ',
     },
   },
-  ctaLabel: 'ทำแบบประเมินเต็ม รับตรวจปัสสาวะฟรี',
+  ctaLabel: 'ทำแบบประเมินเต็มใน LINE รับตรวจปัสสาวะฟรี',
   ctaHref: '/quiz/ckd',
 }
 
@@ -189,7 +189,7 @@ const STD: ArticleQuizDefinition = {
       body: 'ตรวจประจำปีก็เพียงพอ หากมีพฤติกรรมเสี่ยงในอนาคต PrEP ช่วยป้องกัน HIV ได้',
     },
   },
-  ctaLabel: 'ทำแบบประเมินเต็ม รับตรวจ HIV+Syphilis ฟรี',
+  ctaLabel: 'ทำแบบประเมินเต็มใน LINE รับตรวจ HIV+Syphilis ฟรี',
   ctaHref: '/quiz/std',
 }
 
@@ -246,7 +246,7 @@ const WOMEN: ArticleQuizDefinition = {
       body: 'ดูแลสุขภาพประจำต่อไป ตรวจคัดกรองตามรอบเวลาที่แพทย์แนะนำ',
     },
   },
-  ctaLabel: 'ทำแบบประเมินเต็ม รับสิทธิ์ปรึกษาแพทย์ฟรี',
+  ctaLabel: 'ทำแบบประเมินเต็มใน LINE รับสิทธิ์ปรึกษาแพทย์ฟรี',
   ctaHref: '/quiz/women',
 }
 
@@ -304,7 +304,7 @@ const MIND: ArticleQuizDefinition = {
       body: 'การคิดถึงสุขภาพจิตเป็นเรื่องดี — ถ้าวันไหนรู้สึกหนัก ปรึกษาฟรีได้เสมอ',
     },
   },
-  ctaLabel: 'ทำแบบประเมินเต็ม รับสิทธิ์ปรึกษานักจิตวิทยาฟรี 30 นาที',
+  ctaLabel: 'ทำแบบประเมินเต็มใน LINE รับสิทธิ์ปรึกษานักจิตวิทยาฟรี',
   ctaHref: '/quiz/mind',
 }
 
