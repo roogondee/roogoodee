@@ -2,7 +2,7 @@ import CertSearchForm from '@/components/verify/CertSearchForm'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
-  title: 'ตรวจสอบใบรับรองแพทย์ — W Medical',
+  title: 'ตรวจสอบใบรับรองแพทย์ — โรงพยาบาลพันธมิตร',
   description: 'ตรวจสอบความถูกต้องของใบรับรองแพทย์ที่ออกโดยโรงพยาบาลดับเบิ้ลยู เมดิคอล',
   robots: { index: false, follow: false },
 }

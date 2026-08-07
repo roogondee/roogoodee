@@ -22,7 +22,7 @@ const SERVICE_INFO: Record<
       'คำปรึกษาโดยแพทย์',
     ],
     pricing: 'เริ่มต้น 500 บาท ขึ้นกับแพ็กเกจ',
-    location: 'W Medical Hospital, Samut Sakhon (ใกล้ กทม.)',
+    location: 'โรงพยาบาลพันธมิตร, Samut Sakhon (ใกล้ กทม.)',
   },
   glp1: {
     label: 'GLP-1 ลดน้ำหนัก',
@@ -35,7 +35,7 @@ const SERVICE_INFO: Record<
       'คำแนะนำโภชนาการและการออกกำลังกาย',
     ],
     pricing: 'ขึ้นกับยาและระยะเวลา ติดต่อทีมเพื่อรับใบเสนอราคา',
-    location: 'W Medical Hospital, Samut Sakhon',
+    location: 'โรงพยาบาลพันธมิตร, Samut Sakhon',
   },
   ckd: {
     label: 'CKD คลินิกโรคไต',
@@ -47,7 +47,7 @@ const SERVICE_INFO: Record<
       'คำปรึกษาเรื่องอาหารและยา',
       'ส่งต่อเพื่อฟอกไตเมื่อจำเป็น',
     ],
-    location: 'W Medical Hospital, Samut Sakhon',
+    location: 'โรงพยาบาลพันธมิตร, Samut Sakhon',
   },
   foreign: {
     label: 'ตรวจสุขภาพแรงงานต่างด้าว',
@@ -60,7 +60,7 @@ const SERVICE_INFO: Record<
       'บริการเป็นกลุ่ม นายจ้างพาไปได้',
     ],
     pricing: 'เริ่มต้น 500 บาท/คน (กลุ่มได้ส่วนลด)',
-    location: 'W Medical Hospital, Samut Sakhon',
+    location: 'โรงพยาบาลพันธมิตร, Samut Sakhon',
   },
   mens: {
     label: 'สุขภาพชายวัย 40+',
@@ -75,7 +75,7 @@ const SERVICE_INFO: Record<
     pricing:
       'ค่าธรรมเนียมแพทย์ฟรีในโครงการ — ค่าตรวจ lab และค่ายา (ถ้ามี) ตามดุลยพินิจของแพทย์ ' +
       'และคิดตามโครงสร้างราคา รพ.',
-    location: 'W Medical Hospital, Samut Sakhon',
+    location: 'โรงพยาบาลพันธมิตร, Samut Sakhon',
   },
 }
 

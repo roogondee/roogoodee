@@ -94,7 +94,7 @@ def generate_ad_copy(service_key: str, angle: str) -> dict:
     s = SERVICES[service_key]
     angle_hint = ANGLE_HINTS[angle]
     prompt = f"""เขียน Facebook ad copy ภาษาไทย สำหรับโปรโมท: {s['name']} — {s['voucher']}
-ที่ W Medical Hospital สมุทรสาคร
+ที่ โรงพยาบาลพันธมิตรในสมุทรสาคร
 
 Audience: {s['audience']}
 Angle: {angle} — {angle_hint}

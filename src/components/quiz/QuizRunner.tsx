@@ -616,7 +616,7 @@ export default function QuizRunner({ definition, liff }: Props) {
             </a>
           )}
           <a
-            href="https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon"
+            href="https://line.me/ti/p/@roogondee"
             target="_blank" rel="noopener noreferrer"
             className={`block text-center py-3 rounded-full font-bold text-sm border ${dark ? 'border-white/20 text-white' : 'border-forest text-forest'}`}
           >
