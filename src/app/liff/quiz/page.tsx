@@ -11,6 +11,9 @@ export const metadata: Metadata = {
 // LIFF endpoint — register https://roogondee.com/liff/quiz in LINE Developers
 // Console (LINE Login channel → LIFF → Add, size Full). Point rich menu /
 // broadcast buttons at https://liff.line.me/{LIFF_ID}?service=glp1 etc.
+// NEXT_PUBLIC_LIFF_QUIZ_ID holds this page's own LIFF app ID so it doesn't
+// clash with the /lead/liff app sharing NEXT_PUBLIC_LIFF_ID (same channel is
+// fine — id_token verification only needs LINE_LOGIN_CHANNEL_ID).
 // Setup guide: docs/liff-quiz-setup.md
 export default function LiffQuizPage() {
   return (
@@ -24,7 +27,7 @@ export default function LiffQuizPage() {
         </main>
       }
     >
-      <LiffQuiz liffId={process.env.NEXT_PUBLIC_LIFF_ID || ''} />
+      <LiffQuiz liffId={process.env.NEXT_PUBLIC_LIFF_QUIZ_ID || process.env.NEXT_PUBLIC_LIFF_ID || ''} />
     </Suspense>
   )
 }

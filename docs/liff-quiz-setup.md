@@ -9,6 +9,14 @@
 
 ต่างจากหน้าเว็บ (`/quiz/*`) ที่ลูกค้าต้องส่งโค้ดกลับใน OA เองก่อนถึงจะติดต่อได้
 
+## สถานะปัจจุบัน (2026-08-07)
+
+มี LINE Login channel **"roogondee Login" (Channel ID `2009899374`)** อยู่แล้ว พร้อม LIFF app ตัวแรก "roogondee Lead" (`2009899374-OY70Rvfb`, endpoint `/lead/liff`, Size Tall — ฟอร์มเก่า) ดังนั้น:
+
+- ✅ ขั้น 1 (สร้าง channel) — ข้ามได้ ใช้ channel นี้เลย: `LINE_LOGIN_CHANNEL_ID=2009899374`
+- ⚠️ ขั้น 2 — ยังต้อง **Add LIFF app ตัวที่สอง** สำหรับควิซ (1 LIFF app ชี้ได้ 1 endpoint; ห้ามแก้ตัวเดิมถ้ายังใช้ฟอร์ม `/lead/liff` จาก broadcast อยู่) → ใส่ ID ที่ได้ใน `NEXT_PUBLIC_LIFF_QUIZ_ID`
+- เช็คขั้น 3 ว่า Linked OA เป็น @roogondee แล้วหรือยัง
+
 ## ขั้นตอนตั้งค่า (ทำครั้งเดียว ~15 นาที)
 
 ### 1. สร้าง LINE Login channel
@@ -18,7 +26,7 @@
 3. ตั้งชื่อ เช่น "Roogondee LIFF" → Region: Thailand → สร้าง
 4. จดค่า **Channel ID** (ตัวเลข) จากแท็บ Basic settings → ใส่ Vercel env `LINE_LOGIN_CHANNEL_ID`
 
-> ต้องเป็น channel ใหม่ประเภท LINE Login — ใช้ Channel ID ของ Messaging API channel เดิมไม่ได้ (ตรวจ id_token ไม่ผ่าน)
+> ต้องเป็น channel ประเภท LINE Login — ใช้ Channel ID ของ Messaging API channel ไม่ได้ (ตรวจ id_token ไม่ผ่าน)
 
 ### 2. เพิ่ม LIFF app
 
@@ -29,7 +37,9 @@
    - **Endpoint URL**: `https://roogondee.com/liff/quiz`
    - **Scopes**: `profile` + `openid` (ต้องติ๊ก openid ไม่งั้นไม่มี id_token)
    - **Bot link feature**: `On (Aggressive)` — ชวน add เพื่อน OA ตอนเปิดครั้งแรก ทำให้ push voucher ถึงแน่นอน
-3. จด **LIFF ID** (รูปแบบ `1234567890-AbcdEfgh`) → ใส่ Vercel env `NEXT_PUBLIC_LIFF_ID`
+3. จด **LIFF ID** (รูปแบบ `1234567890-AbcdEfgh`) → ใส่ Vercel env `NEXT_PUBLIC_LIFF_QUIZ_ID`
+
+> `NEXT_PUBLIC_LIFF_ID` (ตัวเดิม) เป็นของหน้าฟอร์ม `/lead/liff` — คนละ app กัน อย่าสลับ
 
 ### 3. เชื่อม OA เข้ากับ Login channel
 
@@ -40,8 +50,8 @@
 
 | Env | ค่า |
 |---|---|
-| `NEXT_PUBLIC_LIFF_ID` | LIFF ID จากข้อ 2 |
-| `LINE_LOGIN_CHANNEL_ID` | Channel ID จากข้อ 1 |
+| `NEXT_PUBLIC_LIFF_QUIZ_ID` | LIFF ID ของ app ควิซ จากข้อ 2 |
+| `LINE_LOGIN_CHANNEL_ID` | Channel ID จากข้อ 1 (= `2009899374`) |
 
 `LINE_CHANNEL_ACCESS_TOKEN` (Messaging API เดิม) มีอยู่แล้ว — ใช้ push voucher
 
