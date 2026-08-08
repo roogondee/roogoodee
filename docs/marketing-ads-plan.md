@@ -40,15 +40,21 @@ learning phase ไม่ได้ และงบจะไหลทิ้งโ�
 **ไม่ได้ส่ง `fbclid` และ `_fbp`** → lead ที่เกิดใน LINE จึงผูกกลับไปหา ad ที่คลิกมาไม่ได้
 รู้ได้แค่ระดับแคมเปญจาก utm เท่านั้น (ยัง optimize ไม่ได้ เพราะ Meta ต้องการ click id ราย event)
 
-งานที่ต้องทำ — เดินตามรอยเดิมที่ TikTok ทำสำเร็จแล้ว (`src/lib/tiktok-events.ts` ใช้ `ttclid` + `_ttp` + dedup ด้วย `event_id = voucher.code`):
+**สถานะ: โค้ดทำเสร็จแล้ว** (PR เดียวกับเอกสารนี้) เดินตามรอยเดิมที่ TikTok ทำสำเร็จแล้ว:
 
-1. `liffQuizUrl()` ส่ง `fbclid` + `_fbp` ต่อเข้า LIFF เพิ่มจาก utm 3 ตัวที่ส่งอยู่แล้ว (เส้นทางเดิม พิสูจน์แล้วว่าผ่าน)
-2. `LiffQuiz` อ่านค่าสองตัวนี้แล้วส่งไปกับ payload ของ `/api/quiz/claim-line` — route นี้รับและเก็บ utm ลง `leads` อยู่แล้ว เพิ่ม 2 คอลัมน์
-3. `src/lib/meta-events.ts` ใหม่ — ก๊อปโครงจาก `tiktok-events.ts` ยิง `Lead` เข้า CAPI พร้อม `fbc` / `fbp` และ hash เบอร์/อีเมลด้วย SHA-256
-4. ใช้ `event_id = voucher.code` เหมือน TikTok เพื่อ dedup กับ Pixel ฝั่ง client
+1. `readAttribution()` ใน `src/lib/analytics/track.ts` — เก็บ `fbclid` จาก URL แล้วประกอบเป็น `fbc`
+   (`fb.1.<ms>.<fbclid>` ตามฟอร์แมตที่ CAPI ต้องการ) + อ่าน `_fbp` / `ttclid` / `_ttp`
+2. `QuizGateActions` ต่อค่าเหล่านี้ท้าย LIFF URL เพิ่มจาก utm 3 ตัวเดิม
+3. `QuizRunner` อ่านจาก URL ใน LIFF (เขียนลง cookie ของ webview กัน refresh หลุด) แล้วส่งไปกับ payload
+4. `src/lib/meta-events.ts` ใหม่ — ยิง `Lead` เข้า CAPI จาก `/api/quiz/claim-line` และ `/api/quiz`
+   ใช้ `event_id = voucher.code` เพื่อ dedup, hash เบอร์ด้วย SHA-256 (Meta ต้องการ `66xxxxxxxxx` ไม่มี `+` — คนละแบบกับ TikTok)
 
-ขนาดงาน: เล็ก (แพตเทิร์นมีครบแล้ว) แต่ **ต้องเสร็จก่อนจะ scale งบ** ไม่งั้นจะ optimize ได้แค่ proxy event ตลอดไป
-ระหว่างรอ: ยิงด้วย `Contact` ตามข้อ 0.1 ได้เลย ไม่ต้องรอ CAPI
+**เหลือแค่ตั้ง env 2 ตัวก็ใช้งานได้**: `NEXT_PUBLIC_META_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN`
+(ถ้าไม่ตั้ง โมดูลจะเงียบสนิท ไม่พังการออก voucher) ระหว่างที่ยังไม่มี ยิงด้วย `Contact` ตามข้อ 0.1 ได้เลย
+
+> เจอระหว่างทำ: `ttclid` ฝั่ง TikTok ก็ขาดด้วยเหตุผลเดียวกัน — `claim-line` รับ `ttclid` อยู่แล้ว
+> แต่ `QuizRunner` อ่านจาก cookie ซึ่ง**ข้ามเข้า in-app browser ของ LINE ไม่ได้** ทุก paid click จาก TikTok
+> จึงหลุด attribution ไปเงียบ ๆ ตั้งแต่ย้าย funnel เข้า LINE — แก้ไปพร้อมกันในชุดเดียวกันแล้ว
 
 ### 0.3 ตัวเลขเป้าต้อง re-baseline และ metric หลักควรเปลี่ยน
 
