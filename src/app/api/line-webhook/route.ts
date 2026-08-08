@@ -239,7 +239,7 @@ async function handleEvent(event: any): Promise<void> {
           `✓ เชื่อมบัญชีสำเร็จ`,
           `🎟 ${code}`,
           `📅 หมดอายุ ${expires}`,
-          `📍 W Medical Hospital สมุทรสาคร`,
+          `📍 โรงพยาบาลพันธมิตรในสมุทรสาคร`,
           ``,
           `ต่อไปเราจะแจ้งเตือนคุณผ่าน LINE โดยตรง`,
         ].join('\n')

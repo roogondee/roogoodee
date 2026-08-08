@@ -1,13 +1,13 @@
 import type { Service } from '@/types'
 import type { LabAnalyte, LabUpsell } from './types'
 
-export const W_MEDICAL = 'W Medical Hospital สมุทรสาคร'
+export const W_MEDICAL = 'โรงพยาบาลพันธมิตรในสมุทรสาคร'
 
 // Voucher copy per pillar (mirrors content-gen SERVICE_META).
 export const PILLAR_HINT: Partial<Record<Service, string>> = {
-  glp1: 'รับฟรี FBS+HbA1c (มูลค่า 500฿) ที่ W Medical Hospital',
+  glp1: 'รับฟรี FBS+HbA1c (มูลค่า 500฿) ที่ โรงพยาบาลพันธมิตร',
   std: 'ตรวจ HIV+Syphilis ฟรี รู้ผลใน 1 ชั่วโมง',
-  ckd: 'ตรวจปัสสาวะหาโปรตีนฟรี ที่ W Medical Hospital',
+  ckd: 'ตรวจปัสสาวะหาโปรตีนฟรี ที่ โรงพยาบาลพันธมิตร',
   mens: 'ปรึกษาแพทย์ฟรี เรื่องสุขภาพชายวัย 40+',
   women: 'ปรึกษาสูตินรีแพทย์ฟรี + ตรวจประเมินเบื้องต้น',
   mind: 'ปรึกษาผู้เชี่ยวชาญด้านสุขภาพจิตฟรี',

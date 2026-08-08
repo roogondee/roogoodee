@@ -6,7 +6,7 @@ import { QUIZZES } from '@/lib/quiz/questions'
 
 export const metadata: Metadata = {
   title: 'แบบประเมินสุขภาพชายวัย 40+ — รับสิทธิ์ปรึกษาแพทย์ฟรี',
-  description: 'ทำแบบประเมินสุขภาพชายวัย 40+ 6 ข้อ ใน 1 นาที รับสิทธิ์ปรึกษาแพทย์เฉพาะทางฟรีที่ W Medical Hospital สมุทรสาคร',
+  description: 'ทำแบบประเมินสุขภาพชายวัย 40+ 6 ข้อ ใน 1 นาที รับสิทธิ์ปรึกษาแพทย์เฉพาะทางฟรีที่ โรงพยาบาลพันธมิตรในสมุทรสาคร',
   alternates: { canonical: 'https://roogondee.com/quiz/mens' },
 }
 

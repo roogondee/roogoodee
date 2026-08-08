@@ -83,7 +83,7 @@ export default function PatientLabUpload() {
       <label className="flex items-start gap-2 text-xs text-gray-600">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
         <span>
-          ข้าพเจ้ายินยอมให้ รู้ก่อนดี / W Medical จัดเก็บและประมวลผลข้อมูลสุขภาพนี้
+          ข้าพเจ้ายินยอมให้ รู้ก่อนดี / โรงพยาบาลพันธมิตร จัดเก็บและประมวลผลข้อมูลสุขภาพนี้
           เพื่ออ่านผลและให้คำแนะนำ ตาม <a href="/privacy" className="underline">นโยบายความเป็นส่วนตัว</a>
         </span>
       </label>

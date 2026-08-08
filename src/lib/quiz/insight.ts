@@ -63,7 +63,7 @@ function insightGLP1(a: Answers, tier: LeadTier): HealthInsight {
   return {
     headline: 'ประเมินสุขภาพเบื้องต้นเรียบร้อย',
     body: 'ค่า BMI และข้อมูลที่คุณให้อยู่ในเกณฑ์พอใช้ได้ แต่การตรวจคัดกรองเบาหวานปีละครั้งยังเป็นแนวทางที่แนะนำ',
-    recommendation: 'ตรวจ FBS + HbA1c ฟรีที่ W Medical Hospital เพื่อเก็บเป็น baseline และปรึกษาแพทย์ว่าเป้าหมายของคุณเหมาะกับ GLP-1 หรือวิธีอื่น',
+    recommendation: 'ตรวจ FBS + HbA1c ฟรีที่ โรงพยาบาลพันธมิตร เพื่อเก็บเป็น baseline และปรึกษาแพทย์ว่าเป้าหมายของคุณเหมาะกับ GLP-1 หรือวิธีอื่น',
     disclaimer: DISCLAIMER,
   }
 }
@@ -89,7 +89,7 @@ function insightCKD(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: `${hasDm ? 'DM' : 'ความดัน'} = สาเหตุหลักของโรคไตเรื้อรัง`,
       body: `${hasDm ? 'เบาหวาน' : 'ความดันสูง'}เป็นสาเหตุอันดับต้น ๆ ของโรคไตเรื้อรังในไทย การตรวจโปรตีนในปัสสาวะช่วยจับสัญญาณเริ่มต้นได้ก่อนค่าครีเอตินินจะเปลี่ยน`,
-      recommendation: 'ตรวจฟรีที่ W Medical + ปรึกษาแพทย์ว่าควรตรวจซ้ำทุกกี่เดือน และปรับยาปัจจุบันยังไงให้ช่วยถนอมไต',
+      recommendation: 'ตรวจฟรีที่โรงพยาบาลพันธมิตร + ปรึกษาแพทย์ว่าควรตรวจซ้ำทุกกี่เดือน และปรับยาปัจจุบันยังไงให้ช่วยถนอมไต',
       disclaimer: DISCLAIMER,
     }
   }
@@ -128,7 +128,7 @@ function insightSTD(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: '🚨 PEP ได้ผลสูงสุดภายใน 72 ชั่วโมง',
       body: 'หลัง exposure เกิน 72 ชม. PEP ลดประสิทธิภาพมาก ทุกชั่วโมงที่รอ = โอกาสป้องกัน HIV ลดลง กรุณาติดต่อโรงพยาบาลทันที',
-      recommendation: 'โทรหา W Medical ด่วน — ทีมให้คำแนะนำและเริ่ม PEP 28 วันได้ ตรวจเบื้องต้นรู้ผลใน 1 ชม.',
+      recommendation: 'โทรหา โรงพยาบาลพันธมิตร ด่วน — ทีมให้คำแนะนำและเริ่ม PEP 28 วันได้ ตรวจเบื้องต้นรู้ผลใน 1 ชม.',
       disclaimer: DISCLAIMER,
       urgent: true,
     }
@@ -145,7 +145,7 @@ function insightSTD(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: 'มีอาการ + ไม่ได้ตรวจนานเกิน = ควรตรวจเร็ว',
       body: 'HIV และ Syphilis ระยะแรกมักไม่มีอาการเด่น ถ้ามีอาการที่คุณรายงาน + ไม่เคย screen นาน = ความเสี่ยงสะสม',
-      recommendation: 'ตรวจที่ W Medical ส่วนตัว ไม่ตัดสิน รู้ผลใน 1 ชม. ถ้าผลบวกมีทีมดูแลต่อทันที',
+      recommendation: 'ตรวจที่โรงพยาบาลพันธมิตร ส่วนตัว ไม่ตัดสิน รู้ผลใน 1 ชม. ถ้าผลบวกมีทีมดูแลต่อทันที',
       disclaimer: DISCLAIMER,
       urgent: true,
     }
@@ -154,14 +154,14 @@ function insightSTD(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: 'รักษาเร็ว = เปลี่ยนผล outcome อย่างสิ้นเชิง',
       body: 'STD ส่วนใหญ่ (Syphilis, Gonorrhea, Chlamydia) รักษาหาย 100% ถ้าเริ่มเร็ว HIV ไม่หายขาดแต่ viral load = undetectable ได้ = ไม่แพร่ไม่ลุกลาม',
-      recommendation: 'ตรวจฟรีเพื่อยืนยันชนิดแล้วเริ่มยาในวันเดียวกัน W Medical มีทีมที่ดูแลเรื่องนี้โดยเฉพาะ',
+      recommendation: 'ตรวจฟรีเพื่อยืนยันชนิดแล้วเริ่มยาในวันเดียวกัน โรงพยาบาลพันธมิตร มีทีมที่ดูแลเรื่องนี้โดยเฉพาะ',
       disclaimer: DISCLAIMER,
     }
   }
   return {
     headline: 'ตรวจแล้วเคลียร์ใจ = สบายใจ',
     body: 'การตรวจคัดกรอง HIV + Syphilis เป็นเรื่องปกติและส่วนตัว ไม่ใช่เรื่องของการตัดสิน — ผล 1 ชม. ไปต่อได้เลย',
-    recommendation: 'ใช้ voucher ตรวจที่ W Medical แบบ walk-in หรือจองก่อนได้',
+    recommendation: 'ใช้ voucher ตรวจที่โรงพยาบาลพันธมิตร แบบ walk-in หรือจองก่อนได้',
     disclaimer: DISCLAIMER,
   }
 }
@@ -179,7 +179,7 @@ function insightMens(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: 'แนะนำพบแพทย์เฉพาะทางโดยตรง',
       body: 'จากประวัติที่กรอก คุณควรได้รับการประเมินจากแพทย์เฉพาะทางก่อน เพื่อให้การดูแลปลอดภัยและเหมาะสมที่สุด — เคสนี้ไม่อยู่ในเกณฑ์ voucher ปกติ',
-      recommendation: 'ติดต่อ W Medical Hospital เพื่อนัดพบแพทย์เฉพาะทางโดยตรง — ทีมจะช่วยประสานงานให้',
+      recommendation: 'ติดต่อ โรงพยาบาลพันธมิตร เพื่อนัดพบแพทย์เฉพาะทางโดยตรง — ทีมจะช่วยประสานงานให้',
       disclaimer: DISCLAIMER,
       urgent: true,
     }
@@ -193,7 +193,7 @@ function insightMens(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: 'อาการที่กรอกเชื่อมโยงกับสุขภาพหลอดเลือด',
       body: `คุณรายงานทั้งอาการสมรรถภาพ + ${metabolic.length} โรคในกลุ่ม metabolic — งานวิจัยพบว่าอาการสมรรถภาพมักเป็นสัญญาณเตือนล่วงหน้าของปัญหาหลอดเลือดและระบบหัวใจ`,
-      recommendation: 'ปรึกษาแพทย์เพื่อตรวจประเมินสาเหตุร่วม (ฮอร์โมน หลอดเลือด เบาหวาน) ภายใต้การดูแลของแพทย์ W Medical Hospital',
+      recommendation: 'ปรึกษาแพทย์เพื่อตรวจประเมินสาเหตุร่วม (ฮอร์โมน หลอดเลือด เบาหวาน) ภายใต้การดูแลของแพทย์ โรงพยาบาลพันธมิตร',
       disclaimer: DISCLAIMER,
       urgent: tier === 'urgent' || tier === 'hot',
     }
@@ -256,7 +256,7 @@ function insightWomen(a: Answers, tier: LeadTier): HealthInsight {
     return {
       headline: '🚨 เลือดออกผิดปกติ — ควรพบแพทย์เร็วที่สุด',
       body: 'เลือดออกผิดปกติระหว่างรอบประจำเดือน หลังมีเพศสัมพันธ์ หรือหลังวัยทอง เป็นอาการที่ควรประเมินทันที — สาเหตุมีตั้งแต่ฮอร์โมน โพลิป จนถึงเรื่องที่ต้องตรวจให้แน่ใจ',
-      recommendation: 'ติดต่อ W Medical เพื่อนัดพบสูตินรีแพทย์โดยเร็ว — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น',
+      recommendation: 'ติดต่อ โรงพยาบาลพันธมิตร เพื่อนัดพบสูตินรีแพทย์โดยเร็ว — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น',
       disclaimer: DISCLAIMER,
       urgent: true,
     }

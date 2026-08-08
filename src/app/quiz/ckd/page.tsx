@@ -6,7 +6,7 @@ import { QUIZZES } from '@/lib/quiz/questions'
 
 export const metadata: Metadata = {
   title: 'ตรวจโปรตีนในปัสสาวะฟรี — คัดกรองโรคไต',
-  description: 'รับสิทธิ์ตรวจ Urine Protein ฟรี ที่ W Medical Hospital สมุทรสาคร — สัญญาณเริ่มต้นของโรคไต',
+  description: 'รับสิทธิ์ตรวจ Urine Protein ฟรี ที่ โรงพยาบาลพันธมิตรในสมุทรสาคร — สัญญาณเริ่มต้นของโรคไต',
   alternates: { canonical: 'https://roogondee.com/quiz/ckd' },
 }
 

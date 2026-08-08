@@ -103,7 +103,7 @@ export default function ForeignClient() {
         <div className="max-w-5xl mx-auto">
           <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">ขั้นตอนการตรวจที่โรงพยาบาล</p>
           <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">7 ขั้นตอนตรวจสุขภาพแรงงานต่างด้าว</h2>
-          <p className="text-muted text-sm md:text-base mb-10 max-w-2xl">ลำดับการตรวจที่ W Medical สมุทรสาคร — รพ. ที่ได้รับอนุญาตตามประกาศกระทรวงสาธารณสุข พ.ศ. 2567</p>
+          <p className="text-muted text-sm md:text-base mb-10 max-w-2xl">ลำดับการตรวจที่ โรงพยาบาลพันธมิตรในสมุทรสาคร — รพ. ที่ได้รับอนุญาตตามประกาศกระทรวงสาธารณสุข พ.ศ. 2567</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {HOSPITAL_STEPS.map(s => (
               <div key={s.num} className={`relative rounded-2xl p-5 border ${s.highlight ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200' : 'bg-cream border-mint/15'}`}>

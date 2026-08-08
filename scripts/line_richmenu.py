@@ -164,7 +164,7 @@ def compose_image() -> Image.Image:
                       fill=(255, 255, 255), anchor="mm")
             draw.text((cx, y0 + CELL_H // 2 + 120), btn["subtitle"], font=fonts["hero_sub"],
                       fill=(209, 250, 229), anchor="mm")
-            draw.text((cx, y1 - pad - 70), "รู้ก่อนดี(รู้งี้) x W Medical", font=fonts["brand"],
+            draw.text((cx, y1 - pad - 70), "รู้ก่อนดี(รู้งี้) x โรงพยาบาลพันธมิตร", font=fonts["brand"],
                       fill=(148, 210, 189), anchor="mm")
         else:
             # จุดสี accent เป็น marker ด้านบนของการ์ด

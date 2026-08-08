@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const SYSTEM = `You are a Medical Grade health expert for รู้ก่อนดี(รู้งี้) / RooGonDee (roogondee.com)
-Operated by Jia Raksa Co., Ltd. with W Medical Hospital, Samut Sakhon, Thailand.
+Operated by Jia Raksa Co., Ltd. with โรงพยาบาลพันธมิตร, Samut Sakhon, Thailand.
 
 CRITICAL LANGUAGE RULE:
 - Detect the language the user writes in and ALWAYS reply in that SAME language.

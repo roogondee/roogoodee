@@ -6,7 +6,7 @@ import { QUIZZES } from '@/lib/quiz/questions'
 
 export const metadata: Metadata = {
   title: 'ตรวจ HIV + Syphilis ฟรี — ส่วนตัว ไม่ตัดสิน',
-  description: 'รับสิทธิ์ตรวจ HIV + Syphilis ฟรีที่ W Medical Hospital สมุทรสาคร ผลออกภายใน 1 ชม.',
+  description: 'รับสิทธิ์ตรวจ HIV + Syphilis ฟรีที่ โรงพยาบาลพันธมิตรในสมุทรสาคร ผลออกภายใน 1 ชม.',
   robots: { index: true, follow: true },
   alternates: { canonical: 'https://roogondee.com/quiz/std' },
 }
