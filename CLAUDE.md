@@ -102,7 +102,17 @@ Webhook handlers stay platform-specific (signature, event shape, send-reply API)
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron
 - Manual: `workflow_dispatch` accepts `service` override + `dry_run` (skip Graph API, save preview to `/tmp`)
 
+## FB Graph auth
+- `scripts/fb_graph.py` — helper กลางของ Python scripts ที่ยิง Graph API (`fb_story.py`, `fb_caption.py`)
+- `preflight_page_token()` ถูกเรียก **ก่อน** gen caption/รูป → token พังแล้ว job จบทันที ไม่เสีย Claude/FLUX quota
+- แยกประเภท error: auth (190) vs permission (200/10/3) vs rate limit (4/17/32/613) — codes มาก่อน `type` เสมอ เพราะ Graph ส่ง `OAuthException` มาทั้งสามแบบ
+- alert ที่ยิงเข้า Discord/LINE เป็นข้อความไทยพร้อมขั้นตอนแก้ ไม่ใช่ raw JSON ที่ถูกตัดกลางคำ
+- token fingerprint (`EAAG…len=N sha256:xxxxxxxx`) ใช้เทียบว่า GitHub secret กับ Vercel เป็นตัวเดียวกัน โดยไม่เปิดเผย token
+- `.github/workflows/fb_token_check.yml` — cron ทุกวันจันทร์ 08:00 BKK เตือนล่วงหน้า 7 วันก่อน token หมดอายุ (ต้องมี `FB_APP_ID` + `FB_APP_SECRET`)
+- Runbook: `docs/fb-token-runbook.md` — แนะนำ **System User token (ไม่หมดอายุ)** แทน token ที่แตกจาก user token อายุ 60 วัน
+
 ## Recent decisions
+- 2026-08-08: FB cron (story + caption) พังจาก **error 190** ("must be an administrator, editor, or moderator") — token ที่ใช้อยู่ตายแล้ว ไม่ใช่บั๊กในโค้ด **ต้องออก Page token ใหม่ตาม `docs/fb-token-runbook.md` แล้วอัปเดตทั้ง GitHub Secrets และ Vercel** จนกว่าจะทำ cron จะยังแดงอยู่ (แต่ตอนนี้ล้มเร็วขึ้นและบอกวิธีแก้แล้ว) โค้ดที่เพิ่มคือ preflight + error classification ดู "FB Graph auth" ด้านบน
 - 2026-08-07: **LIFF quiz** shipped at `/liff/quiz?service=X` — full quiz inside LINE, zero-form. `/api/quiz/claim-line` verifies LIFF `id_token` server-side (`LINE_LOGIN_CHANNEL_ID` env, never trusts client userId) → lead created already linked (`source: quiz-liff`, `line_user_id` set, CRM contact resolved, display name as first_name) → voucher **pushed into the user's chat** via `pushVoucherToUser`. Dedup = 1 voucher/service/LINE-userId. Quota-full LIFF claims saved as `waitlist` leads (contactable, no re-notify on re-tap; voucher issuance later flips status to `new`). Mind urgent tier pushes 1323 crisis message directly to the user's chat. Anonymous web claims unchanged. Setup: `docs/liff-quiz-setup.md`; needs `NEXT_PUBLIC_LIFF_ID` + `LINE_LOGIN_CHANNEL_ID` in Vercel before rich menu rollout.
 - 2026-07-31: pillar 8 **dna** (ตรวจ DNA พิสูจน์บิดา-บุตร) shipped — lead-gen only ("เรานัดหมายให้ ไม่ได้ตรวจเอง"), voucher = free consult + discount path, consent red lines locked in quiz/scoring/insight/landing copy (see Services above). Prerequisite before ads spend: confirm W Medical sample-collection workflow + ISO/IEC 17025 lab partner + price list. 8 non-th/en locales carry Thai copy (translation follow-up, same as PR #80).
 - 2026-07-01 (PR #120): LINE bot got a **kill switch + daily schedule** in `src/app/api/line-webhook/route.ts`. `LINE_BOT_ENABLED=false` = fully silent. `LINE_BOT_ACTIVE_HOURS="22:00-08:00"` (evaluated in `LINE_BOT_TZ`, default `Asia/Bangkok`, wraps past midnight) = bot auto-replies overnight only, silent during the day so staff answer manually. Outside the window / when disabled the webhook still acks 200 (no AI reply, no voucher link, no follow welcome) so LINE keeps the webhook registered. Unset active-hours = 24/7 (unchanged); malformed value fails open. Requested by OA owner — daytime auto-chat felt off-brand while lead volume is still low.

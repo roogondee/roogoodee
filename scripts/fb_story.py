@@ -37,6 +37,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from supabase import create_client
 
 from notify import notify as _notify
+from fb_graph import FbError, graph_post, preflight_page_token
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,6 @@ BKK_TZ    = ZoneInfo("Asia/Bangkok")
 TODAY     = datetime.now(BKK_TZ).date()
 TODAY_STR = TODAY.strftime("%Y-%m-%d")
 
-FB_API   = "https://graph.facebook.com/v19.0"
 FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
 
 # ─── SERVICE ROTATION ──────────────────────────────────────────────────────────
@@ -551,36 +551,24 @@ def compose_story(service: str, headline: str, subline: str, cta: str) -> bytes:
 
 def fb_upload_unpublished_photo(image_url: str) -> str:
     """Step 1/2: upload เป็นรูป unpublished แล้วได้ photo_id"""
-    resp = requests.post(
-        f"{FB_API}/{FB_PAGE_ID}/photos",
-        data={
-            "url":           image_url,
-            "published":     "false",
-            "access_token":  FB_PAGE_TOKEN,
-        },
-        timeout=60,
+    data = graph_post(
+        f"{FB_PAGE_ID}/photos",
+        {"url": image_url, "published": "false"},
+        context="FB photo upload",
     )
-    if resp.status_code >= 400:
-        raise RuntimeError(f"FB photo upload {resp.status_code}: {resp.text[:300]}")
-    photo_id = resp.json().get("id")
+    photo_id = data.get("id")
     if not photo_id:
-        raise RuntimeError(f"FB photo upload missing id: {resp.text[:300]}")
+        raise RuntimeError(f"FB photo upload ไม่มี id กลับมา: {str(data)[:300]}")
     return photo_id
 
 
 def fb_publish_photo_story(photo_id: str) -> str:
     """Step 2/2: publish photo_id เป็น Story"""
-    resp = requests.post(
-        f"{FB_API}/{FB_PAGE_ID}/photo_stories",
-        data={
-            "photo_id":     photo_id,
-            "access_token": FB_PAGE_TOKEN,
-        },
-        timeout=60,
+    data = graph_post(
+        f"{FB_PAGE_ID}/photo_stories",
+        {"photo_id": photo_id},
+        context="FB photo_stories",
     )
-    if resp.status_code >= 400:
-        raise RuntimeError(f"FB photo_stories {resp.status_code}: {resp.text[:300]}")
-    data = resp.json()
     return data.get("post_id") or data.get("id", "")
 
 
@@ -600,6 +588,16 @@ def main() -> int:
     if not DRY_RUN and already_posted_today(service):
         print(f"⏭  วันนี้ ({TODAY_STR}) โพสต์ {service} แล้ว — ข้าม")
         return 0
+
+    # เช็ค token ก่อน gen caption/รูป — token พังแล้วงานที่เหลือเสีย quota เปล่า
+    token = preflight_page_token()
+    print(token.report())
+    if not token.ok:
+        if DRY_RUN:
+            print("💧 DRY_RUN: ข้าม token gate")
+        else:
+            _notify(f"❌ รู้ก่อนดี FB Story ({service}) ไม่ได้โพสต์\n{token.report()[:1500]}")
+            return 1
 
     try:
         print("🤖 generating caption...")
@@ -655,6 +653,11 @@ def main() -> int:
         )
         print("✅ done")
         return 0
+
+    except FbError as e:
+        print(f"❌ {e.describe()}")
+        _notify(f"❌ รู้ก่อนดี FB Story Error ({service})\n{e.describe()[:1500]}")
+        return 1
 
     except Exception as e:
         err = str(e)
