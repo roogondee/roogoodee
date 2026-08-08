@@ -8,7 +8,6 @@ Company: บริษัท เจียรักษา จำกัด | roogon
 import os
 import re
 import sys
-import requests
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -199,7 +198,7 @@ Hashtag แนะนำ: {tags}
 
 # ─── FACEBOOK GRAPH API ────────────────────────────────────────────────────────
 
-FB_API = "https://graph.facebook.com/v19.0"
+from fb_graph import FbError, graph_post, preflight_page_token
 
 def post_to_facebook(caption: str, link: str, image_url: str | None) -> str:
     """
@@ -211,20 +210,11 @@ def post_to_facebook(caption: str, link: str, image_url: str | None) -> str:
     if not FB_PAGE_ID or not FB_PAGE_TOKEN:
         raise RuntimeError("ขาด FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN")
 
-    resp = requests.post(
-        f"{FB_API}/{FB_PAGE_ID}/feed",
-        data={
-            "message":       caption,
-            "link":          link,
-            "access_token":  FB_PAGE_TOKEN,
-        },
-        timeout=60,
+    data = graph_post(
+        f"{FB_PAGE_ID}/feed",
+        {"message": caption, "link": link},
+        context="FB feed post",
     )
-
-    if resp.status_code >= 400:
-        raise RuntimeError(f"Facebook API error {resp.status_code}: {resp.text[:300]}")
-
-    data = resp.json()
     # /photos → {id, post_id}, /feed → {id}
     return data.get("post_id") or data.get("id", "")
 
@@ -240,6 +230,13 @@ def send_line(message: str) -> None:
 
 def main() -> int:
     print(f"📘 รู้ก่อนดี Facebook Caption — {TODAY_STR}")
+
+    # เช็ค token ก่อน — token พังแล้วไม่ต้องเสีย token Claude ไป gen caption ทิ้ง
+    token = preflight_page_token()
+    print(token.report())
+    if not token.ok:
+        send_line(f"❌ รู้ก่อนดี FB Caption ไม่ได้โพสต์\n{token.report()[:1500]}")
+        return 1
 
     post = get_post_to_share()
     if not post:
@@ -267,6 +264,11 @@ def main() -> int:
 
         mark_fb_posted(post["id"], fb_post_id, caption)
         return 0
+
+    except FbError as e:
+        print(f"❌ {e.describe()}")
+        send_line(f"❌ รู้ก่อนดี FB Error: {title}\n{e.describe()[:1500]}")
+        return 1
 
     except Exception as e:
         err = str(e)

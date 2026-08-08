@@ -1,0 +1,39 @@
+name: 🔑 RuGonDee Facebook Token Check
+
+on:
+  schedule:
+    # 01:00 UTC ทุกวันจันทร์ = 08:00 Bangkok — ก่อน story/caption cron ของวันนั้น
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+jobs:
+  fb_token_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install requests
+
+      - name: 🔑 Verify Page access token
+        env:
+          FB_PAGE_ID:                 ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_ACCESS_TOKEN:       ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          FB_APP_ID:                  ${{ secrets.FB_APP_ID }}
+          FB_APP_SECRET:              ${{ secrets.FB_APP_SECRET }}
+          DISCORD_WEBHOOK_URL:        ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL:          ${{ secrets.SLACK_WEBHOOK_URL }}
+          LINE_CHANNEL_ACCESS_TOKEN:  ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TARGET_ID:             ${{ secrets.LINE_TARGET_ID }}
+        run: python scripts/fb_graph.py
