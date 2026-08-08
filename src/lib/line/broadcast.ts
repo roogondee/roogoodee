@@ -1,3 +1,6 @@
+import { liffQuizUrl } from '@/lib/liff-links'
+import type { Service } from '@/types'
+
 const LINE_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const SITE_BASE = (process.env.SITE_BASE_URL || 'https://roogondee.com').replace(/\/$/, '')
 
@@ -16,7 +19,14 @@ export type LineComposePayload = {
 export function buildFlexFromCompose(p: LineComposePayload): FlexMessage {
   const slug = p.blogSlug ? encodeURIComponent(p.blogSlug).replace(/%2D/g, '-').replace(/%5F/g, '_') : ''
   const blogUrl = slug ? `${SITE_BASE}/blog/${slug}` : `${SITE_BASE}`
-  const leadUrl = `${SITE_BASE}/quiz/${p.service}?utm_source=line&utm_medium=broadcast&utm_campaign=compose`
+  // Recipients are already OA friends, so skip the /quiz gate and drop them
+  // straight into the in-chat quiz.
+  const leadUrl = liffQuizUrl({
+    service: p.service as Service,
+    utm_source: 'line',
+    utm_medium: 'broadcast',
+    utm_campaign: 'compose',
+  })
 
   return {
     type: 'flex',

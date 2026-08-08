@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import QuizRunner from '@/components/quiz/QuizRunner'
+import QuizGate from '@/components/quiz/QuizGate'
+import { quizGateQr } from '@/lib/quiz-gate-qr'
 import { QUIZZES } from '@/lib/quiz/questions'
 
 export const metadata: Metadata = {
@@ -9,10 +10,10 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://roogondee.com/quiz/mens' },
 }
 
-export default function MensQuizPage() {
+export default async function MensQuizPage() {
   return (
     <Suspense>
-      <QuizRunner definition={QUIZZES.mens} />
+      <QuizGate definition={QUIZZES.mens} qrDataUrl={await quizGateQr('mens')} />
     </Suspense>
   )
 }
