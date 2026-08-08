@@ -1,9 +1,116 @@
 # แผนการตลาด & ยิง Ads — ดึงลูกค้าเข้า W Medical Hospital
 
-**วันที่:** 2026-07-31
+**วันที่:** 2026-07-31 — **แก้ไข 2026-08-08 (ดูข้อ 0 ก่อน)**
 **สถานะ:** แผนปฏิบัติการ 90 วัน (อิงข้อมูลจริงจากบัญชีโฆษณา ไม่ใช่สมมุติฐาน)
 **บัญชีโฆษณา:** `roogondee` (act_1690150755770426, Business "Roogondee-รู้งี้", THB, ผูกบัตรแล้ว)
 **เอกสารเกี่ยวข้อง:** `fb-ads-brief.md` (copy + audience ราย service), `launch-playbook.md` (SOP), `mens-vertical-plan.md` (compliance), `foreign-worker-tiein.md` (MOU/B2B)
+
+---
+
+## 0. อัปเดต 2026-08-08 — funnel ย้ายเข้า LINE แล้ว (อ่านก่อนข้อ 3–5)
+
+แผนนี้เขียนตอน quiz ยังอยู่บนเว็บ **ตั้งแต่ 2026-08-07 (PR #139) quiz บนเว็บถูกปิดไปแล้ว** — `/quiz/{service}`
+กลายเป็นหน้า gate ที่มี CTA เดียวคือเปิด LIFF quiz ใน LINE และเพราะ bot-link ของ LIFF ตั้งเป็น Aggressive
+LINE จะบังคับ add friend ก่อน quiz จะ render **ข้อ 3, 4, 5 ของแผนเดิมต้องอ่านทับด้วยข้อนี้**
+
+### 0.1 event `Lead` บนเว็บไม่มีอีกแล้ว — แกนวัดผลเดิมใช้ไม่ได้
+
+แผนเดิมให้ optimize ที่ `Lead` ซึ่งยิงตอนทำ quiz จบบนเว็บ ตอนนี้ quiz จบ **ใน LINE ที่ Meta Pixel มองไม่เห็น**
+ถ้าสร้าง Pixel แล้วตั้งแคมเปญให้ optimize `Lead` ตามแผนเดิม จะได้ 0 conversion ตลอดกาล แคมเปญจะออกจาก
+learning phase ไม่ได้ และงบจะไหลทิ้งโดยไม่มีสัญญาณกลับมาเลย
+
+สิ่งที่ Pixel ยังเห็นได้บนหน้า gate — มีในโค้ดอยู่แล้ว (`src/components/quiz/QuizGateActions.tsx`):
+
+| event | ยิงเมื่อ | ใช้ทำอะไร |
+|---|---|---|
+| `quiz_gate_view` (custom) | เปิดหน้า gate | วัด landing view |
+| `Contact` (standard) | กดปุ่ม "เพิ่มเพื่อน LINE แล้วเริ่มประเมิน" | **event ที่ optimize ได้จริงในตอนนี้** |
+| `quiz_gate_call_click` (custom) | กดปุ่มโทร | นับ lead ทางโทรศัพท์ |
+
+→ **ทุกแคมเปญต้อง optimize ที่ `Contact`** ไม่ใช่ `Lead` จนกว่าข้อ 0.2 จะเสร็จ
+`Contact` เป็น standard event อยู่แล้ว ไม่ต้องแก้โค้ด — ขาดแค่ Pixel ID
+
+ข้อจำกัดที่ต้องรู้: `Contact` = "กดออกไป LINE" ไม่ใช่ "ได้ lead" คนที่กดแล้วไม่ add friend / add แล้วไม่ทำ quiz
+จะถูกนับด้วย ดังนั้นต้องกระทบยอดกับ `leads` ใน Supabase ทุกสัปดาห์ และดู ratio `Contact` → lead จริง
+ถ้า ratio ต่ำแปลว่าปัญหาอยู่ที่ตัว gate หรือขั้น add friend ไม่ใช่ที่ ad
+
+### 0.2 ของจริงคือ Conversions API — ตอนนี้ attribution ขาดตรงรอยต่อเข้า LINE
+
+`src/lib/liff-links.ts` ส่งต่อแค่ `utm_source` / `utm_medium` / `utm_campaign` เข้า LIFF
+**ไม่ได้ส่ง `fbclid` และ `_fbp`** → lead ที่เกิดใน LINE จึงผูกกลับไปหา ad ที่คลิกมาไม่ได้
+รู้ได้แค่ระดับแคมเปญจาก utm เท่านั้น (ยัง optimize ไม่ได้ เพราะ Meta ต้องการ click id ราย event)
+
+**สถานะ: โค้ดทำเสร็จแล้ว** (PR เดียวกับเอกสารนี้) เดินตามรอยเดิมที่ TikTok ทำสำเร็จแล้ว:
+
+1. `readAttribution()` ใน `src/lib/analytics/track.ts` — เก็บ `fbclid` จาก URL แล้วประกอบเป็น `fbc`
+   (`fb.1.<ms>.<fbclid>` ตามฟอร์แมตที่ CAPI ต้องการ) + อ่าน `_fbp` / `ttclid` / `_ttp`
+2. `QuizGateActions` ต่อค่าเหล่านี้ท้าย LIFF URL เพิ่มจาก utm 3 ตัวเดิม
+3. `QuizRunner` อ่านจาก URL ใน LIFF (เขียนลง cookie ของ webview กัน refresh หลุด) แล้วส่งไปกับ payload
+4. `src/lib/meta-events.ts` ใหม่ — ยิง `Lead` เข้า CAPI จาก `/api/quiz/claim-line` และ `/api/quiz`
+   ใช้ `event_id = voucher.code` เพื่อ dedup, hash เบอร์ด้วย SHA-256 (Meta ต้องการ `66xxxxxxxxx` ไม่มี `+` — คนละแบบกับ TikTok)
+
+**เหลือแค่ตั้ง env 2 ตัวก็ใช้งานได้**: `NEXT_PUBLIC_META_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN`
+(ถ้าไม่ตั้ง โมดูลจะเงียบสนิท ไม่พังการออก voucher) ระหว่างที่ยังไม่มี ยิงด้วย `Contact` ตามข้อ 0.1 ได้เลย
+
+> เจอระหว่างทำ: `ttclid` ฝั่ง TikTok ก็ขาดด้วยเหตุผลเดียวกัน — `claim-line` รับ `ttclid` อยู่แล้ว
+> แต่ `QuizRunner` อ่านจาก cookie ซึ่ง**ข้ามเข้า in-app browser ของ LINE ไม่ได้** ทุก paid click จาก TikTok
+> จึงหลุด attribution ไปเงียบ ๆ ตั้งแต่ย้าย funnel เข้า LINE — แก้ไปพร้อมกันในชุดเดียวกันแล้ว
+
+### 0.3 ตัวเลขเป้าต้อง re-baseline และ metric หลักควรเปลี่ยน
+
+gate เพิ่มขั้นตอน (สลับแอป + ขอ add friend) → conversion rate จาก landing → lead จะ **ต่ำกว่า** quiz บนเว็บแน่นอน
+CPL เป้า ฿80 ในข้อ 3 จึงยังใช้ตัดสินใจไม่ได้ **ห้ามใช้ตัวเลขในข้อ 3 ตัดสินเปิด/ปิด ad set จนกว่าจะมีข้อมูลจริง 2 สัปดาห์**
+สองสัปดาห์แรกถือเป็นการเก็บ baseline ไม่ใช่การ optimize
+
+สิ่งที่แลกมาคือ **lead ทุกคนกลายเป็น LINE follower** — ติดต่อซ้ำได้ฟรีไม่จำกัด ไม่ต้องจ่ายค่า retarget
+lead ที่แพงขึ้นแต่ re-contact ฟรีอาจถูกกว่า lead ถูกที่ติดต่อกลับไม่ได้ ต้องดูที่ปลายทาง ไม่ใช่ที่ CPL
+
+→ metric หลัก: **ต้นทุนต่อ LINE follower ที่ทำ quiz จบ** และยังยึด **ต้นทุนต่อคนที่มาถึง รพ.** เป็นตัวตัดสินงบเหมือนเดิม (ข้อ 3 แถวสุดท้ายยังใช้ได้)
+
+### 0.4 ตัวติดที่ต้องปลดก่อน — เรียงตามลำดับ
+
+| # | เรื่อง | สถานะ 2026-08-08 | บล็อกอะไร |
+|---|---|---|---|
+| 1 | **Pixel / dataset** | **ยังไม่มี** — `ads_get_datasets` ของบัญชี act_1690150755770426 คืนค่าว่าง (ตรงกับ audit 31 ก.ค.) | บล็อกทุกอย่างที่เป็น conversion campaign |
+| 2 | **FB Page token** | **ตายแล้ว** (error 190) — autopost/story หยุด, organic warm audience หยุดโต | ไม่บล็อก ads โดยตรง แต่ทำให้ retargeting pool ไม่โต ดู `docs/fb-token-runbook.md` |
+| 3 | `NEXT_PUBLIC_META_PIXEL_ID` ใน Vercel | ต้องเช็ค — ถ้า Pixel ยังไม่มี ค่านี้ก็ยังว่าง | Pixel ไม่ยิงเลยแม้แต่ `PageView` |
+| 4 | `pages_messaging` App Review | pending มาตั้งแต่ เม.ย. | บล็อก Click-to-Messenger ของแทร็ก MOU (ข้อ 7.2) |
+
+ข้อ 1 คือ priority เดียวที่แท้จริงของสัปดาห์นี้ — มันค้างมาตั้งแต่แผนเดิมเมื่อ 1 สัปดาห์ก่อน
+และเป็นงานที่ Claude ทำแทนไม่ได้ (ต้องกดใน Events Manager UI)
+
+### 0.5 ลำดับงานที่แก้แล้ว
+
+**สัปดาห์นี้ — ปลดล็อก (ยังไม่ต้องเติมงบ)**
+1. สร้าง Pixel ใน Events Manager → ใส่ `NEXT_PUBLIC_META_PIXEL_ID` ใน Vercel → redeploy
+2. ทดสอบด้วย Test Events: เปิด `/quiz/glp1` ต้องเห็น `PageView` + `quiz_gate_view`, กดปุ่ม LINE ต้องเห็น `Contact`
+3. Domain verification `roogondee.com` + AEM: **`Contact` = priority 1** (ไม่ใช่ `Lead` ตามแผนเดิม — ยังไม่มี `Lead` ให้จัดลำดับ)
+4. ออก Page token ใหม่ตาม `docs/fb-token-runbook.md` เพื่อให้ organic กลับมาเดิน
+5. ปิด `RGD-Followers-5Pillars-Reach` (ตามข้อ 4.6 เดิม ยังใช้ได้)
+
+**สัปดาห์หน้า — เปิดยิงเก็บ baseline**
+6. เปิดแคมเปญเดียวก่อน (GLP-1) optimize `Contact` งบ ฿300–500/วัน — อย่าเปิด 4 แคมเปญพร้อมกันตามแผนเดิม เพราะยังไม่รู้ว่า gate แปลงได้แค่ไหน
+7. ทุกวันกระทบยอด `Contact` ใน Ads Manager กับ lead ใหม่ใน Supabase → ได้ ratio จริงของ gate
+8. งาน dev ข้อ 0.2 (fbclid passthrough + CAPI) เดินคู่ขนานไป
+
+**สัปดาห์ที่ 3 เป็นต้นไป**
+9. ได้ baseline แล้วค่อยตั้งเป้า CPL จริง แล้วขยายตามโครงสร้างข้อ 5 (โดยเปลี่ยน optimize event เป็น `Lead` ผ่าน CAPI เมื่อข้อ 0.2 เสร็จ)
+
+### 0.6 ต้องตัดสินใจ: ชื่อ รพ. ในโฆษณา
+
+PR #140 (2026-08-08) เอาชื่อโรงพยาบาลพันธมิตรออกจาก public copy ทั้งเว็บ เหลือคำว่า "โรงพยาบาลพันธมิตร"
+**ข้อนี้ชนกับแกน creative ของแทร็ก MOU ในข้อ 7 โดยตรง** — จุดขายทั้งแทร็กคือ "รพ. ได้รับอนุญาตตรวจคนต่างด้าว
+ตรวจสอบรายชื่อได้ที่เว็บ สบส." ซึ่งพิสูจน์ไม่ได้เลยถ้าไม่บอกชื่อ รพ. (นายจ้าง/HR ต้องเอาชื่อไปเช็คทะเบียน)
+
+สองทางเลือก — เป็นการตัดสินใจเชิงธุรกิจ ไม่ใช่เชิงเทคนิค:
+
+- **ก) ยกเว้นแทร็ก MOU ให้ระบุชื่อได้** — เก็บจุดแข็งไว้ครบ แต่ต้องเคาะกับ รพ. เรื่องใบอนุญาตโฆษณา สบส.
+  สำหรับข้อความที่อ้างชื่อ (ข้อ 11 บรรทัดสุดท้ายเตือนไว้แล้ว) **แนะนำทางนี้** — ตลาด B2B ซื้อด้วยการตรวจสอบได้
+- **ข) ไม่ระบุชื่อทุกช่องทาง** — ต้องหา proof แบบอื่นแทน (เลขใบอนุญาต 001/2569 โดยไม่ผูกชื่อ, รูปสถานที่จริง,
+  ให้ HR ที่สนใจได้ชื่อทางแชท) — ปลอดภัยกว่าแต่ conversion ฝั่ง B2B จะตกแน่นอน
+
+จนกว่าจะเคาะ: **หยุดใช้ copy block ที่มีชื่อ รพ. ใน `docs/foreign-worker-tiein.md` กับโฆษณา** และแทร็ก B2C
+(ราคา/ขั้นตอน/แผนที่/เบอร์โทร) ยิงต่อได้ตามปกติ เพราะไม่ได้พึ่งชื่อ
 
 ---
 
@@ -46,7 +153,12 @@
 
 ## 3. เป้าหมาย & KPI
 
-Funnel เต็ม: **Ad → /quiz/{service} → กรอกเสร็จรับ voucher (Lead) → add LINE → ทีมขายนัด → มาถึง รพ. (redeem)**
+> ⚠️ **ข้อนี้เขียนก่อน funnel เปลี่ยน — อ่านข้อ 0 ก่อนใช้ตัวเลขในตารางนี้**
+> funnel จริงตั้งแต่ 2026-08-07 คือ **Ad → `/quiz/{service}` (gate) → กด `Contact` → add LINE →
+> ทำ quiz ใน LIFF → รับ voucher (Lead เกิดใน LINE) → ทีมขายนัด → มาถึง รพ. (redeem)**
+> — `add LINE` ย้ายมาอยู่ **ก่อน** quiz และ `Lead` ไม่ได้เกิดบนเว็บอีกแล้ว
+
+Funnel เดิม (เลิกใช้): ~~Ad → /quiz/{service} → กรอกเสร็จรับ voucher (Lead) → add LINE → ทีมขายนัด → มาถึง รพ. (redeem)~~
 
 | ขั้น | Metric | เป้า | วัดจาก |
 |---|---|---|---|
@@ -65,12 +177,14 @@ Funnel เต็ม: **Ad → /quiz/{service} → กรอกเสร็จร
 
 ## 4. Foundation ที่ต้องเสร็จก่อนเติมงบ (สัปดาห์ 1)
 
+> ⚠️ ข้อ 1–2 และ 4 ถูกแทนที่ด้วยข้อ 0.5 แล้ว (event เปลี่ยนจาก `Lead` เป็น `Contact`) — ข้อ 3, 5, 6, 7 ยังใช้ได้ตามเดิม
+
 เรียงตามลำดับ ทำให้ครบทุกข้อ:
 
 1. **สร้าง Pixel** ใน Events Manager (Business "Roogondee-รู้งี้") → เอา ID ใส่ Vercel env `NEXT_PUBLIC_META_PIXEL_ID` → redeploy
-2. **ทดสอบ event:** ทำ quiz จบ 1 ครั้ง → เช็คว่า `Lead` ขึ้นใน Events Manager (Test Events) และจำนวนตรงกับ Supabase
+2. ~~**ทดสอบ event:** ทำ quiz จบ 1 ครั้ง → เช็คว่า `Lead` ขึ้นใน Events Manager~~ → **ใช้ข้อ 0.5 ข้อย่อย 2 แทน** (ทดสอบ `Contact` บนหน้า gate)
 3. **Domain verification** `roogondee.com` ใน Business Settings (จำเป็นสำหรับ iOS 14.5+)
-4. **Aggregated Event Measurement:** `Lead` = priority 1, `CompleteRegistration` = priority 2
+4. ~~**AEM:** `Lead` = priority 1~~ → **`Contact` = priority 1** จนกว่า CAPI (ข้อ 0.2) จะเสร็จ แล้วค่อยสลับ `Lead` ขึ้นเป็น priority 1
 5. **Custom audiences เตรียม retargeting:**
    - Website: ผู้ชมทุกหน้า 30 วัน / เริ่ม quiz (`quiz_start`) แต่ไม่มี `Lead` 14 วัน / ผู้อ่าน blog 30 วัน
    - Engagement: FB Page + IG engagers 90 วัน (มีคน engage จากงบ followers เดิม ~310k reach — ใช้ต่อยอดได้)
@@ -85,7 +199,12 @@ Funnel เต็ม: **Ad → /quiz/{service} → กรอกเสร็จร
 
 ## 5. โครงสร้างแคมเปญ Phase 1 (สัปดาห์ 2–5) — Meta (FB + IG)
 
-หลักการ: **1 บริการ = 1 CBO campaign, objective = OUTCOME_LEADS → เว็บ event `Lead`** (ไม่ใช้ native lead form — เหตุผลตาม `fb-ads-brief.md`: ต้อง score lead, PDPA, และ push voucher เข้า LINE)
+> ⚠️ **โครงสร้างในตารางนี้ยังใช้ได้ แต่ (ก) optimize event เปลี่ยนเป็น `Contact` ตามข้อ 0.1
+> (ข) อย่าเปิดพร้อมกัน 4 แคมเปญ ให้เปิด GLP-1 ตัวเดียวก่อนเก็บ baseline ตามข้อ 0.5
+> (ค) ad set retargeting "quiz เริ่มแต่ไม่จบ" สร้างไม่ได้แล้ว เพราะ `quiz_start` ไม่เกิดบนเว็บ —
+> ใช้ "เข้าหน้า gate แต่ไม่กด `Contact` 14 วัน" แทน ซึ่งเป็นกลุ่มที่ตรงกว่าเดิมด้วยซ้ำ**
+
+หลักการ: **1 บริการ = 1 CBO campaign, objective = OUTCOME_LEADS → optimize ที่ `Contact` (ชั่วคราว) แล้วสลับเป็น `Lead` ผ่าน CAPI เมื่อข้อ 0.2 เสร็จ** (ไม่ใช้ native lead form — เหตุผลตาม `fb-ads-brief.md`: ต้อง score lead, PDPA, และ push voucher เข้า LINE)
 Placement: Advantage+ (ปิด Audience Network) | Bid: lowest cost ช่วง learning
 UTM ทุกตัว: `utm_source=facebook&utm_medium=cpc&utm_campaign={service}_{angle}_{audience}`
 
@@ -233,7 +352,8 @@ Pixel วัดได้ไม่หมด (conversion เกิดที่โ�
 - Mind: ห้ามยิง paid ช่วง waitlist; ทุก creative ต้องไม่แตะประเด็น self-harm
 - MOU: ห้าม target เชื้อชาติ, ห้าม imply โรคต้องห้าม, เลขใบอนุญาตราชการใช้ตามจริงเท่านั้น
 - ทุก landing มี PDPA consent + Privacy Policy แล้ว (พร้อมใช้)
-- โฆษณาสถานพยาบาล: เช็คกับ W Medical เรื่องใบอนุญาตโฆษณา สบส. สำหรับข้อความที่อ้างชื่อ รพ.
+- โฆษณาสถานพยาบาล: เช็คกับ รพ. พันธมิตร เรื่องใบอนุญาตโฆษณา สบส. สำหรับข้อความที่อ้างชื่อ รพ.
+- **ชื่อ รพ. ใน creative:** PR #140 เอาชื่อออกจาก public copy ทั้งเว็บแล้ว — โฆษณาต้องรอผลตัดสินใจตามข้อ 0.6 ก่อน
 
 ---
 
@@ -269,4 +389,11 @@ Pixel วัดได้ไม่หมด (conversion เกิดที่โ�
 - เขียน ad copy ทุก variation รวมถึง **ร่างภาษาพม่า/ลาว** (ให้ native speaker ตรวจก่อนยิง) + gen ภาพ 1:1/9:16 ตาม brand (mint `#52B788`)
 - สร้างหน้า `/mou` ภาษาพม่า/ลาว (i18n มี my/lo อยู่แล้ว — งานสั้น)
 
+- งาน dev ข้อ 0.2 (ส่ง `fbclid`/`_fbp` เข้า LIFF + `src/lib/meta-events.ts` สำหรับ CAPI) — สั่งได้เลย ไม่ต้องรอ Pixel
+
 สิ่งเดียวที่ Claude ทำแทนไม่ได้: สร้าง Pixel ใน Events Manager (ต้องกดใน UI) — สร้างเสร็จส่ง ID มา เดี๋ยวจัดการ env + verify ให้
+
+**หมายเหตุ 2026-08-08:** เครื่องมือต่อบัญชีโฆษณา (Meta Ads MCP) ตอนนี้เรียกได้บ้างไม่ได้บ้าง
+(`ads_get_ad_accounts` / `ads_get_ad_entities` คืน error `GraphMethodException` code 100 ส่วน `ads_get_datasets` ยังตอบปกติ)
+อาการเข้ากันได้กับปัญหา token/สิทธิ์ฝั่ง Meta ตัวเดียวกับที่ทำให้ Page token ตาย — เคลียร์ข้อ 0.4 แถว 2 แล้วน่าจะกลับมาใช้ได้
+ระหว่างนี้ตัวเลขบัญชีให้ดูจาก Ads Manager โดยตรง
