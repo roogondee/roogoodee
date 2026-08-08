@@ -660,7 +660,7 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
   glp1: {
     service: 'glp1',
     landingHeadline: 'ตรวจเบาหวาน FBS + HbA1c ฟรี',
-    subHeadline: 'มูลค่า 500 บาท ประเมินความเหมาะสมก่อนเริ่ม GLP-1 ที่ W Medical Hospital',
+    subHeadline: 'มูลค่า 500 บาท ประเมินความเหมาะสมก่อนเริ่ม GLP-1 ที่ โรงพยาบาลพันธมิตร',
     questions: GLP1_QUESTIONS,
   },
   ckd: {
@@ -686,13 +686,13 @@ export const QUIZZES: Record<Service, QuizDefinition> = {
   mens: {
     service: 'mens',
     landingHeadline: 'ปรึกษาแพทย์ฟรี + ตรวจประเมินสุขภาพชายวัย 40+',
-    subHeadline: 'ภายใต้การดูแลของแพทย์ W Medical Hospital สมุทรสาคร — ปรึกษาเป็นความลับ ไม่ตัดสิน',
+    subHeadline: 'ภายใต้การดูแลของแพทย์ โรงพยาบาลพันธมิตรในสมุทรสาคร — ปรึกษาเป็นความลับ ไม่ตัดสิน',
     questions: MENS_QUESTIONS,
   },
   women: {
     service: 'women',
     landingHeadline: 'ปรึกษาสูตินรีแพทย์ฟรี + ตรวจประเมินสุขภาพเพศหญิงเบื้องต้น',
-    subHeadline: 'HPV / Pap smear / ตกขาว / ประจำเดือน / วัยทอง — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น รายการตรวจ/ยาเพิ่มเติมเป็นไปตามดุลยพินิจของแพทย์ W Medical Hospital สมุทรสาคร',
+    subHeadline: 'HPV / Pap smear / ตกขาว / ประจำเดือน / วัยทอง — voucher ครอบคลุมค่าธรรมเนียมแพทย์ในการประเมินเบื้องต้น รายการตรวจ/ยาเพิ่มเติมเป็นไปตามดุลยพินิจของแพทย์ โรงพยาบาลพันธมิตรในสมุทรสาคร',
     questions: WOMEN_QUESTIONS,
   },
   mind: {

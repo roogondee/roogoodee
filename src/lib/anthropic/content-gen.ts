@@ -16,14 +16,14 @@ export type CaptionBundle = {
 }
 
 const SERVICE_META: Record<string, { label: string; voucher_hint: string }> = {
-  glp1: { label: 'GLP-1 ลดน้ำหนัก', voucher_hint: 'รับฟรี FBS+HbA1c (มูลค่า 500฿) ที่ W Medical Hospital' },
+  glp1: { label: 'GLP-1 ลดน้ำหนัก', voucher_hint: 'รับฟรี FBS+HbA1c (มูลค่า 500฿) ที่ โรงพยาบาลพันธมิตร' },
   std:  { label: 'ตรวจ STD / PrEP HIV', voucher_hint: 'ตรวจ HIV+Syphilis ฟรี รู้ผลใน 1 ชั่วโมง' },
-  ckd:  { label: 'ตรวจไต CKD', voucher_hint: 'ตรวจปัสสาวะหาโปรตีนฟรี ที่ W Medical Hospital' },
-  foreign: { label: 'ตรวจสุขภาพแรงงานต่างด้าว', voucher_hint: 'ตรวจ 9 รายการตามใบอนุญาตทำงาน — W Medical สมุทรสาคร' },
+  ckd:  { label: 'ตรวจไต CKD', voucher_hint: 'ตรวจปัสสาวะหาโปรตีนฟรี ที่ โรงพยาบาลพันธมิตร' },
+  foreign: { label: 'ตรวจสุขภาพแรงงานต่างด้าว', voucher_hint: 'ตรวจ 9 รายการตามใบอนุญาตทำงาน — โรงพยาบาลพันธมิตรในสมุทรสาคร' },
 }
 
 const SYSTEM_PROMPT = `คุณเป็นแอดมินเพจสุขภาพ "รู้ก่อนดี (รู้งี้)" / roogondee.com
-โดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
+โดยบริษัท เจียรักษา จำกัด ร่วมกับ โรงพยาบาลพันธมิตรในสมุทรสาคร
 เขียน caption + Story ภาษาไทย กระชับ คล้ายเพื่อนคุยให้ฟัง — ไม่แข็ง ไม่ขายตรง
 
 ผู้ใช้จะแนบรูปภาพมาให้ — ดูรูปแล้วเขียน copy ที่เชื่อมกับสิ่งที่อยู่ในรูป (สี / mood / องค์ประกอบ) อย่างเป็นธรรมชาติ
@@ -85,7 +85,7 @@ export async function generateCaptionFromImage(opts: {
   const userText = `vertical: ${meta.label}
 mode: ${opts.mode || 'post'} (จะใช้ทั้ง blog post + FB feed + FB Story)
 ข้อมูลโปร: ${meta.voucher_hint}
-สถานที่ตรวจ: W Medical Hospital สมุทรสาคร
+สถานที่ตรวจ: โรงพยาบาลพันธมิตรในสมุทรสาคร
 ลิงก์เว็บ: https://roogondee.com
 
 ดูรูปที่แนบ แล้วเขียน copy ที่เชื่อมโยงกับภาพ — ส่งคืน JSON ตาม schema เท่านั้น`
@@ -130,7 +130,7 @@ mode: ${opts.mode || 'post'} (จะใช้ทั้ง blog post + FB feed + 
   throw new Error(`generateCaptionFromImage failed after 3 attempts: ${lastErr}`)
 }
 
-const ARTICLE_SYSTEM = `คุณเป็นนักเขียนบทความสุขภาพของเว็บ "รู้ก่อนดี (รู้งี้)" / roogondee.com ร่วมกับ W Medical Hospital สมุทรสาคร
+const ARTICLE_SYSTEM = `คุณเป็นนักเขียนบทความสุขภาพของเว็บ "รู้ก่อนดี (รู้งี้)" / roogondee.com ร่วมกับ โรงพยาบาลพันธมิตรในสมุทรสาคร
 
 เขียนบทความ blog ภาษาไทยจาก caption + รูปที่ผู้ใช้แนบมา — ขยายเนื้อหา 400-700 คำ ใช้ภาษาเป็นกันเอง อ่านง่าย ให้ความรู้จริง ไม่ขายตรง
 
@@ -158,7 +158,7 @@ export async function generateArticleFromCaption(opts: {
   const { data: b64, mediaType } = await fetchImageAsBase64(opts.imageUrl)
   const userText = `vertical: ${meta.label}
 ข้อมูลโปร: ${meta.voucher_hint}
-สถานที่ตรวจ: W Medical Hospital สมุทรสาคร
+สถานที่ตรวจ: โรงพยาบาลพันธมิตรในสมุทรสาคร
 
 Headline: ${opts.caption.headline}
 Subline: ${opts.caption.subline}

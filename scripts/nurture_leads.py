@@ -175,7 +175,7 @@ def days_since(iso_ts: str) -> int:
 
 def draft_for_lead(lead: dict, chat_snippet: str) -> dict | None:
     service = lead.get("service") or "general"
-    prompt = f"""คุณเป็นผู้ช่วยการตลาดของคลินิก รู้ก่อนดี(รู้งี้) / W Medical Hospital จ.สมุทรสาคร
+    prompt = f"""คุณเป็นผู้ช่วยการตลาดของคลินิก รู้ก่อนดี(รู้งี้) / โรงพยาบาลพันธมิตร จ.สมุทรสาคร
 งานคุณคือร่างข้อความ follow-up ส่วนตัวให้ทีมขายโทร/LINE/SMS ลูกค้าที่ยังไม่ปิดดีล
 
 ข้อมูลลูกค้า:

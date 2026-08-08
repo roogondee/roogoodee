@@ -95,7 +95,7 @@ export default function RedeemPage() {
     <div className="max-w-xl mx-auto space-y-6">
       <div>
         <h1 className="font-display text-2xl text-forest mb-1">🎟 รับ Voucher</h1>
-        <p className="text-sm text-gray-500">สำหรับพนักงาน W Medical Hospital — กรอกรหัส voucher ของลูกค้า</p>
+        <p className="text-sm text-gray-500">สำหรับพนักงาน โรงพยาบาลพันธมิตร — กรอกรหัส voucher ของลูกค้า</p>
       </div>
 
       <form onSubmit={lookup} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">

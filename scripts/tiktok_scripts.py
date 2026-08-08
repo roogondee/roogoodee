@@ -83,7 +83,7 @@ def build_prompt(posts: list) -> str:
         f"    content_preview: {(p.get('content') or '')[:450]}"
         for idx, p in enumerate(posts, 1)
     )
-    return f"""คุณเป็น TikTok script writer ให้คลินิกสุขภาพในไทย (รู้ก่อนดี(รู้งี้) / W Medical Hospital)
+    return f"""คุณเป็น TikTok script writer ให้คลินิกสุขภาพในไทย (รู้ก่อนดี(รู้งี้) / โรงพยาบาลพันธมิตร)
 target audience: คนไทย อายุ 18-45 บน TikTok / Reels / Shorts
 ภาษา: ไทย เป็นกันเอง ไม่ medical jargon
 

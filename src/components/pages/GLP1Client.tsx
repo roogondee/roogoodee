@@ -8,7 +8,7 @@ const jsonLd = {
   '@type': 'MedicalWebPage',
   name: 'ยา GLP-1 ลดน้ำหนักถาวร — รู้ก่อนดี(รู้งี้)',
   url: 'https://roogondee.com/glp1',
-  description: 'บริการยา GLP-1 ลดน้ำหนักภายใต้การดูแลแพทย์ โดย รู้ก่อนดี(รู้งี้) ร่วมกับ W Medical Hospital สมุทรสาคร',
+  description: 'บริการยา GLP-1 ลดน้ำหนักภายใต้การดูแลแพทย์ โดย รู้ก่อนดี(รู้งี้) ร่วมกับ โรงพยาบาลพันธมิตรในสมุทรสาคร',
   about: { '@type': 'MedicalCondition', name: 'Obesity' },
   specialty: 'Endocrinology',
 }

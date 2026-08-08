@@ -76,7 +76,7 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
         </div>
       </section>
 
-      {/* TRUST — W Medical Hospital */}
+      {/* TRUST — โรงพยาบาลพันธมิตร */}
       <section className="py-8 px-6 md:px-20 bg-mint/5 border-b border-mint/10">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
           <div className="w-12 h-12 bg-forest rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0">🏥</div>
@@ -396,9 +396,9 @@ function VoucherHero({ en = false }: { en?: boolean }) {
 
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
           {en ? (
-            <>Get a <em className="text-mint not-italic">Free Lab Test</em><br/>at W Medical Hospital</>
+            <>Get a <em className="text-mint not-italic">Free Lab Test</em><br/>at โรงพยาบาลพันธมิตร</>
           ) : (
-            <>รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>ที่ W Medical Hospital</>
+            <>รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>ที่ โรงพยาบาลพันธมิตร</>
           )}
         </h1>
 

@@ -3,7 +3,7 @@ import AboutClient from '@/components/pages/AboutClient'
 
 export const metadata: Metadata = {
   title: 'เกี่ยวกับเรา — รู้ก่อนดี(รู้งี้) | บริษัท เจียรักษา จำกัด',
-  description: 'รู้ก่อนดี(รู้งี้)ดำเนินงานโดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร',
+  description: 'รู้ก่อนดี(รู้งี้)ดำเนินงานโดยบริษัท เจียรักษา จำกัด ร่วมกับ โรงพยาบาลพันธมิตรในสมุทรสาคร',
   alternates: { canonical: 'https://roogondee.com/about' },
   openGraph: {
     title: 'เกี่ยวกับรู้ก่อนดี(รู้งี้)',
