@@ -252,7 +252,7 @@ def review_thai_with_llm(text: str, anthropic_client=None) -> Tuple[bool, list[s
 
     Asks Haiku to flag Thai words that are clearly misspelled or aren't
     real Thai words. Returns (ok, issues). Whitelists common medical/brand
-    English (CKD, eGFR, GLP-1, HIV, LINE, roogondee, W Medical, …) so we
+    English (CKD, eGFR, GLP-1, HIV, LINE, roogondee, โรงพยาบาลพันธมิตร, …) so we
     don't false-positive on jargon.
 
     Cost: ~$0.0005 per caption. Skipped entirely if ANTHROPIC_API_KEY missing
@@ -276,7 +276,7 @@ def review_thai_with_llm(text: str, anthropic_client=None) -> Tuple[bool, list[s
         "คุณเป็นบรรณาธิการพิสูจน์อักษรภาษาไทย ตรวจคำที่สะกดผิดหรือคำที่ไม่มีอยู่จริง "
         "ในภาษาไทย เช่นคำที่ AI ประดิษฐ์ขึ้นเอง (hallucination) "
         "ห้าม flag คำทับศัพท์/ศัพท์แพทย์ที่เป็นภาษาอังกฤษ "
-        "เช่น CKD, eGFR, GLP-1, HIV, LINE, roogondee, Stage, W Medical, creatinine, "
+        "เช่น CKD, eGFR, GLP-1, HIV, LINE, roogondee, Stage, โรงพยาบาลพันธมิตร, creatinine, "
         "Syphilis, FBS, HbA1c — คำพวกนี้ถือว่าถูกต้อง "
         "ห้าม flag ชื่อยี่ห้อ ชื่อจังหวัด ชื่อคน "
         "ตอบเป็น JSON เท่านั้น schema: "

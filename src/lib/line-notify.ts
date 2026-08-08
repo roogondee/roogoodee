@@ -86,7 +86,7 @@ export async function pushVoucherToUser(userId: string, params: {
     `สวัสดีคุณ ${params.name}`,
     `🎫 รหัส: ${params.code}`,
     `📅 หมดอายุ: ${expires}`,
-    `📍 W Medical Hospital สมุทรสาคร`,
+    `📍 โรงพยาบาลพันธมิตรในสมุทรสาคร`,
     `💬 จองคิวทาง LINE: @roogondee${urgency}`,
   ].join('\n')
   return pushLine(userId, text)
@@ -183,7 +183,7 @@ interface VoucherLeadNotifyParams {
   answer_summary?: string[]
 }
 
-// Lead handoff card to W Medical LINE group — contains everything
+// Lead handoff card to โรงพยาบาลพันธมิตร LINE group — contains everything
 // the team needs to contact the customer without opening admin.
 export async function notifyLeadToSale(p: VoucherLeadNotifyParams) {
   if (!LINE_NOTIFY_GROUP_ID) return
@@ -222,7 +222,7 @@ export async function notifyLeadToSale(p: VoucherLeadNotifyParams) {
 
   lines.push(
     '',
-    '📍 W Medical Hospital',
+    '📍 โรงพยาบาลพันธมิตร',
     'https://maps.google.com/?q=W+Medical+Hospital+Samut+Sakhon',
     '🔧 https://www.roogondee.com/admin',
   )

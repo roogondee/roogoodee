@@ -169,13 +169,13 @@ def topup_plans_if_needed() -> int:
 def save_post_to_supabase(plan: dict, html_content: str, image_url: str) -> str | None:
     """บันทึกบทความลง posts table และอัปเดต content_plan
 
-    NOTE: mens vertical → publish เป็น 'draft' รอ admin + W Medical sign-off
+    NOTE: mens vertical → publish เป็น 'draft' รอ admin + โรงพยาบาลพันธมิตร sign-off
     ก่อน publish จริง (ตาม mens-vertical-plan.md compliance gate เดือนแรก)
     """
     sb = get_sb()
 
     # Verticals whose copy carries a compliance gate land as drafts until a
-    # human signs off: mens (W Medical review, per mens-vertical-plan.md) and
+    # human signs off: mens (โรงพยาบาลพันธมิตร review, per mens-vertical-plan.md) and
     # dna (consent/pricing red lines, and no confirmed lab partner yet).
     # Set MENS_AUTO_PUBLISH=1 / DNA_AUTO_PUBLISH=1 to bypass once review is routine.
     gated = {"mens": "MENS_AUTO_PUBLISH", "dna": "DNA_AUTO_PUBLISH"}
@@ -412,13 +412,13 @@ def generate_content(plan: dict) -> str:
 - ต้องมีประโยค "ภายใต้การดูแลของแพทย์" หรือใกล้เคียง อย่างน้อยครั้งหนึ่ง
 - ต้องมี disclaimer ท้ายบทความ:
   "ข้อมูลในบทความเพื่อการศึกษา ไม่ใช่การวินิจฉัยหรือรักษา
-   กรุณาปรึกษาแพทย์ที่ W Medical Hospital สมุทรสาคร"
+   กรุณาปรึกษาแพทย์ที่ โรงพยาบาลพันธมิตรในสมุทรสาคร"
 - tone: ให้ความรู้ ไม่ตัดสิน ไม่ขายของ
 - เน้น Pillar A (พลังงาน อารมณ์ lifestyle ฮอร์โมนเชิงให้ความรู้)
   มากกว่า Pillar B (สมรรถภาพ)"""
 
     system_prompt = """คุณเป็นนักเขียนบทความสุขภาพระดับ Medical Grade สำหรับเว็บไซต์ รู้ก่อนดี (roogondee.com)
-โดยบริษัท เจียรักษา จำกัด ร่วมกับ W Medical Hospital สมุทรสาคร
+โดยบริษัท เจียรักษา จำกัด ร่วมกับ โรงพยาบาลพันธมิตรในสมุทรสาคร
 
 กฎการเขียน:
 - ภาษาไทย อ่านง่าย ไม่ตัดสิน
@@ -443,7 +443,7 @@ def generate_content(plan: dict) -> str:
 ⚠️ AUTHORITATIVE SOURCE สำหรับ Foreign Worker (บังคับ — ห้ามใช้ข้อมูลจาก memory ที่ขัดแย้ง):
 - 6 โรคต้องห้าม (ประกาศกระทรวงสาธารณสุข พ.ศ. 2567): เรื้อน, วัณโรคระยะอันตราย, เท้าช้าง, ติดยาเสพติด, พิษสุราเรื้อรัง, ซิฟิลิสระยะที่ 3 — ห้ามเขียนผิดหรือเพิ่มโรคอื่น
 - ห้ามระบุว่า HIV เป็นเหตุปฏิเสธ work permit — ผิดกฎหมายไทย (HIV ไม่อยู่ในรายชื่อโรคต้องห้าม)
-- ต้องอ้างพาร์ทเนอร์ "W Medical Hospital สมุทรสาคร" พร้อมใบอนุญาต สบส. (สมุทรสาคร) 001/2569 + ห้องแล็บมาตรฐาน MOPH LAB (มาตรฐานห้องปฏิบัติการทางการแพทย์ กระทรวงสาธารณสุข) + Iris Scan & Facial Recognition cert — ในแคปชันให้ใช้คำว่า "มาตรฐาน MOPH LAB" ไม่ต้องระบุเลขใบรับรอง LA
+- ต้องอ้างพาร์ทเนอร์ "โรงพยาบาลพันธมิตรในสมุทรสาคร" พร้อมใบอนุญาต สบส. (สมุทรสาคร) 001/2569 + ห้องแล็บมาตรฐาน MOPH LAB (มาตรฐานห้องปฏิบัติการทางการแพทย์ กระทรวงสาธารณสุข) + Iris Scan & Facial Recognition cert — ในแคปชันให้ใช้คำว่า "มาตรฐาน MOPH LAB" ไม่ต้องระบุเลขใบรับรอง LA
 - ขั้นตอนตรวจให้ใช้ 7 ขั้นตอนตาม source (รวม Iris Scan + Facial Recognition)
 - ราคา/อายุใบ/ภาษาบริการ ให้ยึดตาม source: เริ่มต้น 500 บาท, ใบใช้ได้ 90 วัน, บริการเมียนมา/จีน/อังกฤษ
 - หน่วยงานที่อนุญาต = สบส. (กรมสนับสนุนบริการสุขภาพ กระทรวงสาธารณสุข) ไม่ใช่ Ministry of Labour"""

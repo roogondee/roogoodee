@@ -168,7 +168,7 @@ export default function ForeignMouClient() {
           <div className="mt-8 bg-mint/5 border border-mint/15 rounded-2xl p-5 text-xs text-muted leading-relaxed">
             <strong className="text-forest">{m.credsLabel}:</strong> ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569 · ห้องแล็บมาตรฐาน MOPH LAB (มาตรฐานห้องปฏิบัติการทางการแพทย์ กระทรวงสาธารณสุข) · ทีมงานผ่านการอบรม Iris Scan & Facial Recognition จากอธิบดีกรมควบคุมโรค ·{' '}
             <a href="https://mrd.hss.moph.go.th/mrd1_hss/?p=12942" target="_blank" rel="noopener noreferrer" className="text-mint hover:underline">{m.credsVerifyLink}</a>
-            <div className="mt-2">{m.credsLocation}: W Medical โรงพยาบาลทั่วไปขนาดเล็ก — 99/26 หมู่ 5 ต.บางน้ำจืด อ.เมืองสมุทรสาคร จ.สมุทรสาคร 74000</div>
+            <div className="mt-2">{m.credsLocation}: โรงพยาบาลพันธมิตร โรงพยาบาลทั่วไปขนาดเล็ก — 99/26 หมู่ 5 ต.บางน้ำจืด อ.เมืองสมุทรสาคร จ.สมุทรสาคร 74000</div>
           </div>
         </div>
       </section>
