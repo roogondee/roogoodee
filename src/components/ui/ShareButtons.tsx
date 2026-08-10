@@ -13,12 +13,36 @@ export default function ShareButtons({ url, title }: ShareButtonsProps) {
   const encodedTitle = encodeURIComponent(title)
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(url)
+    let ok = false
+    // Modern API — only available in secure contexts; absent in many in-app
+    // browsers (LINE / Facebook webview), which is most of this site's traffic.
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url)
+        ok = true
+      } catch {
+        ok = false
+      }
+    }
+    // Legacy fallback — works inside in-app browsers where clipboard API is blocked.
+    if (!ok) {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = url
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+      } catch {
+        ok = false
+      }
+    }
+    if (ok) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // fallback — do nothing
     }
   }
 
