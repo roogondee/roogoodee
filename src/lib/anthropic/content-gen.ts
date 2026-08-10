@@ -169,7 +169,9 @@ Caption: ${opts.caption.caption}
   const client = anthropicSonnet()
   const msg = await client.messages.create({
     model: CONTENT_MODEL,
-    max_tokens: 2500,
+    // Thai HTML is token-dense — a 400-700 word article needs well above 2500
+    // tokens, or Sonnet stops mid-sentence and we publish a truncated article.
+    max_tokens: 4096,
     system: ARTICLE_SYSTEM,
     messages: [{
       role: 'user',
@@ -179,6 +181,11 @@ Caption: ${opts.caption.caption}
       ],
     }],
   })
+  // Reject truncated output so the caller falls back to the complete caption
+  // HTML instead of storing an article cut off mid-sentence.
+  if (msg.stop_reason === 'max_tokens') {
+    throw new Error('article gen hit max_tokens — output truncated')
+  }
   const block = msg.content[0]
   if (block.type !== 'text') throw new Error('no text response from article gen')
   const html = stripFence(block.text)
