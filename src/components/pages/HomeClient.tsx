@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useTranslation } from '@/lib/i18n/context'
+import { formatDate } from '@/lib/i18n/format'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
 import homepageImages from '@/config/homepage-images'
@@ -60,9 +61,10 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
     <main className="min-h-screen bg-cream">
       <NavBar />
 
-      {/* HERO — voucher-quiz cards for every locale (EN fallback for non-Thai)
-          so the primary conversion path is never Thai-only */}
-      <VoucherHero en={locale !== 'th'} />
+      {/* HERO — voucher-quiz cards for every locale. Thai and Burmese get
+          native copy; every other locale falls back to English so the
+          primary conversion path is never blank or wrong-script. */}
+      <VoucherHero locale={locale} />
 
       {/* TRUST STATS */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
@@ -194,7 +196,7 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${SERVICE_COLORS[post.service] || 'bg-gray-100 text-gray-600'}`}>{post.service?.toUpperCase()}</span>
                   <h3 className="font-display text-lg md:text-xl text-forest mt-3 mb-2 leading-tight">{post.title}</h3>
                   <p className="text-muted text-sm leading-relaxed line-clamp-2">{post.meta_desc || post.excerpt}</p>
-                  <p className="text-xs text-muted/60 mt-3">{post.published_at ? new Date(post.published_at).toLocaleDateString('th-TH') : ''}</p>
+                  <p className="text-xs text-muted/60 mt-3">{post.published_at ? formatDate(post.published_at, locale) : ''}</p>
                 </div>
               </Link>
             ))}
@@ -229,7 +231,7 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
                   {item.category && <span className="text-xs font-bold px-2 py-1 rounded-full bg-mint/15 text-sage">{item.category}</span>}
                   <h3 className="font-display text-lg md:text-xl text-forest mt-3 mb-2 leading-tight">{item.title}</h3>
                   <p className="text-muted text-sm leading-relaxed line-clamp-2">{item.meta_desc || item.excerpt}</p>
-                  <p className="text-xs text-muted/60 mt-3">{item.published_at ? new Date(item.published_at).toLocaleDateString('th-TH') : ''}</p>
+                  <p className="text-xs text-muted/60 mt-3">{item.published_at ? formatDate(item.published_at, locale) : ''}</p>
                 </div>
               </Link>
             ))}
@@ -307,81 +309,73 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
   )
 }
 
-function VoucherHero({ en = false }: { en?: boolean }) {
-  const OFFERS = [
-    {
-      emoji: '💉',
-      tag: 'GLP-1',
-      title: en ? 'Free Diabetes Screening' : 'ตรวจเบาหวานฟรี',
-      value: 'FBS + HbA1c',
-      price: en ? 'Worth 500฿' : 'มูลค่า 500฿',
-      desc: en ? 'Assessment before starting GLP-1' : 'ประเมินก่อนเริ่ม GLP-1',
-      href: '/quiz/glp1',
-      accent: 'from-emerald-400 to-emerald-600',
-    },
-    {
-      emoji: '🫘',
-      tag: 'CKD',
-      title: en ? 'Free Kidney Screening' : 'ตรวจโรคไตฟรี',
-      value: 'Urine Protein',
-      price: en ? 'Worth 200฿' : 'มูลค่า 200฿',
-      desc: en ? 'Catch early signs of kidney disease' : 'สัญญาณเริ่มต้นของโรคไต',
-      href: '/quiz/ckd',
-      accent: 'from-blue-400 to-blue-600',
-    },
-    {
-      emoji: '🔴',
-      tag: 'STD / PrEP',
-      title: en ? 'Free HIV Test' : 'ตรวจ HIV ฟรี',
-      value: 'HIV + Syphilis',
-      price: en ? 'Worth 800฿' : 'มูลค่า 800฿',
-      desc: en ? 'Private, judgement-free' : 'ส่วนตัว ไม่ตัดสิน',
-      href: '/quiz/std',
-      accent: 'from-rose-400 to-rose-600',
-    },
-    {
-      emoji: '🧔',
-      tag: "Men's Health 40+",
-      title: en ? 'Free Doctor Consult' : 'ปรึกษาแพทย์ฟรี',
-      value: en ? "Men's health assessment" : 'ตรวจประเมินสุขภาพชาย',
-      price: en ? 'Worth 1,500฿' : 'มูลค่า 1,500฿',
-      desc: en ? 'Energy, mood, hormones' : 'พลังงาน อารมณ์ ฮอร์โมน',
-      href: '/quiz/mens',
-      accent: 'from-slate-500 to-indigo-700',
-    },
-    {
-      emoji: '🌸',
-      tag: "Women's Health",
-      title: en ? 'Free OB-GYN Consult' : 'ปรึกษาสูตินรีแพทย์ฟรี',
-      value: en ? 'Initial assessment' : 'ตรวจประเมินเบื้องต้น',
-      price: en ? 'No cost' : 'ฟรี ไม่มีค่าใช้จ่าย',
-      desc: en ? 'HPV/Pap, discharge, menopause' : 'HPV/Pap • ตกขาว • วัยทอง',
-      href: '/quiz/women',
-      accent: 'from-pink-400 to-rose-500',
-    },
-    {
-      emoji: '🧠',
-      tag: 'Mind',
-      title: en ? 'Free Psychologist Session' : 'ปรึกษานักจิตวิทยาฟรี',
-      value: en ? '30-min telehealth' : 'Telehealth 30 นาที',
-      price: en ? 'No cost' : 'ฟรี ไม่มีค่าใช้จ่าย',
-      desc: en ? 'Stress, sleep, relationships' : 'เครียด นอนไม่หลับ ความสัมพันธ์',
-      href: '/quiz/mind',
-      accent: 'from-violet-400 to-violet-600',
-    },
-    {
-      // The only offer here that is NOT a free test — the price line has to
-      // say so plainly, because the section headline promises a free lab test.
-      emoji: '🧬',
-      tag: 'DNA',
-      title: en ? 'Free Paternity Test Consult' : 'ปรึกษาตรวจ DNA ฟรี',
-      value: en ? 'Paternity / family DNA' : 'พิสูจน์บิดา-บุตร',
-      price: en ? 'Consult free — test priced separately' : 'ปรึกษาฟรี • ค่าตรวจแยกต่างหาก',
-      desc: en ? 'Legitimation • court • peace of mind' : 'จดรับรองบุตร • คดีความ • ความสบายใจ',
-      href: '/quiz/dna',
-      accent: 'from-sky-400 to-blue-600',
-    },
-  ]
+// Voucher hero copy per locale. Thai is the original/canonical copy — kept
+// byte-for-byte identical to before this migration. Burmese is a real
+// translation (flagged in docs/i18n/my-review-checklist.md for native
+// review before launching Burmese-targeted ads). Every other locale falls
+// back to English so the primary conversion path is never blank.
+type VoucherLocale = 'th' | 'en' | 'my'
+
+const VOUCHER_STRINGS: Record<VoucherLocale, {
+  badge: string; heroLine1: string; heroLine2: string; heroSub: string; ctaLine: string
+  trustFree: string; trustExpiry: string; trustPrivate: string; trustFast: string
+}> = {
+  th: {
+    badge: '🎁 แจกฟรี • จำกัด 50 สิทธิ์ / service / เดือน',
+    heroLine1: 'รับ', heroLine2: 'Lab Test ฟรี', heroSub: 'ที่ โรงพยาบาลพันธมิตร',
+    ctaLine: 'ตอบคำถามคัดกรอง 2 นาที รับ voucher ทันที พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร',
+    trustFree: 'ฟรี ไม่มีค่าใช้จ่าย', trustExpiry: 'Voucher หมดอายุ 14 วัน', trustPrivate: 'ผลตรวจส่วนตัว', trustFast: 'พบแพทย์ 15 นาที',
+  },
+  en: {
+    badge: '🎁 Free • limited to 50 slots / service / month',
+    heroLine1: 'Get a', heroLine2: 'Free Lab Test', heroSub: 'at our partner hospital',
+    ctaLine: 'Answer a 2-minute screening quiz, get your voucher instantly, and see a doctor at our Samut Sakhon hospital.',
+    trustFree: 'Completely free', trustExpiry: 'Voucher valid 14 days', trustPrivate: 'Results kept private', trustFast: 'See a doctor in 15 min',
+  },
+  my: {
+    badge: '🎁 အခမဲ့ ဝန်ဆောင်မှု • တစ်လလျှင် ဝန်ဆောင်မှုတစ်ခုစီ 50 ယောက်သာ',
+    heroLine1: 'မိတ်ဖက်ဆေးရုံတွင်', heroLine2: 'Lab Test အခမဲ့', heroSub: 'ရယူလိုက်ပါ',
+    ctaLine: '2 မိနစ် ကုစားစစ်ဆေးမှု မေးခွန်းများ ဖြေပါ ဘောက်ချာ ချက်ချင်းရယူပြီး သမုဒ်ဆာခွန်ဆေးရုံတွင် ဆရာဝန်နှင့် တိုင်ပင်ပါ',
+    trustFree: 'လုံးဝ အခမဲ့', trustExpiry: 'ဘောက်ချာ ရက် 14 အတွင်း သက်တမ်းရှိသည်', trustPrivate: 'ရလဒ် လျှို့ဝှက်ထားသည်', trustFast: 'မိနစ် 15 အတွင်း ဆရာဝန်နှင့် တွေ့ရသည်',
+  },
+}
+
+const VOUCHER_OFFERS: Record<VoucherLocale, Array<{ emoji: string; tag: string; title: string; value: string; price: string; desc: string; href: string; accent: string; quizCta: string }>> = {
+  th: [
+    { emoji: '💉', tag: 'GLP-1', title: 'ตรวจเบาหวานฟรี', value: 'FBS + HbA1c', price: 'มูลค่า 500฿', desc: 'ประเมินก่อนเริ่ม GLP-1', href: '/quiz/glp1', accent: 'from-emerald-400 to-emerald-600', quizCta: 'ทำ quiz 2 นาที' },
+    { emoji: '🫘', tag: 'CKD', title: 'ตรวจโรคไตฟรี', value: 'Urine Protein', price: 'มูลค่า 200฿', desc: 'สัญญาณเริ่มต้นของโรคไต', href: '/quiz/ckd', accent: 'from-blue-400 to-blue-600', quizCta: 'ทำ quiz 2 นาที' },
+    { emoji: '🔴', tag: 'STD / PrEP', title: 'ตรวจ HIV ฟรี', value: 'HIV + Syphilis', price: 'มูลค่า 800฿', desc: 'ส่วนตัว ไม่ตัดสิน', href: '/quiz/std', accent: 'from-rose-400 to-rose-600', quizCta: 'ทำ quiz 2 นาที' },
+    { emoji: '🧔', tag: "Men's Health 40+", title: 'ปรึกษาแพทย์ฟรี', value: 'ตรวจประเมินสุขภาพชาย', price: 'มูลค่า 1,500฿', desc: 'พลังงาน อารมณ์ ฮอร์โมน', href: '/quiz/mens', accent: 'from-slate-500 to-indigo-700', quizCta: 'ทำ quiz 2 นาที' },
+    { emoji: '🌸', tag: "Women's Health", title: 'ปรึกษาสูตินรีแพทย์ฟรี', value: 'ตรวจประเมินเบื้องต้น', price: 'ฟรี ไม่มีค่าใช้จ่าย', desc: 'HPV/Pap • ตกขาว • วัยทอง', href: '/quiz/women', accent: 'from-pink-400 to-rose-500', quizCta: 'ทำ quiz 2 นาที' },
+    { emoji: '🧠', tag: 'Mind', title: 'ปรึกษานักจิตวิทยาฟรี', value: 'Telehealth 30 นาที', price: 'ฟรี ไม่มีค่าใช้จ่าย', desc: 'เครียด นอนไม่หลับ ความสัมพันธ์', href: '/quiz/mind', accent: 'from-violet-400 to-violet-600', quizCta: 'ทำ quiz 2 นาที' },
+    // The only offer here that is NOT a free test — the price line has to
+    // say so plainly, because the section headline promises a free lab test.
+    { emoji: '🧬', tag: 'DNA', title: 'ปรึกษาตรวจ DNA ฟรี', value: 'พิสูจน์บิดา-บุตร', price: 'ปรึกษาฟรี • ค่าตรวจแยกต่างหาก', desc: 'จดรับรองบุตร • คดีความ • ความสบายใจ', href: '/quiz/dna', accent: 'from-sky-400 to-blue-600', quizCta: 'ทำ quiz 2 นาที' },
+  ],
+  en: [
+    { emoji: '💉', tag: 'GLP-1', title: 'Free Diabetes Screening', value: 'FBS + HbA1c', price: 'Worth 500฿', desc: 'Assessment before starting GLP-1', href: '/quiz/glp1', accent: 'from-emerald-400 to-emerald-600', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🫘', tag: 'CKD', title: 'Free Kidney Screening', value: 'Urine Protein', price: 'Worth 200฿', desc: 'Catch early signs of kidney disease', href: '/quiz/ckd', accent: 'from-blue-400 to-blue-600', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🔴', tag: 'STD / PrEP', title: 'Free HIV Test', value: 'HIV + Syphilis', price: 'Worth 800฿', desc: 'Private, judgement-free', href: '/quiz/std', accent: 'from-rose-400 to-rose-600', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🧔', tag: "Men's Health 40+", title: 'Free Doctor Consult', value: "Men's health assessment", price: 'Worth 1,500฿', desc: 'Energy, mood, hormones', href: '/quiz/mens', accent: 'from-slate-500 to-indigo-700', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🌸', tag: "Women's Health", title: 'Free OB-GYN Consult', value: 'Initial assessment', price: 'No cost', desc: 'HPV/Pap, discharge, menopause', href: '/quiz/women', accent: 'from-pink-400 to-rose-500', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🧠', tag: 'Mind', title: 'Free Psychologist Session', value: '30-min telehealth', price: 'No cost', desc: 'Stress, sleep, relationships', href: '/quiz/mind', accent: 'from-violet-400 to-violet-600', quizCta: 'Take the 2-min quiz' },
+    { emoji: '🧬', tag: 'DNA', title: 'Free Paternity Test Consult', value: 'Paternity / family DNA', price: 'Consult free — test priced separately', desc: 'Legitimation • court • peace of mind', href: '/quiz/dna', accent: 'from-sky-400 to-blue-600', quizCta: 'Take the 2-min quiz' },
+  ],
+  my: [
+    { emoji: '💉', tag: 'GLP-1', title: 'ဆီးချို အခမဲ့ စစ်ဆေးခြင်း', value: 'FBS + HbA1c', price: 'တန်ဖိုး ฿500', desc: 'GLP-1 မစတင်မီ အကဲဖြတ်ခြင်း', href: '/quiz/glp1', accent: 'from-emerald-400 to-emerald-600', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🫘', tag: 'CKD', value: 'Urine Protein', title: 'ကျောက်ကပ် အခမဲ့ စစ်ဆေးခြင်း', price: 'တန်ဖိုး ฿200', desc: 'ကျောက်ကပ်ရောဂါ အစောပိုင်း လက္ခဏာ', href: '/quiz/ckd', accent: 'from-blue-400 to-blue-600', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🔴', tag: 'STD / PrEP', title: 'HIV အခမဲ့ စစ်ဆေးခြင်း', value: 'HIV + Syphilis', price: 'တန်ဖိုး ฿800', desc: 'လျှို့ဝှက်၊ အဆုံးဖြတ်မခံရ', href: '/quiz/std', accent: 'from-rose-400 to-rose-600', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🧔', tag: "Men's Health 40+", title: 'ဆရာဝန်နှင့် အခမဲ့ တိုင်ပင်ခြင်း', value: 'အမျိုးသား ကျန်းမာရေး အကဲဖြတ်ခြင်း', price: 'တန်ဖိုး ฿1,500', desc: 'ခွန်အား၊ စိတ်ခံစားချက်၊ ဟော်မုန်း', href: '/quiz/mens', accent: 'from-slate-500 to-indigo-700', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🌸', tag: "Women's Health", title: 'သားဖွားမီးယပ်ဆရာဝန်နှင့် အခမဲ့ တိုင်ပင်ခြင်း', value: 'အခြေခံ အကဲဖြတ်ခြင်း', price: 'အခမဲ့ ကုန်ကျစရိတ်မရှိ', desc: 'HPV/Pap • အဖြူဆင်း • သွေးဆုံးချိန်', href: '/quiz/women', accent: 'from-pink-400 to-rose-500', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🧠', tag: 'Mind', title: 'စိတ်ပညာရှင်နှင့် အခမဲ့ တိုင်ပင်ခြင်း', value: 'Telehealth မိနစ် 30', price: 'အခမဲ့ ကုန်ကျစရိတ်မရှိ', desc: 'စိတ်ဖိစီးမှု၊ အိပ်မပျော်ခြင်း၊ ဆက်ဆံရေး', href: '/quiz/mind', accent: 'from-violet-400 to-violet-600', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+    { emoji: '🧬', tag: 'DNA', title: 'DNA စစ်ဆေးခြင်း အခမဲ့ တိုင်ပင်ခြင်း', value: 'ဖခင်-သားသမီး / မိသားစု DNA', price: 'တိုင်ပင်ခြင်း အခမဲ့ • စစ်ဆေးခ သီးခြား', desc: 'သားသမီး အသိအမှတ်ပြု • တရားရေး • စိတ်ချမ်းသာမှု', href: '/quiz/dna', accent: 'from-sky-400 to-blue-600', quizCta: '2 မိနစ် quiz လုပ်ရန်' },
+  ],
+}
+
+function VoucherHero({ locale }: { locale: string }) {
+  const voucherLocale: VoucherLocale = locale === 'th' || locale === 'my' ? locale : 'en'
+  const s = VOUCHER_STRINGS[voucherLocale]
+  const OFFERS = VOUCHER_OFFERS[voucherLocale]
 
   return (
     <section className="pt-20 md:pt-24 pb-12 md:pb-20 px-6 md:px-20 bg-gradient-to-br from-forest via-sage to-mint relative overflow-hidden">
@@ -391,23 +385,15 @@ function VoucherHero({ en = false }: { en?: boolean }) {
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8">
           <span className="w-2 h-2 bg-mint rounded-full animate-pulse" />
-          {en ? '🎁 Free • limited to 50 slots / service / month' : '🎁 แจกฟรี • จำกัด 50 สิทธิ์ / service / เดือน'}
+          {s.badge}
         </div>
 
         <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
-          {en ? (
-            <>Get a <em className="text-mint not-italic">Free Lab Test</em><br/>at โรงพยาบาลพันธมิตร</>
-          ) : (
-            <>รับ <em className="text-mint not-italic">Lab Test ฟรี</em><br/>ที่ โรงพยาบาลพันธมิตร</>
-          )}
+          {s.heroLine1} <em className="text-mint not-italic">{s.heroLine2}</em><br/>{s.heroSub}
         </h1>
 
         <p className="text-base md:text-xl text-white/80 leading-relaxed mb-8 md:mb-10 max-w-2xl">
-          {en ? (
-            <>Answer a <span className="font-bold text-white">2-minute</span> screening quiz, get your voucher instantly, and see a doctor at our Samut Sakhon hospital.</>
-          ) : (
-            <>ตอบคำถามคัดกรอง <span className="font-bold text-white">2 นาที</span> รับ voucher ทันที พร้อมปรึกษาแพทย์ที่โรงพยาบาลสมุทรสาคร</>
-          )}
+          {s.ctaLine}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-8 md:mb-10">
@@ -428,17 +414,17 @@ function VoucherHero({ en = false }: { en?: boolean }) {
               <p className="text-xs text-mint font-bold mb-3">{o.price}</p>
               <p className="text-xs md:text-sm text-muted leading-relaxed mb-4">{o.desc}</p>
               <span className="inline-flex items-center gap-1 text-sm font-bold text-forest group-hover:gap-2 transition-all">
-                {en ? 'Take the 2-min quiz' : 'ทำ quiz 2 นาที'} <span>→</span>
+                {o.quizCta} <span>→</span>
               </span>
             </Link>
           ))}
         </div>
 
         <div className="flex flex-wrap gap-4 md:gap-6 text-xs md:text-sm text-white/70">
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Completely free' : 'ฟรี ไม่มีค่าใช้จ่าย'}</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Voucher valid 14 days' : 'Voucher หมดอายุ 14 วัน'}</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'Results kept private' : 'ผลตรวจส่วนตัว'}</span>
-          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {en ? 'See a doctor in 15 min' : 'พบแพทย์ 15 นาที'}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {s.trustFree}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {s.trustExpiry}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {s.trustPrivate}</span>
+          <span className="flex items-center gap-2"><span className="text-mint">✓</span> {s.trustFast}</span>
         </div>
       </div>
     </section>
