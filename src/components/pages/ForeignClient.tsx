@@ -6,24 +6,6 @@ import FooterMinimal from '@/components/ui/FooterMinimal'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
 
-const FAQS = [
-  { q: 'ตรวจสุขภาพแรงงานต่างด้าวต้องใช้เอกสารอะไร?', a: 'ใช้หนังสือเดินทาง (Passport) หรือบัตรประจำตัวแรงงานที่ออกโดยราชการ รองรับทุกสัญชาติ' },
-  { q: 'ตรวจได้กี่คนต่อวัน?', a: 'รองรับได้ทั้งรายบุคคลและหมู่คณะขนาดใหญ่ นัดหมายล่วงหน้าเพื่อประสิทธิภาพสูงสุด' },
-  { q: 'ใบรับรองแพทย์ใช้สำหรับอะไรได้บ้าง?', a: 'ใช้ได้สำหรับการขอ Work Permit, ต่ออายุวีซ่าทำงาน, และตามที่หน่วยงานราชการกำหนด' },
-  { q: 'มีค่าใช้จ่ายเท่าไหร่สำหรับหมู่คณะ?', a: 'ราคาขึ้นอยู่กับจำนวนคนและรายการตรวจ กรุณาติดต่อทีมเพื่อรับใบเสนอราคา' },
-  { q: 'รองรับแรงงานสัญชาติอะไรบ้าง?', a: 'รองรับ 4 สัญชาติ: พม่า กัมพูชา ลาว เวียดนาม ทีมงานสื่อสารได้หลายภาษา' },
-]
-
-const HOSPITAL_STEPS = [
-  { num: '1', title: 'ลงทะเบียน + ตรวจเอกสาร', desc: 'หนังสือเดินทาง (Passport) + เอกสารนายจ้าง' },
-  { num: '2', title: 'ตรวจสุขภาพทั่วไป', desc: 'น้ำหนัก / ส่วนสูง / ความดันโลหิต / ชีพจร โดยแพทย์' },
-  { num: '3', title: 'คัดกรอง 6 โรคต้องห้าม', desc: 'เรื้อน, วัณโรค, เท้าช้าง, ติดยา, สุราเรื้อรัง, ซิฟิลิสระยะ 3' },
-  { num: '4', title: 'ตรวจห้องปฏิบัติการ', desc: 'ปัสสาวะ + เลือด — ห้องแล็บมาตรฐาน MOPH LAB' },
-  { num: '5', title: 'เอกซเรย์ปอด', desc: 'Chest X-ray คัดกรองวัณโรค' },
-  { num: '6', title: 'สแกนม่านตา + Facial Recognition', desc: 'ยืนยันตัวตนตามมาตรฐานกรมควบคุมโรค — ทีมผ่านการอบรมและได้รับประกาศนียบัตร', highlight: true },
-  { num: '7', title: 'รับใบรับรองแพทย์', desc: 'รอผลประมาณ 1.5–2 ชั่วโมง (กลุ่ม ≥ 50 คน อาจรับวันรุ่งขึ้น)' },
-]
-
 export default function ForeignClient() {
   const { t } = useTranslation()
   const f = t.foreign
@@ -38,6 +20,22 @@ export default function ForeignClient() {
     { num: '01', title: f.step1Title, desc: f.step1Desc },
     { num: '02', title: f.step2Title, desc: f.step2Desc },
     { num: '03', title: f.step3Title, desc: f.step3Desc },
+  ]
+  const FAQS = [
+    { q: f.faq1q, a: f.faq1a },
+    { q: f.faq2q, a: f.faq2a },
+    { q: f.faq3q, a: f.faq3a },
+    { q: f.faq4q, a: f.faq4a },
+    { q: f.faq5q, a: f.faq5a },
+  ]
+  const HOSPITAL_STEPS = [
+    { num: '1', title: f.hospStep1Title, desc: f.hospStep1Desc },
+    { num: '2', title: f.hospStep2Title, desc: f.hospStep2Desc },
+    { num: '3', title: f.hospStep3Title, desc: f.hospStep3Desc },
+    { num: '4', title: f.hospStep4Title, desc: f.hospStep4Desc },
+    { num: '5', title: f.hospStep5Title, desc: f.hospStep5Desc },
+    { num: '6', title: f.hospStep6Title, desc: f.hospStep6Desc, highlight: true },
+    { num: '7', title: f.hospStep7Title, desc: f.hospStep7Desc },
   ]
 
   return (
@@ -62,7 +60,7 @@ export default function ForeignClient() {
             ))}
           </div>
           <Link href="/foreign/mou" className="inline-flex items-center gap-2 mt-6 text-sm font-semibold text-amber-700 hover:text-amber-800 underline underline-offset-4">
-            ตรวจเพื่อทำ MOU / Work Permit? ดูรายละเอียดและราคา →
+            {f.mouLinkText}
           </Link>
         </div>
       </section>
@@ -101,14 +99,14 @@ export default function ForeignClient() {
 
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
         <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">ขั้นตอนการตรวจที่โรงพยาบาล</p>
-          <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">7 ขั้นตอนตรวจสุขภาพแรงงานต่างด้าว</h2>
-          <p className="text-muted text-sm md:text-base mb-10 max-w-2xl">ลำดับการตรวจที่ โรงพยาบาลพันธมิตรในสมุทรสาคร — รพ. ที่ได้รับอนุญาตตามประกาศกระทรวงสาธารณสุข พ.ศ. 2567</p>
+          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">{f.hospStepsLabel}</p>
+          <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">{f.hospStepsTitle}</h2>
+          <p className="text-muted text-sm md:text-base mb-10 max-w-2xl">{f.hospStepsDesc}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {HOSPITAL_STEPS.map(s => (
               <div key={s.num} className={`relative rounded-2xl p-5 border ${s.highlight ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-200' : 'bg-cream border-mint/15'}`}>
                 {s.highlight && (
-                  <span className="absolute -top-2 right-4 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider">ใหม่</span>
+                  <span className="absolute -top-2 right-4 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider">{f.newBadge}</span>
                 )}
                 <div className="flex items-start gap-3">
                   <span className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${s.highlight ? 'bg-amber-500 text-white' : 'bg-mint/15 text-mint'}`}>{s.num}</span>
@@ -121,8 +119,8 @@ export default function ForeignClient() {
             ))}
           </div>
           <div className="mt-8 bg-mint/5 border border-mint/15 rounded-2xl p-5 text-xs text-muted leading-relaxed">
-            <strong className="text-forest">ใบรับรองและมาตรฐาน:</strong> ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569 · ห้องแล็บมาตรฐาน MOPH LAB (มาตรฐานห้องปฏิบัติการทางการแพทย์ กระทรวงสาธารณสุข) · ทีมงานผ่านการอบรม Iris Scan & Facial Recognition จากอธิบดีกรมควบคุมโรค ·{' '}
-            <a href="https://mrd.hss.moph.go.th/mrd1_hss/?p=12942" target="_blank" rel="noopener noreferrer" className="text-mint hover:underline">ตรวจสอบรายชื่อ รพ. ที่ได้รับอนุญาต</a>
+            <strong className="text-forest">{f.credsLabel}</strong> {f.credsText}{' '}
+            <a href="https://mrd.hss.moph.go.th/mrd1_hss/?p=12942" target="_blank" rel="noopener noreferrer" className="text-mint hover:underline">{f.credsVerifyLink}</a>
           </div>
         </div>
       </section>

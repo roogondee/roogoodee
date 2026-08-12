@@ -6,17 +6,17 @@ import FooterMinimal from '@/components/ui/FooterMinimal'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"CKD Clinic โรคไตเรื้อรัง — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/ckd",about:{"@type":"MedicalCondition",name:"Chronic Kidney Disease"},specialty:"Nephrology"}
 
-const FAQS = [
-  { q: 'CKD Stage ต่างๆ หมายถึงอะไร?', a: 'CKD แบ่งเป็น 5 ระยะตาม eGFR: G1 (≥90) ปกติ, G2 (60-89) ลดลงเล็กน้อย, G3a/b (30-59) ปานกลาง, G4 (15-29) มาก, G5 (<15) ไตวาย' },
-  { q: 'ค่าครีอะตินีนเท่าไหร่ถึงน่าเป็นห่วง?', a: 'ค่าปกติ Creatinine ในผู้ชาย 0.7-1.2 mg/dL ผู้หญิง 0.5-1.0 mg/dL หากสูงกว่านี้ควรคำนวณ eGFR และพบแพทย์โรคไต' },
-  { q: 'ผู้ป่วย CKD ควรกินอาหารอะไร?', a: 'โดยทั่วไปควรจำกัดโซเดียม โปรตีน โพแทสเซียม และฟอสฟอรัสตามระยะ CKD แต่แผนอาหารต้องปรับตามบุคคล' },
-  { q: 'CKD รักษาให้หายได้ไหม?', a: 'CKD ยังไม่สามารถรักษาให้หายขาดได้ แต่ชะลอการเสื่อมของไตได้ด้วยการควบคุมโรคร่วม' },
-  { q: 'ต้องพบแพทย์โรคไตบ่อยแค่ไหน?', a: 'G1-G2 ทุก 12 เดือน, G3 ทุก 6 เดือน, G4 ทุก 3 เดือน, G5 ทุก 1-3 เดือนหรือตามแพทย์นัด' },
-]
-
 export default function CKDClient() {
   const { t } = useTranslation()
   const ckd = t.ckd
+
+  const FAQS = [
+    { q: ckd.faq1q, a: ckd.faq1a },
+    { q: ckd.faq2q, a: ckd.faq2a },
+    { q: ckd.faq3q, a: ckd.faq3a },
+    { q: ckd.faq4q, a: ckd.faq4a },
+    { q: ckd.faq5q, a: ckd.faq5a },
+  ]
 
   const INCLUDES = [
     { icon: '🔬', title: ckd.service1Title, desc: ckd.service1Desc },
