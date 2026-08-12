@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "check:i18n": "node scripts/check-locales.mts",
+    "prebuild": "npm run check:i18n",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
