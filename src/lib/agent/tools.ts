@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendLeadNotification } from '@/lib/email'
+import { notifyLineGroup } from '@/lib/line-notify'
 
 // ─── Service knowledge base ──────────────────────────────────────────────
 // Hardcoded facts the agent can read via get_service_info. Keep short —
@@ -78,6 +79,13 @@ const SERVICE_INFO: Record<
     location: 'โรงพยาบาลพันธมิตร, Samut Sakhon',
   },
 }
+
+// Every value the `leads.service` column accepts from an agent tool call.
+// Wider than SERVICE_INFO above because the advice agent (/api/advice) also
+// routes to the phase-2 pillars, which have no chat knowledge-base entry yet.
+export const ALL_LEAD_SERVICES = [
+  'std', 'glp1', 'ckd', 'foreign', 'mens', 'women', 'mind', 'dna', 'general',
+]
 
 // ─── Tool definitions (sent to Claude) ───────────────────────────────────
 
@@ -180,9 +188,25 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
 
 // ─── Tool execution ──────────────────────────────────────────────────────
 
+// Ad-click attribution carried from the landing URL through to the lead row.
+// gclid is what lets the team upload offline conversions back into Google Ads
+// once a chat lead actually books, so it is stored as its own column.
+export interface LeadAttribution {
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  gclid?: string | null
+}
+
 export interface ToolExecutionContext {
   sessionId: string
   conversationSnippet: string // last few turns, for lead notes
+  // Overrides the default `source` written on leads created from this session.
+  // /api/chat leaves it unset ("chat-widget"); /api/advice sets "advice-chat".
+  leadSource?: string
+  attribution?: LeadAttribution
+  // Ping the sales LINE group as soon as the lead lands (paid traffic only).
+  notifyLine?: boolean
 }
 
 export interface ToolResult {
@@ -190,6 +214,8 @@ export interface ToolResult {
   output: unknown
   // Side-effects surfaced to the route handler (e.g. flag leadCaptured)
   leadCreated?: { leadId: string; service: string }
+  // Set by recommend_service so the UI can render a real CTA button
+  serviceSuggested?: string
 }
 
 function sanitizePhone(phone: string): string | null {
@@ -260,14 +286,17 @@ async function handleCreateLead(
     return { output: { ok: false, error: 'invalid_name: ask the user for their name.' } }
   }
 
-  const service = ['std', 'glp1', 'ckd', 'foreign', 'mens', 'general'].includes(input.service)
-    ? input.service
-    : 'general'
+  const service = ALL_LEAD_SERVICES.includes(input.service) ? input.service : 'general'
 
   const note = [extraNote, input.note, ctx.conversationSnippet]
     .filter(Boolean)
     .join(' | ')
     .slice(0, 500)
+
+  // appointment_request stays a distinct source so the team can prioritise it;
+  // otherwise the caller's leadSource wins over the "chat-widget" default.
+  const leadSource = source === 'appointment_request' ? source : ctx.leadSource || source
+  const utm = ctx.attribution ?? {}
 
   const { data, error } = await supabaseAdmin
     .from('leads')
@@ -275,9 +304,13 @@ async function handleCreateLead(
       first_name: name,
       phone,
       service,
-      source,
+      source: leadSource,
       status: 'new',
       note,
+      utm_source: utm.utm_source ?? null,
+      utm_medium: utm.utm_medium ?? null,
+      utm_campaign: utm.utm_campaign ?? null,
+      gclid: utm.gclid ?? null,
     })
     .select('id')
     .single()
@@ -287,7 +320,18 @@ async function handleCreateLead(
   }
 
   // Fire-and-forget email; errors already swallowed inside sendLeadNotification
-  sendLeadNotification({ name, phone, service, source, note })
+  sendLeadNotification({ name, phone, service, source: leadSource, note })
+
+  // Paid-traffic callers (advice landing) opt into an instant LINE group ping —
+  // a Google Ads click we just paid for should not wait on an inbox. Awaited so
+  // the push finishes before the Vercel lambda freezes.
+  if (ctx.notifyLine) {
+    try {
+      await notifyLineGroup({ name, phone, service, source: leadSource, note })
+    } catch (err) {
+      console.error('notifyLineGroup failed:', err)
+    }
+  }
 
   return {
     output: {
