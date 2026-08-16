@@ -87,6 +87,24 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
         </div>
       </section>
 
+      {/* ADVICE AI — entry point for visitors who feel unwell but don't know
+          which service fits. Chat first, then route to LINE / a pillar. */}
+      <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
+        <div className="max-w-4xl mx-auto bg-gradient-to-br from-forest to-sage rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+          <div className="flex-1 text-center md:text-left">
+            <span className="inline-block text-xs font-bold tracking-widest uppercase text-white/70 bg-white/10 px-3 py-1 rounded-full mb-3">{t.home.adviceTag}</span>
+            <h2 className="font-display text-2xl md:text-3xl text-white mb-2">{t.home.adviceTitle}</h2>
+            <p className="text-white/75 text-sm leading-relaxed max-w-xl">{t.home.adviceDesc}</p>
+          </div>
+          <Link
+            href="/advice"
+            className="flex-shrink-0 bg-white text-forest px-8 py-4 rounded-full text-sm font-bold hover:bg-mint/20 transition-all hover:-translate-y-0.5 shadow-lg"
+          >
+            {t.home.adviceCta}
+          </Link>
+        </div>
+      </section>
+
       {/* SERVICES */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white" id="services">
         <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3 md:mb-4">{t.home.servicesLabel}</p>

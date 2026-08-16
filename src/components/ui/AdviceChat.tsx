@@ -227,6 +227,36 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
         <div ref={bottomRef} />
       </div>
 
+      {/* Follow-up rail — the endgame for every conversation, service match or
+          not: add LINE and message us (or call) if questions come up or the
+          symptoms don't improve, so the team can follow up and hand the lead
+          to the partner hospital when self-care isn't enough. Shown once the
+          AI has answered at least once; hidden while the service CTA card is
+          up so the two green buttons don't stack. */}
+      {messages.length >= 3 && !suggested && (
+        <div className="border-t border-gray-100 px-3 py-2 flex-shrink-0">
+          <p className="text-[11px] text-muted text-center mb-1.5">{a.followUpText}</p>
+          <div className="flex gap-2">
+            <a
+              href="https://line.me/ti/p/@roogondee"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('advice_followup_line_click')}
+              className="flex-1 flex items-center justify-center gap-1 bg-[#06C755] text-white px-3 py-2 rounded-full text-xs font-bold hover:brightness-95 transition-all"
+            >
+              {a.followUpLineBtn}
+            </a>
+            <a
+              href="tel:0819023540"
+              onClick={() => track('advice_followup_call_click')}
+              className="flex-1 flex items-center justify-center gap-1 border border-forest/30 text-forest px-3 py-2 rounded-full text-xs font-bold hover:bg-mint/10 transition-all"
+            >
+              {a.followUpCallBtn}
+            </a>
+          </div>
+        </div>
+      )}
+
       <p className="text-center text-[10px] text-gray-400 px-3 pb-1 flex-shrink-0">{a.disclaimer}</p>
 
       <div className="border-t border-gray-100 p-3 flex gap-2 flex-shrink-0">
