@@ -19,6 +19,7 @@ const en = {
     ckd: '🫘 CKD Kidney Clinic', foreign: '🧪 Foreign Worker Checkup', mens: '🧔 Men\'s Health 40+',
     women: '🌸 Women\'s Health', mind: '🧠 Mind & Relationships',
     dna: '🧬 DNA Paternity Test',
+    advice: '🩺 Symptom Advice (AI)',
     tools: '🧮 Health Calculators', ask: '💬 Ask Expert', blog: '📚 Health Articles',
   },
   home: {
@@ -53,6 +54,10 @@ const en = {
     mindFeature1: 'Licensed psychologist/psychiatrist', mindFeature2: '30-min telehealth, free', mindFeature3: 'Confidential, non-judgmental',
     dnaName: 'DNA Paternity\nTest', dnaDesc: 'Child legitimation, court, inheritance, citizenship, or peace of mind — free confidential consult',
     dnaFeature1: 'Free consult, no obligation', dnaFeature2: 'Accredited labs, court-admissible option', dnaFeature3: 'All-party consent, confidential',
+    adviceTag: 'New — AI Symptom Assistant',
+    adviceTitle: 'Feeling unwell and not sure where to start?',
+    adviceDesc: 'Tell our AI assistant your symptoms for instant first-step guidance and the warning signs to watch — free, no sign-up. Message us on LINE or call if anything worries you or you are not getting better.',
+    adviceCta: '🩺 Get Free Symptom Advice',
     howLabel: 'How It Works', howTitle: 'Easy, Just 3 Steps', howDesc: 'No travel needed, consult immediately',
     step1Title: 'Fill the Form', step1Desc: 'Tell us your symptoms or service interest. We listen without judgment.',
     step2Title: 'Get Advice', step2Desc: 'Experts analyze and recommend the right tests or treatments.',
@@ -169,6 +174,9 @@ const en = {
     faq6q: "What if I don't feel better after chatting with the AI?", faq6a: 'Book the doctor consultation the system suggests, or if warning signs get worse, go to the nearest hospital immediately.',
     finalCtaTitle: 'Not sure how serious it is?', finalCtaDesc: 'Start chatting with our health advice assistant now — free, no judgment.',
     finalCtaButton: 'Start chatting ↑',
+    followUpText: 'More questions, or not getting better after following the advice?',
+    followUpLineBtn: '💬 LINE @roogondee',
+    followUpCallBtn: '📞 Call 081-902-3540',
   },
   pdpa: {
     title: '🍪 We use cookies to improve your experience',

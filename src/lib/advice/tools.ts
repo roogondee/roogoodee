@@ -48,9 +48,11 @@ const ADVICE_CREATE_LEAD: Anthropic.Tool = {
   name: 'create_lead',
   description:
     'Save the visitor as a lead once they have given BOTH a name AND a Thai phone number AND ' +
-    'agreed to be contacted. The team calls back within 30 minutes during opening hours. ' +
-    'Do NOT call this speculatively and never ask for contact details before you have answered ' +
-    'their health question.',
+    'agreed to be contacted — either for a call back (within 30 minutes during opening hours) ' +
+    'or for a symptom follow-up call in a few days to check whether the advice helped; if they ' +
+    'are not improving the team arranges a doctor visit at the partner hospital. State which of ' +
+    'the two they agreed to in the note. Do NOT call this speculatively and never ask for ' +
+    'contact details before you have answered their health question.',
   input_schema: {
     type: 'object',
     properties: {
