@@ -73,12 +73,45 @@ const ADVICE_CREATE_LEAD: Anthropic.Tool = {
   },
 }
 
+const SUBMIT_INTAKE_TOOL: Anthropic.Tool = {
+  name: 'submit_intake',
+  description:
+    'Signal that history-taking is complete and hand off to the detailed assessment. Call this ' +
+    'once you have chief complaint + duration and enough of the rest to be useful (see the ' +
+    'system prompt for the full checklist and the exceptions for skipping ahead). This has no ' +
+    'visible effect to the user by itself — the next reply will be the structured assessment.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      chief_complaint: { type: 'string', description: 'What hurts / the main symptom, in the user\'s words.' },
+      duration: { type: 'string', description: 'How long, onset — sudden or gradual.' },
+      severity: { type: 'string', description: 'Severity/course: worsening, improving, steady; any triggers.' },
+      associated_symptoms: { type: 'string', description: 'Other symptoms alongside the main one, if any.' },
+      relevant_history: {
+        type: 'string',
+        description: 'Age range, pregnancy, chronic conditions, current medicines, known drug allergies — whatever was gathered.',
+      },
+    },
+    required: ['chief_complaint', 'duration'],
+  },
+}
+
 const SHARED = AGENT_TOOLS.filter(t => t.name === 'search_blog_posts' || t.name === 'get_service_info')
 
+// Used once the intake phase is over (assessment turn + post-handoff follow-ups).
 export const ADVICE_TOOLS: Anthropic.Tool[] = [
   ...SHARED,
   RECOMMEND_SERVICE_TOOL,
   ADVICE_CREATE_LEAD,
+]
+
+// Used only during the intake phase — adds submit_intake, the signal that
+// ends history-taking and hands the conversation to the Sonnet assessment
+// call. Not included in ADVICE_TOOLS: once the handoff has happened, calling
+// it again would have nothing to hand off to.
+export const INTAKE_TOOLS: Anthropic.Tool[] = [
+  ...ADVICE_TOOLS,
+  SUBMIT_INTAKE_TOOL,
 ]
 
 function handleRecommendService(input: { service?: string; reason?: string }): ToolResult {
@@ -113,6 +146,12 @@ export async function executeAdviceTool(
       reason?: string
     }
     return handleRecommendService(input)
+  }
+  if (name === 'submit_intake') {
+    // No DB side-effect — the gathered history already lives in the transcript
+    // (chat_sessions.messages), which is what the assessment call reads. This
+    // tool exists purely as a signal the route intercepts to switch models.
+    return { output: { ok: true, note: 'Intake received, proceeding to detailed assessment.' }, intakeSubmitted: true }
   }
   return executeTool(name, rawInput, ctx)
 }

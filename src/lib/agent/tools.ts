@@ -216,6 +216,10 @@ export interface ToolResult {
   leadCreated?: { leadId: string; service: string }
   // Set by recommend_service so the UI can render a real CTA button
   serviceSuggested?: string
+  // Set by /api/advice's submit_intake tool so the route can switch the rest
+  // of this turn's loop from Haiku (intake) to Sonnet (assessment). Not used
+  // outside the advice flow.
+  intakeSubmitted?: boolean
 }
 
 function sanitizePhone(phone: string): string | null {

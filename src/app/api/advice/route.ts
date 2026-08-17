@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 import { anthropic, CHATBOT_MODEL } from '@/lib/chatbot/anthropic'
-import { ADVICE_TOOLS, executeAdviceTool } from '@/lib/advice/tools'
-import { buildAdvicePrompt } from '@/lib/advice/prompt'
+import { CONTENT_MODEL as SONNET_MODEL } from '@/lib/anthropic/content-gen'
+import { ADVICE_TOOLS, INTAKE_TOOLS, executeAdviceTool } from '@/lib/advice/tools'
+import { buildIntakePrompt, buildAssessmentPrompt, buildFollowupPrompt, type AdvicePhase } from '@/lib/advice/prompt'
 import { triage, escalate, type TriageLevel } from '@/lib/advice/triage'
 import { checkAdviceRateLimit, clientIpFrom } from '@/lib/advice/rate-limit'
 import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
@@ -16,8 +17,16 @@ import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
 // sessionId we returned, and only the LATEST user turn from the client body is
 // trusted — everything before that is loaded from chat_sessions server-side so
 // a tampered client can't rewrite history.
+//
+// Two-model handoff (see src/lib/advice/prompt.ts for the full rationale):
+// this turn starts on Haiku doing history-taking (phase='intake'). The moment
+// the model calls submit_intake, the tool loop below switches model+prompt to
+// Sonnet for one detailed assessment reply, then persists phase='assessment_done'
+// so later turns in this session skip straight to the lighter follow-up prompt.
 
-const MAX_TOOL_ITERATIONS = 6
+const MAX_TOOL_ITERATIONS = 8
+const HAIKU_MAX_TOKENS = 800
+const SONNET_MAX_TOKENS = 1500
 const MAX_SESSION_TURNS = 40
 const SESSION_LIMIT_REPLY =
   'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือแชทกับทีมงานทาง LINE @roogondee'
@@ -80,16 +89,18 @@ export async function POST(req: NextRequest) {
     let sessionId = typeof body.sessionId === 'string' ? body.sessionId : null
     let messages: Anthropic.MessageParam[] = []
     let priorTriageLevel: TriageLevel | null = null
+    let phase: AdvicePhase = 'intake'
 
     if (sessionId) {
       const { data } = await supabaseAdmin
         .from('chat_sessions')
-        .select('messages,turn_count,triage_level')
+        .select('messages,turn_count,triage_level,advice_phase')
         .eq('id', sessionId)
         .single()
       if (data && Array.isArray(data.messages)) {
         messages = data.messages as Anthropic.MessageParam[]
         priorTriageLevel = (data.triage_level as TriageLevel | null) ?? null
+        phase = (data.advice_phase as AdvicePhase | null) ?? 'intake'
         if (data.turn_count >= MAX_SESSION_TURNS) {
           return NextResponse.json(
             { error: 'session_limit', text: SESSION_LIMIT_REPLY },
@@ -137,15 +148,21 @@ export async function POST(req: NextRequest) {
         attribution,
       }
 
-      const systemPrompt = buildAdvicePrompt(triageLevel)
+      // Mutable so the loop can hand off from Haiku/intake to Sonnet/assessment
+      // the moment submit_intake fires, without a second HTTP round-trip.
+      let currentModel: string = CHATBOT_MODEL
+      let currentMaxTokens = HAIKU_MAX_TOKENS
+      let currentTools = phase === 'intake' ? INTAKE_TOOLS : ADVICE_TOOLS
+      let currentSystemPrompt =
+        phase === 'intake' ? buildIntakePrompt(triageLevel) : buildFollowupPrompt(triageLevel)
       finalText = ''
 
       for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
         const response = await anthropic.messages.create({
-          model: CHATBOT_MODEL,
-          max_tokens: 800,
-          system: systemPrompt,
-          tools: ADVICE_TOOLS,
+          model: currentModel,
+          max_tokens: currentMaxTokens,
+          system: currentSystemPrompt,
+          tools: currentTools,
           messages,
         })
 
@@ -169,6 +186,16 @@ export async function POST(req: NextRequest) {
           if (toolResult.serviceSuggested) {
             suggestedService = toolResult.serviceSuggested
           }
+          if (toolResult.intakeSubmitted) {
+            // Hand off: next iteration answers with Sonnet's detailed
+            // assessment prompt, no submit_intake in its tool set (nothing
+            // left to hand off to once this fires).
+            phase = 'assessment_done'
+            currentModel = SONNET_MODEL
+            currentMaxTokens = SONNET_MAX_TOKENS
+            currentTools = ADVICE_TOOLS
+            currentSystemPrompt = buildAssessmentPrompt(triageLevel)
+          }
           toolResultBlocks.push({
             type: 'tool_result',
             tool_use_id: use.id,
@@ -190,6 +217,7 @@ export async function POST(req: NextRequest) {
         turn_count: turnCount,
         service_hint: 'advice',
         triage_level: triageLevel,
+        advice_phase: phase,
         updated_at: new Date().toISOString(),
       }
       if (leadId) update.lead_id = leadId
@@ -202,6 +230,7 @@ export async function POST(req: NextRequest) {
           turn_count: turnCount,
           service_hint: 'advice',
           triage_level: triageLevel,
+          advice_phase: phase,
           lead_id: leadId,
         })
         .select('id')
