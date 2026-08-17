@@ -87,6 +87,11 @@ export default function ChatWidget() {
   // "ถัดไป" / "รับ Voucher" CTA on mobile.
   if (pathname?.startsWith('/quiz/')) return null
 
+  // Hide on /advice — that page already has an inline chat (AdviceChat) with
+  // its own safety triage; a second floating chat entry point there would be
+  // redundant and could bypass the red-flag screening that page is built around.
+  if (pathname?.startsWith('/advice')) return null
+
   return (
     <>
       <button

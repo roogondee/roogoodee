@@ -30,6 +30,7 @@ export default function FooterFull() {
         <div>
           <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-4 md:mb-5">{t.home.footerTools}</h4>
           <ul className="space-y-2 text-sm text-white/45">
+            <li><Link href="/advice" className="hover:text-white transition-colors">{t.nav.advice}</Link></li>
             <li><Link href="/portal" className="hover:text-white transition-colors">{t.common.myLabResults}</Link></li>
             <li><Link href="/tools" className="hover:text-white transition-colors">{t.home.footerCalc}</Link></li>
             <li><Link href="/ask" className="hover:text-white transition-colors">{t.home.footerAsk}</Link></li>

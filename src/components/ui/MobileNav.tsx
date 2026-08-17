@@ -12,6 +12,7 @@ export default function MobileNav() {
 
   const NAV_LINKS = [
     { href: '/', label: t.common.home },
+    { href: '/advice', label: t.nav.advice },
     { href: '/std', label: t.nav.std },
     { href: '/glp1', label: t.nav.glp1 },
     { href: '/ckd', label: t.nav.ckd },
