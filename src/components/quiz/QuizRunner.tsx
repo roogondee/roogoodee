@@ -8,6 +8,7 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { SERVICES, type LeadTier } from '@/types'
 import { useTranslation } from '@/lib/i18n/context'
 import thDict from '@/lib/i18n/locales/th'
+import { formatDate } from '@/lib/i18n/format'
 import type { LiffIdentity } from '@/lib/liff-client'
 
 declare global {
@@ -145,7 +146,7 @@ const PHONE_DISPLAY = '081-902-3540'
 const PHONE_TEL = 'tel:0819023540'
 
 export default function QuizRunner({ definition, liff }: Props) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   // Fallback locales (my/lo/km/…) don't carry a quiz section — fall back to
   // Thai so the runner never crashes on a missing dictionary branch.
   const tq = t.quiz ?? thDict.quiz
@@ -512,9 +513,7 @@ export default function QuizRunner({ definition, liff }: Props) {
   if (result) {
     const waitlisted = !result.code
     const expires = result.expires_at
-      ? new Date(result.expires_at).toLocaleDateString('th-TH', {
-          day: '2-digit', month: 'short', year: 'numeric',
-        })
+      ? formatDate(result.expires_at, locale)
       : null
     // With a voucher in hand the LINE button prefills the code — one tap to
     // open the OA chat and send it, which links the lead via line-webhook.

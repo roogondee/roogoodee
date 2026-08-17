@@ -5,6 +5,8 @@ import type { Service } from '@/types'
 import { getArticleQuiz, type ArticleQuizTier } from '@/lib/quiz/article-quiz'
 import { scoreArticleQuiz } from '@/lib/quiz/article-scoring'
 import ShareButtons from '@/components/ui/ShareButtons'
+import { useTranslation } from '@/lib/i18n/context'
+import type { Translations } from '@/lib/i18n/locales'
 
 declare global {
   interface Window {
@@ -25,13 +27,18 @@ interface Props {
   articleTitle?: string
 }
 
-const TIER_STYLE: Record<ArticleQuizTier, { ring: string; chip: string; label: string }> = {
-  high:   { ring: 'ring-rose-300 bg-rose-50',     chip: 'bg-rose-100 text-rose-700',     label: 'ความเสี่ยงสูง' },
-  medium: { ring: 'ring-amber-300 bg-amber-50',   chip: 'bg-amber-100 text-amber-700',   label: 'ควรเฝ้าระวัง' },
-  low:    { ring: 'ring-emerald-300 bg-emerald-50',chip: 'bg-emerald-100 text-emerald-700',label: 'ความเสี่ยงต่ำ' },
+function tierStyle(tq: Translations['quiz']): Record<ArticleQuizTier, { ring: string; chip: string; label: string }> {
+  return {
+    high:   { ring: 'ring-rose-300 bg-rose-50',     chip: 'bg-rose-100 text-rose-700',     label: tq.tierHigh },
+    medium: { ring: 'ring-amber-300 bg-amber-50',   chip: 'bg-amber-100 text-amber-700',   label: tq.tierMedium },
+    low:    { ring: 'ring-emerald-300 bg-emerald-50',chip: 'bg-emerald-100 text-emerald-700',label: tq.tierLow },
+  }
 }
 
 export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
+  const { t } = useTranslation()
+  const tq = t.quiz
+  const TIER_STYLE = tierStyle(tq)
   const quiz = getArticleQuiz(service)
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
@@ -115,6 +122,7 @@ export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
         shareUrl={shareUrl}
         shareTitle={articleTitle}
         onShare={() => track('article_quiz_share_click', { service, slug, tier: result.tier })}
+        tq={tq}
       />
     )
   }
@@ -123,7 +131,7 @@ export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
     <section className="my-10 not-prose">
       <div className="bg-white border-2 border-mint/30 rounded-2xl p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-mint uppercase tracking-wide">แบบประเมินสั้น</span>
+          <span className="text-xs font-semibold text-mint uppercase tracking-wide">{tq.shortAssessment}</span>
           <span className="text-xs text-muted">{step + 1} / {total}</span>
         </div>
         <p className="text-sm text-muted mb-4">{quiz.intro}</p>
@@ -179,13 +187,13 @@ export default function ArticleQuiz({ service, slug, articleTitle }: Props) {
               disabled={!((answers[current.id] as string[]) || []).length}
               className="mt-4 w-full bg-mint text-white font-semibold py-3 rounded-xl hover:bg-mint/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {isLast ? 'ดูผลประเมิน' : 'ถัดไป'}
+              {isLast ? tq.viewResult : tq.articleNext}
             </button>
           </>
         )}
 
         <p className="text-[11px] text-muted/70 mt-4 text-center">
-          ผลเป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยทางการแพทย์
+          {tq.prelimDisclaimer}
         </p>
       </div>
     </section>
@@ -204,13 +212,14 @@ function ResultCard(props: {
   shareUrl?: string
   shareTitle?: string
   onShare?: () => void
+  tq: Translations['quiz']
 }) {
   return (
     <section className="my-10 not-prose">
       <div className={`rounded-2xl ring-2 ${props.ring} p-5 md:p-6`}>
         <div className="flex items-center gap-2 mb-3">
           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${props.chipClass}`}>{props.chipLabel}</span>
-          <span className="text-xs text-muted">ผลประเมินเบื้องต้น</span>
+          <span className="text-xs text-muted">{props.tq.prelimResultLabel}</span>
         </div>
         <h3 className="font-display text-xl md:text-2xl text-forest mb-2 leading-tight">{props.headline}</h3>
         <p className="text-forest/80 mb-5 leading-relaxed">{props.body}</p>
@@ -226,16 +235,16 @@ function ResultCard(props: {
             onClick={props.onReset}
             className="px-5 py-3 rounded-xl border border-mint/30 text-forest hover:bg-mint/5 transition-all"
           >
-            ทำใหม่
+            {props.tq.retake}
           </button>
         </div>
         {props.shareUrl && (
           <div className="mt-5 pt-4 border-t border-forest/10" onClick={props.onShare}>
-            <ShareButtons url={props.shareUrl} title={props.shareTitle || 'รู้ก่อนดี — แบบประเมินสุขภาพ'} />
+            <ShareButtons url={props.shareUrl} title={props.shareTitle || props.tq.shareDefaultTitle} />
           </div>
         )}
         <p className="text-[11px] text-muted/70 mt-4">
-          ผลคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัย หากมีข้อสงสัยควรปรึกษาแพทย์
+          {props.tq.prelimDisclaimer2}
         </p>
       </div>
     </section>

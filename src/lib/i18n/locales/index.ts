@@ -9,21 +9,45 @@ import hi from './hi'
 import ja from './ja'
 import ko from './ko'
 
-// Use Thai as the canonical type, but allow other locales to have compatible structure
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Translations = Record<string, any> & typeof th
+// Thai is the canonical schema. Every other locale is deep-merged over it once
+// at module load, so a key that a locale file is missing (or has as an empty
+// string / wrong type) falls back to the Thai text instead of rendering blank
+// or crashing on `t.section.key` access. `scripts/check-locales.mts` (run by
+// `npm run build` via `prebuild`) keeps the files structurally honest.
+export type Translations = typeof th
 
-const dictionaries: Record<string, typeof th> = {
+type Dict = Record<string, unknown>
+
+function deepMerge(base: Dict, override: Dict): Dict {
+  const out: Dict = { ...base }
+  for (const key of Object.keys(override)) {
+    const b = base[key]
+    const o = override[key]
+    if (b && o && typeof b === 'object' && typeof o === 'object') {
+      out[key] = deepMerge(b as Dict, o as Dict)
+    } else if (typeof o === 'string' && o.trim() !== '' && typeof b === 'string') {
+      out[key] = o
+    }
+    // otherwise keep the Thai value (missing, empty, or mistyped override)
+  }
+  return out
+}
+
+function withThaiFallback(locale: Dict): Translations {
+  return deepMerge(th as unknown as Dict, locale) as Translations
+}
+
+const dictionaries: Record<string, Translations> = {
   th,
-  en: en as unknown as typeof th,
-  my: my as unknown as typeof th,
-  lo: lo as unknown as typeof th,
-  km: km as unknown as typeof th,
-  zh: zh as unknown as typeof th,
-  vi: vi as unknown as typeof th,
-  hi: hi as unknown as typeof th,
-  ja: ja as unknown as typeof th,
-  ko: ko as unknown as typeof th,
+  en: withThaiFallback(en),
+  my: withThaiFallback(my),
+  lo: withThaiFallback(lo),
+  km: withThaiFallback(km),
+  zh: withThaiFallback(zh),
+  vi: withThaiFallback(vi),
+  hi: withThaiFallback(hi),
+  ja: withThaiFallback(ja),
+  ko: withThaiFallback(ko),
 }
 
 export default dictionaries
