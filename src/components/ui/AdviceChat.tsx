@@ -41,6 +41,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const sessionIdRef = useRef<string | null>(null)
   const viewedRef = useRef(false)
+  const assessmentTrackedRef = useRef(false)
 
   const CHIPS = [
     a.chip1, a.chip2, a.chip3, a.chip4, a.chip5, a.chip6, a.chip7, a.chip8,
@@ -119,6 +120,13 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
       if (data.suggestedService) {
         setSuggested(serviceRoute(data.suggestedService))
         track('advice_service_suggested', { service: data.suggestedService })
+      }
+      // Fires once, on the turn the intake hands off to the assessment. This is
+      // the middle of the funnel: advice_start → advice_assessment → advice_lead
+      // tells us whether we lose people during history-taking or at the ask.
+      if (data.phase === 'assessment_done' && !assessmentTrackedRef.current) {
+        assessmentTrackedRef.current = true
+        track('advice_assessment')
       }
       if (data.leadCaptured) {
         setLeadCaptured(true)

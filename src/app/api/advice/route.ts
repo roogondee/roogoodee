@@ -244,6 +244,10 @@ export async function POST(req: NextRequest) {
       leadCaptured,
       triage: triageLevel,
       suggestedService,
+      // Surfaced so the client can track the intake → assessment → lead funnel.
+      // Without it we can't tell whether visitors drop out during history-taking
+      // (too many questions) or at the ask (offer not compelling).
+      phase,
     })
   } catch (err) {
     console.error('Advice chat error:', err)
