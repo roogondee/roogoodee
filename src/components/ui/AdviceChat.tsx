@@ -38,7 +38,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
   const [suggested, setSuggested] = useState<{ label: string; url: string } | null>(null)
   const [leadCaptured, setLeadCaptured] = useState(false)
   const [showChips, setShowChips] = useState(true)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const sessionIdRef = useRef<string | null>(null)
   const viewedRef = useRef(false)
 
@@ -60,8 +60,26 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
     }
   }, [searchParams])
 
+  // The greeting is captured into state on the first render, but i18n resolves
+  // the locale client-side after that — so a visitor could be left with a
+  // greeting in the wrong language above an otherwise-Thai page. Re-sync it
+  // while the conversation hasn't started yet.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setMessages(prev =>
+      prev.length === 1 && prev[0].role === 'assistant' && prev[0].content !== a.initialMessage
+        ? [{ role: 'assistant', content: a.initialMessage }]
+        : prev
+    )
+  }, [a.initialMessage])
+
+  // Scroll the message list itself — never the page. scrollIntoView() walks up
+  // and scrolls every scrollable ancestor, and because this chat is inline on
+  // the landing page (not a fixed floating widget like ChatWidget) that yanked
+  // the whole page down on every reply, which read as the page jumping around
+  // while you were trying to read or type.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages, loading])
 
   const send = async (text: string = input.trim()) => {
@@ -172,7 +190,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[320px] max-h-[480px]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[320px] max-h-[480px]">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
@@ -224,7 +242,6 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Follow-up rail — the endgame for every conversation, service match or
