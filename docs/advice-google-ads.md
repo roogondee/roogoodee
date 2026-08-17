@@ -19,6 +19,87 @@ The rest of this file is the strategy brief. This part is the operational
 order of work. **The order matters**: two of these steps silently fail if
 done early, and one of them wastes budget.
 
+## The configuration this campaign actually launches with
+
+Decided 2026-08-17. These numbers override the generic ranges further down
+in Step 4 and Step 5 — where they differ, this section wins.
+
+| Setting | Value |
+|---|---|
+| Daily budget | **THB 100/day** (~THB 3,000/month) |
+| Location | **5 km radius** around the partner hospital — 99/26 หมู่ 5 ต.บางน้ำจืด อ.เมืองสมุทรสาคร จ.สมุทรสาคร 74000 |
+| Campaign type | Search, objective Leads |
+| Networks | Google Search only — Search Partners OFF, Display OFF |
+| Language | Thai |
+| Bidding | Maximize clicks with a **Max CPC cap of THB 15** |
+| Final URL | `https://roogondee.com/advice` |
+| Status at build time | **Paused** until Step 3 and the copy review are done |
+
+### Two settings that will quietly waste this budget if left on defaults
+
+1. **Location option must be "Presence: People in or regularly in your
+   targeted locations."** Google's default is *Presence or interest*, which
+   also shows the ad to someone in another province who merely searched
+   about Samut Sakhon. On a 5 km radius that default defeats the entire
+   point of the radius. Campaign settings → Locations → Location options.
+2. **Max CPC cap.** Without a cap, three expensive clicks can consume the
+   whole THB 100. At a 15 THB cap the budget buys roughly 7–12 clicks/day,
+   which is what makes daily search-terms review (Step 5) possible at all.
+
+### What THB 100/day inside a 5 km radius realistically buys
+
+Be honest about the arithmetic before judging the campaign:
+
+- ~7–12 clicks/day, so ~200–350 clicks/month.
+- A 5 km radius around บางน้ำจืด does reach a genuinely populated area — it
+  covers industrial Samut Sakhon plus the edge of เขตบางบอน/บางขุนเทียน in
+  Bangkok — but it is still a small slice of national search volume. Expect
+  **low impression counts, not zero**; "Limited by budget" or thin
+  impression share is the expected state here, not a misconfiguration.
+- **Do not spread this budget across nine ad groups.** THB 100 split nine
+  ways is ~11 THB each — most ad groups would serve almost never and none
+  would accumulate enough data to judge. At this budget run **two ad
+  groups**, then add more only when the budget goes up:
+
+| Launch ad group | Why it goes first |
+|---|---|
+| **ปรึกษา / ใกล้ฉัน** (`"ปรึกษาหมอออนไลน์ฟรี"`, `"ถามอาการออนไลน์"`, `"เช็คอาการ"`, `"คลินิกใกล้ฉัน"`, `"หาหมอใกล้ฉัน"`) | Highest intent, and "ใกล้ฉัน" queries pair naturally with a radius — these people can actually reach the hospital. |
+| **อาการยอดนิยม** (`"ปวดท้องข้างขวา"`, `"ปวดท้องน้อย"`, `"ไข้ไม่ลด"`, `"ปวดหัวบ่อย"`, `"ปัสสาวะแสบขัด"`) | The highest-volume symptom clusters, kept in one group so the spend concentrates. |
+
+Hold the remaining clusters (ผื่น, เหนื่อยง่าย, นอนไม่หลับ, น้ำหนักลด,
+and the broad single-word terms like `"ปวดท้อง"` / `"ไม่สบาย"`) as a
+written backlog. Broad terms cost more per click and need volume to sort
+themselves out — they are a budget-increase decision, not a launch one.
+
+### Conversion tracking is not available at launch
+
+Step 1 and Step 2 are still blocked (see Step 0 — `advice_lead` has never
+fired, so there is nothing to import). That is survivable: **Maximize
+clicks does not need conversion data.** But it means Google Ads will show
+zero conversions for this campaign no matter how well it does, so for the
+first weeks judge it on Supabase only:
+
+```sql
+select date_trunc('day', created_at) as day, count(*)
+from leads
+where source = 'advice-chat'
+group by 1 order by 1 desc;
+```
+
+At THB 100/day a single real lead per week already beats most paid channels
+on cost per lead — set expectations accordingly, and don't switch bidding
+strategies before Step 2 is unblocked.
+
+### Before spending a single baht — the LINE push quota
+
+As of 2026-08-17 the LINE OA push API is returning **429 "monthly limit
+reached"**. `notifyLineGroup` is how a new `advice-chat` lead reaches the
+sales team (see the Sales team SOP below), so while the quota is exhausted a
+paid lead can arrive and nobody is told. Fix the quota — upgrade the OA plan
+or wait for the monthly reset — or agree that someone checks the `leads`
+table manually every day. Do not enable the campaign without one of those
+two in place.
+
 ## Step 0 — Generate real conversion events FIRST
 
 **This is the step everyone skips, and skipping it blocks Step 2 entirely.**
@@ -101,13 +182,15 @@ which page should own each query — do not let the auction decide.
 - **Networks:** Google Search only. Turn **off** Search Partners and
   **off** Display Network — on a new campaign these spend budget on traffic
   that does not convert here.
-- **Location:** Thailand, or narrow to Samut Sakhon + Bangkok +
-  Samut Prakan. The visitor has to be able to physically reach the partner
-  hospital for the lead to be worth anything.
+- **Location:** the visitor has to be able to physically reach the partner
+  hospital for the lead to be worth anything. This launch uses a **5 km
+  radius** around the hospital — see the configuration section above,
+  including the *Presence* setting that must be changed off its default.
 - **Language:** Thai.
-- **Bidding:** start on **Maximize clicks** with a Max CPC cap. Smart
-  Bidding needs roughly 15–30 conversions before it has anything to learn
-  from; pointed at an empty conversion history it just spends.
+- **Bidding:** start on **Maximize clicks** with a Max CPC cap (THB 15 for
+  this launch). Smart Bidding needs roughly 15–30 conversions before it has
+  anything to learn from; pointed at an empty conversion history it just
+  spends.
 - Keep the campaign **Paused** until someone has reviewed the ad copy
   against the policy table below.
 
@@ -126,6 +209,59 @@ Split by symptom cluster so the ad text can match the query:
 Use `"phrase match"` as the default and `[exact]` for high-confidence terms.
 Avoid broad match at launch — it spends fastest on the least relevant
 queries.
+
+### Full keyword backlog (beyond the two launch ad groups)
+
+Everything below is written out so a budget increase is a copy-paste, not a
+re-think. Only the two ad groups named in the configuration section run at
+THB 100/day. Every keyword here maps to a symptom the chat can actually
+handle — they mirror `AdviceChat`'s symptom chips (ไข้ / ปวดท้อง / ปวดหัว /
+ผื่น / ปัสสาวะผิดปกติ / เหนื่อยง่าย / นอนไม่หลับ / น้ำหนักลด).
+
+| Ad group | Keywords |
+|---|---|
+| ปวดท้อง | `"ปวดท้องข้างขวา"` `"ปวดท้องข้างซ้าย"` `"ปวดท้องน้อย"` `"ปวดท้องน้อยผู้หญิง"` `"ปวดท้องหลังกินข้าว"` `"ปวดท้องเรื้อรัง"` `[ปวดท้องแบบไหนอันตราย]` `[ปวดท้องต้องไปโรงพยาบาลไหม]` |
+| ไข้ | `"ไข้ไม่ลด"` `"ไข้ไม่ลด 3 วัน"` `"ไข้สูงตอนกลางคืน"` `"ไข้หวัดไม่หาย"` `[ไข้กี่วันควรไปหาหมอ]` `[ไข้ขึ้นๆลงๆ]` |
+| ปัสสาวะ | `"ปัสสาวะแสบขัด"` `"ปัสสาวะแสบขัดผู้หญิง"` `"ปัสสาวะบ่อยผิดปกติ"` `"ปัสสาวะมีเลือดปน"` `"ปัสสาวะขุ่น"` `[ปัสสาวะบ่อยตอนกลางคืน]` |
+| ปวดหัว / เวียนหัว | `"ปวดหัวบ่อย"` `"ปวดหัวเรื้อรัง"` `"เวียนหัวคลื่นไส้"` `"เวียนหัวบ้านหมุน"` `"ปวดหัวข้างเดียว"` `[ปวดหัวแบบไหนอันตราย]` |
+| ผื่น / ผิวหนัง | `"ผื่นขึ้นตามตัว"` `"ผื่นคันไม่ทราบสาเหตุ"` `"ผื่นแดงคัน"` `"ลมพิษขึ้นบ่อย"` `[ผื่นแบบไหนต้องพบแพทย์]` |
+| เหนื่อยง่าย | `"เหนื่อยง่ายผิดปกติ"` `"อ่อนเพลียไม่มีแรง"` `"เหนื่อยง่ายทั้งที่ไม่ได้ออกแรง"` `[เหนื่อยง่ายเกิดจากอะไร]` |
+| นอนไม่หลับ | `"นอนไม่หลับเรื้อรัง"` `"นอนไม่หลับติดต่อกันหลายวัน"` `[นอนไม่หลับทำไงดี]` |
+| น้ำหนักลด | `"น้ำหนักลดโดยไม่ทราบสาเหตุ"` `"น้ำหนักลดเร็วผิดปกติ"` `[น้ำหนักลดโดยไม่ได้ตั้งใจ]` |
+| ปรึกษาทั่วไป | `"ปรึกษาหมอออนไลน์ฟรี"` `"ถามอาการออนไลน์"` `"เช็คอาการเบื้องต้น"` `"ปรึกษาอาการฟรีไม่มีค่าใช้จ่าย"` `[ไม่สบายควรทำยังไง]` |
+| ใกล้ฉัน (local intent) | `"คลินิกใกล้ฉัน"` `"หาหมอใกล้ฉัน"` `"โรงพยาบาลใกล้ฉัน"` `"ปรึกษาหมอออนไลน์ใกล้ฉัน"` |
+
+**Pillar-adjacent symptom terms.** These stay in this campaign because they
+are still symptom searches — the chat routes them onward with
+`recommend_service`:
+
+```
+"น้ำหนักขึ้นผิดปกติ"  "อ้วนลงพุงเสี่ยงโรค"  [เสี่ยงเบาหวานอาการเป็นยังไง]   -> glp1
+"ขาบวมทั้งสองข้าง"  "ปัสสาวะเป็นฟอง"  [ไตทำงานผิดปกติอาการเริ่มต้น]        -> ckd
+"ตกขาวผิดปกติ"  "ประจำเดือนมาไม่ปกติ"  "ปวดท้องประจำเดือนรุนแรง"            -> women
+"เครียดสะสมนอนไม่หลับ"  "วิตกกังวลบ่อยผิดปกติ"                              -> mind
+```
+
+**Broad single-word terms — budget-increase only, not for THB 100/day:**
+
+```
+"ปวดท้อง"  "มีไข้"  "ปวดหัว"  "เวียนหัว"  "ปัสสาวะผิดปกติ"
+"ผื่นคัน"  "เหนื่อยง่าย"  "อ่อนเพลีย"  "นอนไม่หลับ"  "ไม่สบาย"
+"เช็คอาการ"  "ปรึกษาหมอ"  "ปรึกษาหมอฟรี"
+```
+
+### Verticals that must NOT go in this campaign
+
+Do not fold these into `/advice` even though the site covers them — each
+carries a policy or consent constraint that would put the whole account's
+review status at risk if mixed into a general-illness campaign:
+
+| Vertical | Why it needs its own campaign |
+|---|---|
+| **std / PrEP HIV** | Google's personalized-health policy restricts sexual-health and HIV targeting; some markets require certification first. |
+| **mens** (andropause) | Must clear the existing compliance gate — no drug names, no guaranteed results. These queries get flagged easily. |
+| **dna** | Deliberately excluded from general marketing (same reason it's out of FB Story rotation and the article quiz) — consent red lines need bespoke messaging. |
+| **foreign** (B2B) | Audience is HR/employers, not patients searching symptoms. Belongs with the existing B2B campaigns. |
 
 ### Negative keywords (add before enabling, not after)
 
@@ -193,10 +329,12 @@ compliant, but ad text is reviewed separately and is the usual failure point:
 
 ## Step 5 — Enable, then watch the search terms report
 
-Set a daily budget that buys roughly 20–30 clicks/day and run for two weeks
-before judging anything. Schedule delivery to hours when the team can
-actually answer the phone — a follow-up call placed within minutes closes
-far better than one placed the next morning.
+Run for two weeks before judging anything. This launch's budget is THB
+100/day (~7–12 clicks/day — see the configuration section); the 20–30
+clicks/day figure below is what a scaled-up version of this campaign would
+look like, not the starting point. Schedule delivery to hours when the team
+can actually answer the phone — a follow-up call placed within minutes
+closes far better than one placed the next morning.
 
 **Every day for the first week:** Keywords → **Search terms** → add
 irrelevant queries as negatives. This is where budget leaks fastest on a new
