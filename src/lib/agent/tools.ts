@@ -292,7 +292,12 @@ async function handleCreateLead(
 
   const service = ALL_LEAD_SERVICES.includes(input.service) ? input.service : 'general'
 
-  const note = [extraNote, input.note, ctx.conversationSnippet]
+  // The snippet is a fallback, not an addition. When the model wrote a note it
+  // is already a purpose-built briefing for whoever makes the call, and pasting
+  // the last few user turns after it just repeats the name and phone as noise —
+  // "…ถ้าไม่ดีขึ้นนัดหมอ | ตอนนี้ทำ | ได้เลย | สมชาย 0812345678". Only fall back
+  // to the raw turns when there is no note to read instead.
+  const note = [extraNote, input.note || ctx.conversationSnippet]
     .filter(Boolean)
     .join(' | ')
     .slice(0, 500)
