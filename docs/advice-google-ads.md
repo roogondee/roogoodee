@@ -304,6 +304,10 @@ review status at risk if mixed into a general-illness campaign:
 | **dna** | Deliberately excluded from general marketing (same reason it's out of FB Story rotation and the article quiz) — consent red lines need bespoke messaging. |
 | **foreign** (B2B) | Audience is HR/employers, not patients searching symptoms. Belongs with the existing B2B campaigns. |
 
+The per-pillar campaigns those verticals need are specced in
+`docs/pillar-google-ads.md` — written up as a backlog, not launched, because
+THB 100/day cannot fund more than one campaign.
+
 ### Negative keywords (add before enabling, not after)
 
 ```
