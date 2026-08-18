@@ -26,7 +26,12 @@ import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
 
 const MAX_TOOL_ITERATIONS = 8
 const HAIKU_MAX_TOKENS = 800
-const SONNET_MAX_TOKENS = 1500
+// Thai costs roughly one token per character, far more than English, so the
+// assessment's five sections need real headroom. At 1500 a live reply was cut
+// off mid-red-flags at 1657 Thai characters, losing the ROUTING close entirely
+// — the visitor got advice and no way to reach us, which is the one outcome
+// this funnel cannot afford. Sized so the close always fits.
+const SONNET_MAX_TOKENS = 3000
 const MAX_SESSION_TURNS = 40
 const SESSION_LIMIT_REPLY =
   'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือแชทกับทีมงานทาง LINE @roogondee'
