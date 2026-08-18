@@ -71,13 +71,48 @@ and the broad single-word terms like `"ปวดท้อง"` / `"ไม่ส�
 written backlog. Broad terms cost more per click and need volume to sort
 themselves out — they are a budget-increase decision, not a launch one.
 
-### Conversion tracking is not available at launch
+### Conversion tracking: use the native Ads conversion, not the GA4 import
 
-Step 1 and Step 2 are still blocked (see Step 0 — `advice_lead` has never
-fired, so there is nothing to import). That is survivable: **Maximize
-clicks does not need conversion data.** But it means Google Ads will show
-zero conversions for this campaign no matter how well it does, so for the
-first weeks judge it on Supabase only:
+There are two ways to get conversions into Google Ads, and only one of them
+is blocked.
+
+**Blocked — importing a GA4 key event** (Step 1 → Step 2). GA4 must have
+already observed `advice_lead` before it can be marked as a key event and
+imported. It never has, so this path cannot start yet.
+
+**Not blocked — a Google Ads native conversion action.** Creating one in
+Google Ads (Goals → Conversions → New → Website) gives you an event name
+like `ads_conversion_Contact_Us_1` and asks you to install a snippet.
+Google Ads does not need to have seen that event beforehand; the conversion
+action exists the moment you create it and starts counting on the first
+fire. **This is the path that unblocks launching**, and it is already wired
+up in the code.
+
+Two things make it work:
+
+1. `ADS_CONVERSIONS` in `src/lib/analytics/track.ts` maps the internal
+   events that mean a real contact — `advice_lead`,
+   `advice_followup_call_click`, `advice_followup_line_click` — to the Ads
+   event name. `track()` fires the paired Ads event automatically, so the
+   snippet runs at the moment of conversion.
+2. `NEXT_PUBLIC_GOOGLE_ADS_ID` (`AW-XXXXXXXXX`, from Google Ads → the tag's
+   setup screen) must be set on Vercel so the tag carries an Ads
+   destination. Without it the events fire into GA4 only and Google Ads
+   records nothing.
+
+> **Do not paste Google's snippet into `<head>` as its setup screen
+> instructs.** In `<head>` it runs on every page load, so every pageview —
+> blog posts, the 404, two-second bounces — is reported as a Contact, and
+> Smart Bidding learns to buy pageviews. The mapping above exists precisely
+> to avoid that.
+
+In the Google Ads conversion action, set **Count = One** (not Every). A
+visitor who leaves a phone number and then taps LINE fires the event twice;
+"One" collapses that to a single conversion per click.
+
+Even with this working, Google Ads will under-report — Consent Mode keeps
+`ad_storage` denied until the PDPA banner is accepted. Judge the channel on
+Supabase:
 
 ```sql
 select date_trunc('day', created_at) as day, count(*)
@@ -132,6 +167,12 @@ If `advice_leads = 0`, do this first — on the **live** site, not localhost:
 Verify immediately in **GA4 → Reports → Realtime** — you should see
 `advice_start`, `advice_assessment`, and `advice_lead`. Also re-run the SQL
 above and confirm `advice_leads > 0`.
+
+> **Step 0 is not a launch blocker any more.** It is still the right way to
+> confirm the funnel works end to end, and the GA4 import path (Steps 1–2)
+> still needs it. But a native Google Ads conversion action does not wait on
+> GA4 — see "Conversion tracking" above. If the goal is to start spending,
+> set `NEXT_PUBLIC_GOOGLE_ADS_ID` and launch; Steps 1–2 can follow later.
 
 ## Step 1 — Mark the events as key events in GA4
 

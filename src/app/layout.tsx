@@ -52,9 +52,20 @@ const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 // fires; a different NEXT_PUBLIC_GA_ID adds a second property alongside it
 // (Vercel prod currently sets G-TS4XWH5NJD) rather than replacing it, so
 // neither property loses data. gtag events fan out to every configured ID.
+// NEXT_PUBLIC_GOOGLE_ADS_ID ('AW-XXXXXXXXX') adds the Google Ads destination
+// so the ads_conversion_* events in src/lib/analytics/track.ts have somewhere
+// to land. Linking Google Ads to the tag can supply this destination on its
+// own, but that link is invisible from the codebase and silently drops every
+// conversion if it is ever unshared — configuring it explicitly makes the
+// dependency checkable. Unset is safe: the tag behaves exactly as before.
 const GA_ID = 'G-THP6CDXR0L'
 const GA_EXTRA_ID = process.env.NEXT_PUBLIC_GA_ID
-const GA_IDS = GA_EXTRA_ID && GA_EXTRA_ID !== GA_ID ? [GA_ID, GA_EXTRA_ID] : [GA_ID]
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
+const GA_IDS = [
+  GA_ID,
+  ...(GA_EXTRA_ID && GA_EXTRA_ID !== GA_ID ? [GA_EXTRA_ID] : []),
+  ...(GOOGLE_ADS_ID ? [GOOGLE_ADS_ID] : []),
+]
 const GTAG_INIT = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
