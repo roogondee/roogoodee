@@ -10,12 +10,15 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendMetaEvents } from '@/lib/meta-capi'
 import type { QuizSubmission, Service } from '@/types'
 
 type QuizPayload = Partial<QuizSubmission> & {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbc?: string
+  fbp?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna']
@@ -281,6 +284,34 @@ export async function POST(req: NextRequest) {
           lead_score: scoring.tier,
           vertical: body.service,
         },
+      })
+
+      // Meta Conversions API — same dedup convention (event_id = voucher
+      // code) against the client-side fbq fires in QuizRunner. Lead just got
+      // created with consent_pdpa=true, so PDPA consent is established.
+      void sendMetaEvents({
+        events: [
+          { event_name: 'CompleteRegistration', event_id: voucherCode },
+          { event_name: 'Lead', event_id: voucherCode },
+        ],
+        service: body.service,
+        user: {
+          email: inserted.email || undefined,
+          phone: inserted.phone,
+          external_id: voucherCode,
+          ip,
+          user_agent: userAgent,
+          fbc: body.fbc,
+          fbp: body.fbp,
+        },
+        custom_data: {
+          content_category: body.service,
+          content_name: `${body.service.toUpperCase()} Voucher`,
+          value: scoring.score,
+          currency: 'THB',
+          lead_tier: scoring.tier,
+        },
+        event_source_url: req.headers.get('referer') || `https://roogondee.com/quiz/${body.service}`,
       })
     }
 
