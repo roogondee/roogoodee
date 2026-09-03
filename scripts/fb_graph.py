@@ -43,7 +43,11 @@ PERMISSION_CODES = {3, 10, 200, 299}
 # rate limit — retry วันหลังได้ ไม่ต้องแตะ token
 RATE_LIMIT_CODES = {4, 17, 32, 613}
 
+# scope ที่ต้องมีตอน "ใช้งาน" (โพสต์ story/รูปในนามเพจ)
 REQUIRED_SCOPES = ("pages_manage_posts", "pages_read_engagement")
+# scope ที่ต้องติ๊กตอน "ออก token" — pages_show_list ไม่ได้ใช้ตอนโพสต์
+# แต่ถ้าไม่มี /me/accounts จะไม่คืนเพจออกมา เลยแตก Page token ไม่ได้ตั้งแต่ต้น
+MINT_SCOPES = ("pages_show_list", "pages_read_engagement", "pages_manage_posts")
 
 
 def token_fingerprint(token: str = "") -> str:
@@ -81,6 +85,18 @@ class FbError(RuntimeError):
         return self.code in PERMISSION_CODES and not self.is_rate_limit
 
     @property
+    def is_missing_page_grant(self) -> bool:
+        """
+        190 อีกสายพันธุ์: "Any of the pages_* permission(s) must be granted before
+        impersonating a user's page" — token ยังมีตัวตนอยู่ (ไม่ได้หมดอายุ/โดน revoke)
+        แต่แอปไม่เคยได้รับ page permission จากบัญชีที่ออก token
+        คนละเรื่องกับ "must be an administrator, editor, or moderator" ซึ่งแปลว่า role หลุด
+        ถ้าไม่แยก alert จะสั่งให้ไปไล่เช็ค role/2FA ทั้งที่ปัญหาอยู่ที่หน้า consent
+        """
+        msg = self.fb_message.lower()
+        return self.code == 190 and "impersonating" in msg and "must be granted" in msg
+
+    @property
     def is_auth(self) -> bool:
         # rate limit และ permission error ก็เป็น type=OAuthException เหมือนกัน
         # เช็ค code ก่อนเสมอ ไม่งั้นจะไปแนะนำให้ออก token ใหม่ทั้งที่ token ไม่ได้พัง
@@ -105,6 +121,8 @@ class FbError(RuntimeError):
         lines = [head, f"Graph: {self.fb_message}"]
         if self.is_rate_limit:
             lines.append("⏳ ติด rate limit ของเพจ — token ปกติ ไม่ต้องแก้อะไร cron รอบหน้าจะลองใหม่เอง")
+        elif self.is_missing_page_grant:
+            lines.append(grant_fix_steps())
         elif self.is_permission:
             lines.append(permission_fix_steps())
         elif self.is_auth:
@@ -125,6 +143,23 @@ def auth_fix_steps() -> str:
         f"  4) ค่าที่ใส่เป็น Page token จริงไหม — user token จะโดน error 190 แบบเดียวกันนี้\n"
         f"  5) อัปเดต FB_PAGE_ACCESS_TOKEN ทั้ง GitHub Secrets และ Vercel ให้เป็นตัวเดียวกัน\n"
         f"ขั้นตอนเต็ม: {RUNBOOK}"
+    )
+
+
+def grant_fix_steps() -> str:
+    return (
+        f"🙅 แอปยังไม่ได้รับสิทธิ์บนเพจ — token ไม่ได้หมดอายุ แต่ออก token ใหม่เฉย ๆ ก็ไม่หาย\n"
+        f"token ปัจจุบัน: {token_fingerprint()}\n"
+        f"Graph บอกว่าต้องมีอย่างน้อยหนึ่งใน pages_read_engagement / pages_show_list / …\n"
+        f"สาเหตุที่เจอบ่อย เรียงจากมากไปน้อย:\n"
+        f"  1) ตอนกด consent ไม่ได้ติ๊กเพจ {FB_PAGE_ID or '(ไม่ได้ตั้ง FB_PAGE_ID)'} ในหน้า\n"
+        f"     \"เลือกเพจที่จะให้สิทธิ์\" — ให้สิทธิ์แอปแล้ว แต่ให้กับเพจอื่น\n"
+        f"  2) token ถูกออกจาก \"คนละแอป\" กับที่ผ่าน App Review ไว้ (เทียบ app_id ด้านล่าง)\n"
+        f"  3) บัญชีถอนสิทธิ์แอปทีหลังที่ Settings → Business Integrations → RooGonDee AutoPost\n"
+        f"วิธีแก้: กด consent ใหม่โดยติ๊กครบทั้ง {', '.join(MINT_SCOPES)} และเลือกเพจให้ถูก\n"
+        f"  python scripts/fb_page_token.py --consent-url     # ได้ลิงก์ consent ที่ scope ครบ\n"
+        f"  python scripts/fb_page_token.py --user-token …    # แลก long-lived + แตก Page token\n"
+        f"ขั้นตอนเต็ม: {RUNBOOK} (ข้อ 2B)"
     )
 
 
@@ -188,36 +223,153 @@ class TokenStatus:
         return "\n".join(lines)
 
 
-def _debug_token_checks(status_warnings: list[str]) -> None:
-    """optional — ต้องมี FB_APP_ID + FB_APP_SECRET ถึงจะเช็ควันหมดอายุ/scope ได้"""
+@dataclass
+class TokenFacts:
+    """สิ่งที่ /debug_token บอกได้เกี่ยวกับ token — ใช้ได้แม้ตอน GET /me พังไปแล้ว"""
+    available: bool = False
+    reason: str = ""
+    app_id: str = ""
+    app_name: str = ""
+    token_type: str = ""
+    profile_id: str = ""
+    is_valid: bool = False
+    expires_at: int = 0
+    scopes: list[str] = field(default_factory=list)
+    granular: dict[str, list[str]] = field(default_factory=dict)
+
+    @property
+    def days_left(self) -> int | None:
+        if not self.expires_at:
+            return None  # 0 = ไม่มีวันหมดอายุ (System User token)
+        delta = datetime.fromtimestamp(self.expires_at, tz=timezone.utc) - datetime.now(timezone.utc)
+        return delta.days
+
+    @property
+    def missing_scopes(self) -> list[str]:
+        if not self.scopes:
+            return []
+        return [s for s in REQUIRED_SCOPES if s not in self.scopes]
+
+    @property
+    def wrong_app(self) -> bool:
+        return bool(FB_APP_ID and self.app_id and self.app_id != FB_APP_ID)
+
+    def scopes_not_covering_page(self) -> list[str]:
+        """
+        granular_scopes บอกว่าแต่ละ scope ถูกให้กับ "เพจไหนบ้าง"
+        ถ้าเพจของเราไม่อยู่ใน target_ids แปลว่าตอน consent ติ๊กเพจอื่น —
+        นี่คือสาเหตุอันดับหนึ่งของ error 190 "before impersonating a user's page"
+        (scope ที่ไม่มี target_ids = ให้ครบทุกเพจ ไม่ต้องเตือน)
+        """
+        if not (FB_PAGE_ID and self.granular):
+            return []
+        return [
+            scope for scope, targets in self.granular.items()
+            if scope in REQUIRED_SCOPES + MINT_SCOPES and targets and FB_PAGE_ID not in targets
+        ]
+
+    def report_lines(self) -> list[str]:
+        """ข้อเท็จจริงล้วน ๆ สำหรับแปะต่อท้าย alert — ไม่มี token จริงหลุดออกไป"""
+        if not self.available:
+            return [f"ℹ️  {self.reason}"]
+
+        lines = [
+            f"🔍 /debug_token: type={self.token_type or '?'} "
+            f"app={self.app_name or '?'} ({self.app_id or '?'}) "
+            f"profile_id={self.profile_id or '-'} valid={self.is_valid}"
+        ]
+        days = self.days_left
+        if self.expires_at:
+            lines.append(f"   หมดอายุ: อีก {days} วัน ({datetime.fromtimestamp(self.expires_at, tz=timezone.utc):%Y-%m-%d})")
+        else:
+            lines.append("   หมดอายุ: ไม่มีวันหมดอายุ")
+        lines.append(f"   scopes: {', '.join(self.scopes) if self.scopes else '(ว่าง — นี่คือปัญหา)'}")
+
+        if self.wrong_app:
+            lines.append(
+                f"   ⚠️  token ออกจากแอป {self.app_id} แต่ FB_APP_ID ตั้งไว้เป็น {FB_APP_ID} — "
+                f"คนละแอปกัน สิทธิ์ที่ผ่าน App Review ไว้จะไม่ถูกใช้"
+            )
+        if self.token_type and self.token_type.upper() != "PAGE":
+            lines.append(f"   ⚠️  นี่เป็น {self.token_type} token ไม่ใช่ Page token")
+        if FB_PAGE_ID and self.token_type.upper() == "PAGE" and self.profile_id and self.profile_id != FB_PAGE_ID:
+            lines.append(f"   ⚠️  เป็น Page token ของเพจ {self.profile_id} ไม่ใช่ {FB_PAGE_ID}")
+        if self.missing_scopes:
+            lines.append(f"   ⚠️  ขาด scope: {', '.join(self.missing_scopes)}")
+        for scope in self.scopes_not_covering_page():
+            lines.append(
+                f"   ⚠️  {scope} ถูกให้กับเพจ {', '.join(self.granular.get(scope, [])) or '-'} "
+                f"ไม่รวมเพจ {FB_PAGE_ID} — ตอน consent ติ๊กเพจผิด"
+            )
+        return lines
+
+
+def debug_token(token: str = "") -> TokenFacts:
+    """
+    ถาม Graph ว่า token ตัวนี้คืออะไร — ต้องมี FB_APP_ID + FB_APP_SECRET
+    เรียกได้ทั้งตอน preflight ผ่านและตอนพัง: /debug_token ใช้ app token ยิง
+    เลยยังตอบได้แม้ token ที่กำลังตรวจจะใช้ยิง endpoint อื่นไม่ได้แล้ว
+    """
+    tok = (token or FB_PAGE_TOKEN).strip()
+    if not tok:
+        return TokenFacts(reason="ไม่มี FB_PAGE_ACCESS_TOKEN ให้ตรวจ")
     if not (FB_APP_ID and FB_APP_SECRET):
-        return
+        return TokenFacts(
+            reason=(
+                "ตั้ง FB_APP_ID + FB_APP_SECRET ใน GitHub Secrets เพิ่ม แล้ว alert รอบหน้าจะบอกได้เลยว่า "
+                f"token เป็นของแอปไหน มี scope อะไร และเหลืออายุกี่วัน ({RUNBOOK})"
+            )
+        )
+
     try:
         resp = requests.get(
             f"{FB_API}/debug_token",
-            params={
-                "input_token":  FB_PAGE_TOKEN,
-                "access_token": f"{FB_APP_ID}|{FB_APP_SECRET}",
-            },
+            params={"input_token": tok, "access_token": f"{FB_APP_ID}|{FB_APP_SECRET}"},
             timeout=30,
         )
         data = (resp.json() or {}).get("data") or {}
     except (requests.RequestException, ValueError) as e:
-        status_warnings.append(f"เรียก /debug_token ไม่สำเร็จ: {e}")
+        return TokenFacts(reason=f"เรียก /debug_token ไม่สำเร็จ: {e}")
+
+    if not data:
+        return TokenFacts(reason="/debug_token ไม่คืนข้อมูล — token อาจถูกออกจากแอปอื่น")
+
+    granular = {
+        str(g.get("scope") or ""): [str(t) for t in (g.get("target_ids") or [])]
+        for g in (data.get("granular_scopes") or [])
+    }
+    return TokenFacts(
+        available=True,
+        app_id=str(data.get("app_id") or ""),
+        app_name=str(data.get("application") or ""),
+        token_type=str(data.get("type") or ""),
+        profile_id=str(data.get("profile_id") or data.get("user_id") or ""),
+        is_valid=bool(data.get("is_valid")),
+        expires_at=int(data.get("expires_at") or 0),
+        scopes=[str(x) for x in (data.get("scopes") or [])],
+        granular=granular,
+    )
+
+
+def _debug_token_checks(status_warnings: list[str]) -> None:
+    """เติม warning ตอน preflight ผ่าน — token ใช้ได้วันนี้ แต่จะพังวันไหน"""
+    facts = debug_token()
+    if not facts.available:
         return
 
-    expires_at = int(data.get("expires_at") or 0)
-    if expires_at:
-        left_days = (datetime.fromtimestamp(expires_at, tz=timezone.utc) - datetime.now(timezone.utc)).days
-        if left_days <= 7:
-            status_warnings.append(
-                f"token จะหมดอายุใน {left_days} วัน — ออก long-lived Page token ใหม่ก่อน cron พัง ({RUNBOOK})"
-            )
-    scopes = data.get("scopes") or []
-    if scopes:
-        missing = [s for s in REQUIRED_SCOPES if s not in scopes]
-        if missing:
-            status_warnings.append(f"token ขาด scope: {', '.join(missing)}")
+    days = facts.days_left
+    if days is not None and days <= 7:
+        status_warnings.append(
+            f"token จะหมดอายุใน {days} วัน — ออก long-lived Page token ใหม่ก่อน cron พัง ({RUNBOOK})"
+        )
+    if facts.missing_scopes:
+        status_warnings.append(f"token ขาด scope: {', '.join(facts.missing_scopes)}")
+    if facts.wrong_app:
+        status_warnings.append(
+            f"token ออกจากแอป {facts.app_id} ไม่ใช่ {FB_APP_ID} ที่ตั้งไว้ — เช็คว่าใช้แอปถูกตัว"
+        )
+    for scope in facts.scopes_not_covering_page():
+        status_warnings.append(f"{scope} ไม่ครอบคลุมเพจ {FB_PAGE_ID} — ตอน consent ติ๊กเพจไม่ครบ")
 
 
 def preflight_page_token() -> TokenStatus:
@@ -245,7 +397,10 @@ def preflight_page_token() -> TokenStatus:
 
     if resp.status_code >= 400:
         err = parse_fb_error(resp, "preflight GET /me")
-        return TokenStatus(False, f"❌ {err.describe()}")
+        # /debug_token ยิงด้วย app token เลยยังตอบได้แม้ GET /me เพิ่งพัง —
+        # ไม่งั้น alert จะได้แค่ "ไล่เช็ค 5 ข้อ" โดยไม่มีข้อมูลว่าเช็คแล้วเจออะไร
+        lines = [f"❌ {err.describe()}"] + debug_token().report_lines()
+        return TokenStatus(False, "\n".join(lines))
 
     try:
         me = resp.json() or {}
@@ -291,7 +446,9 @@ def main() -> int:
         except ImportError:
             return 0 if status.ok else 1
         icon = "✅" if status.ok else "❌"
-        _notify(f"{icon} รู้ก่อนดี FB token check\n{status.report()[:1500]}")
+        # 1900 ไม่ใช่ 1500 — เคส grant มีทั้งขั้นตอนแก้และบรรทัด /debug_token
+        # ตัดที่ 1500 แล้วขั้นตอนแก้จะหายไปครึ่งท่อน (Discord เองตัดที่ 2000 อยู่แล้ว)
+        _notify(f"{icon} รู้ก่อนดี FB token check\n{status.report()[:1900]}")
 
     return 0 if status.ok else 1
 
