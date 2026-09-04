@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { type LocaleCode, defaultLocale, LOCALE_COOKIE, locales } from './config'
+import { type LocaleCode, defaultLocale, LOCALE_COOKIE, locales, THAI_FIRST_PATHS } from './config'
 import dictionaries, { type Translations } from './locales'
 
 interface I18nContextType {
@@ -27,10 +27,20 @@ function isValidLocale(code: string): code is LocaleCode {
   return locales.some(l => l.code === code)
 }
 
+function isThaiFirstPath(): boolean {
+  if (typeof window === 'undefined') return false
+  const path = window.location.pathname
+  return THAI_FIRST_PATHS.some(p => path === p || path.startsWith(p + '/'))
+}
+
 function getInitialLocale(): LocaleCode {
   // 1. Check cookie
   const cookieVal = getCookie(LOCALE_COOKIE)
   if (cookieVal && isValidLocale(cookieVal)) return cookieVal
+
+  // 1b. Thai-first pages ignore browser language (see THAI_FIRST_PATHS). No
+  //     cookie is written here — the visitor can still switch via NavBar.
+  if (isThaiFirstPath()) return defaultLocale
 
   // 2. Check browser language
   if (typeof navigator !== 'undefined') {

@@ -35,6 +35,12 @@ declare global {
 //   contact. See docs/advice-google-ads.md for why those must never become
 //   conversions.
 //
+// advice_cta_line_click / advice_cta_call_click (AdviceContactCtas.tsx,
+// placement="hero" | "sticky") are the same LINE/call action as
+// advice_followup_*, just tapped before 3 chat messages instead of after —
+// added for the Smart-campaign variant of /advice, where a visitor may want
+// a human immediately rather than a chat. Same conversion action.
+//
 // If a visitor both leaves a phone number and taps LINE, this fires twice.
 // That is handled on the Google Ads side by setting the conversion action's
 // Count to "One" per click, not by suppressing it here.
@@ -42,6 +48,8 @@ const ADS_CONVERSIONS: Record<string, string> = {
   advice_lead: 'ads_conversion_Contact_Us_1',
   advice_followup_call_click: 'ads_conversion_Contact_Us_1',
   advice_followup_line_click: 'ads_conversion_Contact_Us_1',
+  advice_cta_call_click: 'ads_conversion_Contact_Us_1',
+  advice_cta_line_click: 'ads_conversion_Contact_Us_1',
 }
 
 export function track(name: string, params: Record<string, unknown> = {}) {

@@ -16,3 +16,12 @@ export type LocaleCode = (typeof locales)[number]["code"];
 export const defaultLocale: LocaleCode = "th";
 
 export const LOCALE_COOKIE = "rugondee-locale";
+
+// Pages that must render in Thai unless the visitor has explicitly picked a
+// language (cookie) or the URL forces one (?lang=). Browser language is
+// skipped for these. /advice is a paid-search landing page for Thai-language
+// queries; many phones in Thailand report navigator.language = "en", which
+// used to flip the whole page (and the chat greeting) into English for a
+// visitor who searched in Thai. The AI still replies in whatever language the
+// visitor types — this only controls the page chrome and the first greeting.
+export const THAI_FIRST_PATHS = ["/advice"] as const;
