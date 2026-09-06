@@ -13,6 +13,7 @@ const ALLOWED_SOURCES = new Set([
   'fb-broadcast',
   'campaign',
   'mou-landing',
+  'mou-chat',
 ])
 
 // UTM values come straight from the URL — keep only short plain strings.

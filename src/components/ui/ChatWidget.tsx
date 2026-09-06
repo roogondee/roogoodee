@@ -92,6 +92,12 @@ export default function ChatWidget() {
   // redundant and could bypass the red-flag screening that page is built around.
   if (pathname?.startsWith('/advice')) return null
 
+  // Hide on /foreign/mou — that page has its own inline MOU assistant, whose
+  // answers on price, documents and certificate validity are fixed copy rather
+  // than model output. A second, floating chat there would offer an LLM route
+  // to the same questions and could improvise those numbers.
+  if (pathname?.startsWith('/foreign/mou')) return null
+
   return (
     <>
       <button

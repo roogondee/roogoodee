@@ -5,6 +5,7 @@ import th from '@/lib/i18n/locales/th'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 import MouLeadForm, { trackCallClick } from '@/components/ui/MouLeadForm'
+import MouChat from '@/components/ui/MouChat'
 
 const PHONE_TEL = 'tel:0819023540'
 const PHONE_DISPLAY = '081-902-3540'
@@ -113,6 +114,24 @@ export default function ForeignMouClient() {
         </div>
       </section>
 
+      {/* Q&A assistant — placed straight after the audience split, before the
+          long explainer sections: most of this page's traffic is mobile ad
+          clicks that never scroll to the FAQ, and the questions that stop an
+          employer from calling (price, group booking, documents) are answered
+          here with a call / LINE / callback button attached to every answer. */}
+      <section id="mou-chat" className="py-14 md:py-20 px-6 md:px-20 bg-cream scroll-mt-20">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-amber-600 mb-3">{m.chatSectionLabel}</p>
+          <h2 className="font-display text-3xl md:text-4xl text-forest mb-3">{m.chatSectionTitle}</h2>
+          <p className="text-muted text-sm md:text-base mb-8 max-w-2xl">{m.chatSectionDesc}</p>
+          {/* Suspense scoped to the chat so useSearchParams (utm/ttclid passthrough
+              on the inline callback form) doesn't bail the page out of prerendering */}
+          <Suspense fallback={<div className="bg-white rounded-3xl p-10 shadow-xl text-center text-muted text-sm">...</div>}>
+            <MouChat />
+          </Suspense>
+        </div>
+      </section>
+
       {/* Key facts */}
       <section className="py-12 px-6 md:px-20 bg-forest">
         <div className="max-w-5xl mx-auto">
@@ -196,6 +215,9 @@ export default function ForeignMouClient() {
               </details>
             ))}
           </div>
+          <p className="text-center text-sm text-muted mt-8">
+            <a href="#mou-chat" className="text-forest font-semibold underline hover:text-sage">{m.chatSectionTitle} →</a>
+          </p>
         </div>
       </section>
 
