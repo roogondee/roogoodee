@@ -340,6 +340,56 @@ Final URL: `https://roogondee.com/advice`
 Without `{gclid}` the offline conversion import below is impossible — the
 lead row has no click to tie back to.
 
+### Smart campaign variant (2026-09-04)
+
+Everything above this point assumes the Search campaign this doc was written for. Running
+`/advice` as a **Google Smart campaign** (aka Smart / automated) instead changes three things —
+this section is the delta, not a replacement for the rest of the doc.
+
+1. **No tracking template.** Smart campaigns don't expose Campaign URL options, so the
+   `{lpurl}?...&gclid={gclid}` template above is never applied. Put static UTMs directly on the
+   **Final URL** instead:
+
+   ```
+   https://roogondee.com/advice?utm_source=google&utm_medium=smart&utm_campaign=advice-smart
+   ```
+
+   `gclid` still arrives — Smart campaigns still auto-tag the destination URL as long as
+   **auto-tagging is ON** at the account level (Admin → Auto-tagging). Verify a real click lands
+   with `?...&gclid=` in the browser bar before trusting the offline import.
+
+2. **Broad, automated keyword themes mean off-topic clicks.** Smart campaigns pick their own
+   search terms from a handful of "keyword themes" you give it, not the curated
+   phrase/exact-match list in Step 4 — expect clicks for the hospital's name, opening hours,
+   prices, "อยากนัดหมอ" with no symptom at all. `src/lib/advice/prompt.ts`'s `INTAKE_SYSTEM_PROMPT`
+   has a "NOT A SYMPTOM" rule for this: it answers the actual question in 2–3 lines (via
+   `get_service_info`, never invented) and points to LINE/call instead of starting history-taking
+   on someone who isn't sick. This is a routing shortcut, not a relaxation of the medical hard
+   rules or the triage safety layer — both are unchanged.
+3. **LINE/call CTAs moved up the page.** `AdviceContactCtas` (`src/components/ui/`) now renders
+   the LINE + call pair in the hero (next to the chat) and the mobile sticky bar, not only in the
+   chat rail after 3 messages — a Smart-campaign visitor who just wants a human doesn't have to
+   type first. Clicks fire `advice_cta_line_click` / `advice_cta_call_click`, mapped to the same
+   `ads_conversion_Contact_Us_1` action as the existing `advice_followup_*` events (see
+   `src/lib/analytics/track.ts`) — no new conversion action to configure in Ads, and hero vs.
+   sticky vs. chat-rail clicks are distinguishable in GA4 by the `placement` param.
+
+4. **Page starts in Thai.** `/advice` is in `THAI_FIRST_PATHS` (`src/lib/i18n/config.ts`): the
+   browser-language step of locale detection is skipped there, so a phone reporting `en` still
+   gets the Thai page and Thai chat greeting. An explicit cookie choice (NavBar switcher) or
+   `?lang=` still wins, and the AI still answers in whatever language the visitor types.
+5. **Foreign worker checkup + medical certificate are visible on the page.** A "บริการอื่นที่
+   โรงพยาบาลพันธมิตร" section (between the 3 steps and the emergency band) carries two cards:
+   ตรวจสุขภาพแรงงานต่างด้าว (links to `/foreign`, fires `advice_service_card_click`) and
+   ออกใบรับรองแพทย์ไว ภายในวันเดียว (LINE/call pair, `placement: 'services'`). The "NOT A
+   SYMPTOM" prompt rule knows both, so a "ใบรับรองแพทย์" or "Work Permit" click gets a direct
+   answer plus LINE/call instead of history-taking. Copy is sourced from
+   `docs/foreign-worker-tiein.md` and the cert types in `src/lib/certs/types.ts` — do not add
+   speed or price claims beyond those.
+
+Everything else — conversion action setup, offline import, healthcare policy limits, the safety
+layer — applies unchanged to a Smart campaign.
+
 ### Responsive search ad copy
 
 Headlines (Thai, ≤30 chars each):
@@ -455,6 +505,8 @@ All of them fire client-side through `track()` in `src/lib/analytics/track.ts`.
 | `advice_service_suggested` | AI routes to a specific pillar via `recommend_service` | Diagnostic only — fires only when symptoms match one of the eight pillars, so it under-counts general illness |
 | `advice_lead` | `create_lead` succeeds | **Primary conversion** |
 | `advice_emergency` / `advice_urgent` | Triage escalates | Safety monitoring, not marketing |
+| `advice_followup_line_click` / `advice_followup_call_click` | Visitor taps LINE/call under the chat, 3+ messages in | Contact conversion (`ads_conversion_Contact_Us_1`) |
+| `advice_cta_line_click` / `advice_cta_call_click` | Visitor taps LINE/call in the hero or sticky bar, before or without chatting — see Smart campaign variant above | Same contact conversion, tagged with `placement` |
 
 `advice_start` → `advice_assessment` → `advice_lead` is the funnel to watch:
 a drop between the first two means the intake is asking too much, a drop

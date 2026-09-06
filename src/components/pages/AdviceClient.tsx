@@ -5,6 +5,9 @@ import th from '@/lib/i18n/locales/th'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 import AdviceChat from '@/components/ui/AdviceChat'
+import AdviceContactCtas from '@/components/ui/AdviceContactCtas'
+import AdviceSymptomLinks, { type AdviceSymptom } from '@/components/ui/AdviceSymptomLinks'
+import { track } from '@/lib/analytics/track'
 
 const pageJsonLd = {
   '@context': 'https://schema.org',
@@ -37,7 +40,7 @@ export default function AdviceClient() {
   const { t } = useTranslation()
   const m = t.advice
 
-  const SYMPTOMS = [
+  const SYMPTOMS: AdviceSymptom[] = [
     { title: m.symptom1Title, desc: m.symptom1Desc, query: m.symptom1Query, icon: '🤒' },
     { title: m.symptom2Title, desc: m.symptom2Desc, query: m.symptom2Query, icon: '🤢' },
     { title: m.symptom3Title, desc: m.symptom3Desc, query: m.symptom3Query, icon: '🤕' },
@@ -76,10 +79,17 @@ export default function AdviceClient() {
               {m.heroTitle1}<br />{m.heroTitle2}<br /><em className="text-mint not-italic">{m.heroTitle3}</em>
             </h1>
             <p className="text-muted text-base leading-relaxed mb-6 whitespace-pre-line">{m.heroDesc}</p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-4 mb-6">
               {[m.trustHospital, m.trustDoctor, m.trustFree].map(text => (
                 <div key={text} className="flex items-center gap-2 text-sm text-rtext"><span className="w-2 h-2 bg-mint rounded-full flex-shrink-0" />{text}</div>
               ))}
+            </div>
+            {/* Google Ads (esp. Smart campaigns, which pick their own keywords)
+                sends visitors who just want a human, not a chat — put LINE/call
+                right next to the chat instead of only after 3 messages. */}
+            <div className="max-w-xs">
+              <p className="text-xs text-muted mb-2">{m.contactHint}</p>
+              <AdviceContactCtas placement="hero" />
             </div>
           </div>
         </div>
@@ -90,19 +100,19 @@ export default function AdviceClient() {
         <div className="max-w-5xl mx-auto">
           <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">{m.symptomsLabel}</p>
           <h2 className="font-display text-2xl md:text-3xl text-forest mb-10">{m.symptomsTitle}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {SYMPTOMS.map(s => (
-              <a
-                key={s.title}
-                href={`/advice?symptom=${encodeURIComponent(s.query)}#advice-chat`}
-                className="bg-cream border border-mint/15 rounded-2xl p-5 hover:border-mint/50 hover:-translate-y-0.5 transition-all"
-              >
-                <div className="text-2xl mb-2">{s.icon}</div>
-                <h3 className="font-semibold text-forest text-sm mb-1">{s.title}</h3>
-                <p className="text-muted text-xs leading-relaxed">{s.desc}</p>
-              </a>
-            ))}
-          </div>
+          <Suspense fallback={
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {SYMPTOMS.map(s => (
+                <div key={s.title} className="bg-cream border border-mint/15 rounded-2xl p-5">
+                  <div className="text-2xl mb-2">{s.icon}</div>
+                  <h3 className="font-semibold text-forest text-sm mb-1">{s.title}</h3>
+                  <p className="text-muted text-xs leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          }>
+            <AdviceSymptomLinks symptoms={SYMPTOMS} />
+          </Suspense>
         </div>
       </section>
 
@@ -119,6 +129,38 @@ export default function AdviceClient() {
                 <p className="text-muted text-sm leading-relaxed">{s.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Other services — Smart-campaign traffic includes people who aren't
+          sick but need paperwork (Work Permit checkup, a medical certificate).
+          Requested 2026-09-04 so those visitors learn we do this without
+          having to ask the chat. Foreign card goes to the B2B pillar page,
+          which has its own quote funnel; the certificate card routes to
+          LINE/call since there's no dedicated page for it. */}
+      <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">{m.otherServicesLabel}</p>
+          <h2 className="font-display text-2xl md:text-3xl text-forest mb-10">{m.otherServicesTitle}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <a
+              href="/foreign"
+              onClick={() => track('advice_service_card_click', { service: 'foreign' })}
+              className="bg-cream border border-mint/15 rounded-2xl p-6 hover:border-mint/50 hover:-translate-y-0.5 transition-all flex flex-col"
+            >
+              <div className="text-2xl mb-3">🏭</div>
+              <h3 className="font-semibold text-forest text-base mb-2">{m.foreignCardTitle}</h3>
+              <p className="text-muted text-sm leading-relaxed mb-4 flex-1">{m.foreignCardDesc}</p>
+              <span className="text-mint font-bold text-sm">{m.foreignCardCta}</span>
+            </a>
+            <div className="bg-cream border border-mint/15 rounded-2xl p-6 flex flex-col">
+              <div className="text-2xl mb-3">📄</div>
+              <h3 className="font-semibold text-forest text-base mb-2">{m.certCardTitle}</h3>
+              <p className="text-muted text-sm leading-relaxed mb-4 flex-1">{m.certCardDesc}</p>
+              <p className="text-xs text-muted mb-2">{m.certCardHint}</p>
+              <AdviceContactCtas placement="services" />
+            </div>
           </div>
         </div>
       </section>
@@ -175,11 +217,10 @@ export default function AdviceClient() {
 
       <FooterMinimal />
 
-      {/* Sticky mobile CTA — ads traffic is mostly mobile; one tap back to chat */}
+      {/* Sticky mobile CTA — ads traffic is mostly mobile; LINE/call is one tap
+          away without scrolling back up to the chat or typing anything. */}
       <div className="fixed bottom-0 left-0 right-0 z-40 p-3 bg-white/95 backdrop-blur border-t border-mint/20 md:hidden">
-        <a href="#advice-chat" className="flex items-center justify-center gap-2 bg-forest text-white py-3.5 rounded-full font-bold text-base shadow-lg">
-          🩺 {m.finalCtaButton}
-        </a>
+        <AdviceContactCtas placement="sticky" className="[&_a]:py-3.5 [&_a]:text-base [&_a]:shadow-lg" />
       </div>
     </main>
   )
