@@ -167,7 +167,8 @@ def mint(user_token: str, page_id: str, *, show_token: bool) -> int:
             print(f"    ⚠️  ขาด {', '.join(lacking)} — โพสต์จะพังด้วย error 200")
 
     print("4/4 ยิง GET /me ด้วย Page token ใหม่ …")
-    resp = requests.get(f"{FB_API}/me", params={"fields": "id,name,category", "access_token": page_token}, timeout=30)
+    # ไม่ขอ `category` — Graph ถอดออกจาก Page แล้ว และตอบ code 100 ทับ error จริง
+    resp = requests.get(f"{FB_API}/me", params={"fields": "id,name", "access_token": page_token}, timeout=30)
     if resp.status_code >= 400:
         from fb_graph import parse_fb_error
         print(f"❌ {parse_fb_error(resp, 'ทดสอบ GET /me').describe()}")

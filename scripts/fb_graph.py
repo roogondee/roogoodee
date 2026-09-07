@@ -42,6 +42,10 @@ AUTH_CODES = {102, 190, 458, 459, 463, 464, 467, 492}
 PERMISSION_CODES = {3, 10, 200, 299}
 # rate limit — retry วันหลังได้ ไม่ต้องแตะ token
 RATE_LIMIT_CODES = {4, 17, 32, 613}
+# 100 = พารามิเตอร์/field ที่ขอไปไม่ถูกต้อง — บั๊กในโค้ดเรา ไม่ใช่ token พัง
+# Graph ส่งมาเป็น OAuthException เหมือนกัน ถ้าไม่แยกจะไปโผล่เป็น "ออก token ใหม่"
+# แล้วคนไปออก token ใหม่ทั้งที่ตัวเดิมใช้ได้ (เกิดขึ้นจริงกับ field `category` 2026-09-07)
+INVALID_PARAM_CODES = {100}
 
 # scope ที่ต้องมีตอน "ใช้งาน" (โพสต์ story/รูปในนามเพจ)
 REQUIRED_SCOPES = ("pages_manage_posts", "pages_read_engagement")
@@ -85,6 +89,10 @@ class FbError(RuntimeError):
         return self.code in PERMISSION_CODES and not self.is_rate_limit
 
     @property
+    def is_invalid_param(self) -> bool:
+        return self.code in INVALID_PARAM_CODES
+
+    @property
     def is_missing_page_grant(self) -> bool:
         """
         190 อีกสายพันธุ์: "Any of the pages_* permission(s) must be granted before
@@ -100,7 +108,7 @@ class FbError(RuntimeError):
     def is_auth(self) -> bool:
         # rate limit และ permission error ก็เป็น type=OAuthException เหมือนกัน
         # เช็ค code ก่อนเสมอ ไม่งั้นจะไปแนะนำให้ออก token ใหม่ทั้งที่ token ไม่ได้พัง
-        if self.is_rate_limit or self.is_permission:
+        if self.is_rate_limit or self.is_permission or self.is_invalid_param:
             return False
         return self.code in AUTH_CODES or (self.err_type == "OAuthException" and self.code != 0)
 
@@ -121,6 +129,11 @@ class FbError(RuntimeError):
         lines = [head, f"Graph: {self.fb_message}"]
         if self.is_rate_limit:
             lines.append("⏳ ติด rate limit ของเพจ — token ปกติ ไม่ต้องแก้อะไร cron รอบหน้าจะลองใหม่เอง")
+        elif self.is_invalid_param:
+            lines.append(
+                "🐛 นี่คือบั๊กในโค้ด ไม่ใช่ token พัง — เราขอ field/พารามิเตอร์ที่ Graph ไม่รู้จัก\n"
+                "   อย่าเพิ่งออก token ใหม่ ให้แก้ที่ params ของ request ตัวที่ error บอก"
+            )
         elif self.is_missing_page_grant:
             lines.append(grant_fix_steps())
         elif self.is_permission:
@@ -388,7 +401,10 @@ def preflight_page_token() -> TokenStatus:
     try:
         resp = requests.get(
             f"{FB_API}/me",
-            params={"fields": "id,name,category", "access_token": FB_PAGE_TOKEN},
+            # ขอแค่ id,name — อย่าขอ `category` อีก Graph เอาออกจาก Page แล้ว
+            # และตอบ code 100 "Tried accessing nonexisting field" ทับ error จริง
+            # ทำให้ token ที่ใช้ได้ดูเหมือนพัง ใช้ id เทียบกับ FB_PAGE_ID แทน
+            params={"fields": "id,name", "access_token": FB_PAGE_TOKEN},
             timeout=30,
         )
     except requests.RequestException as e:
@@ -410,21 +426,25 @@ def preflight_page_token() -> TokenStatus:
     me_id   = str(me.get("id") or "")
     me_name = str(me.get("name") or "?")
 
-    if not me.get("category"):
-        return TokenStatus(
-            False,
-            f"❌ FB_PAGE_ACCESS_TOKEN เป็น user token ของ \"{me_name}\" ไม่ใช่ Page token\n"
-            f"โพสต์ในนามเพจไม่ได้ (Graph จะตอบ code 190 \"must be an administrator…\")\n"
-            f"{auth_fix_steps()}",
-        )
-
+    # `GET /me` ด้วย Page token คืน id ของเพจ, ด้วย user token คืน id ของคน
+    # เทียบกับ FB_PAGE_ID จึงแยกได้ทั้งสองเคสในเงื่อนไขเดียว โดยไม่ต้องพึ่ง field ที่ Graph
+    # อาจถอดออกเมื่อไหร่ก็ได้ /debug_token บอก type ให้แน่ชัดอีกชั้น (ถ้ามี app id/secret)
     if me_id != FB_PAGE_ID:
-        return TokenStatus(
-            False,
-            f"❌ token เป็นของเพจ \"{me_name}\" (id={me_id}) แต่ FB_PAGE_ID ตั้งไว้เป็น {FB_PAGE_ID}\n"
-            f"แก้ให้ตรงกันอย่างใดอย่างหนึ่ง แล้วอัปเดต secret ทั้ง GitHub และ Vercel\n"
-            f"ดู {RUNBOOK}",
-        )
+        facts = debug_token()
+        kind = (facts.token_type or "").upper()
+        if kind == "USER":
+            headline = f"❌ FB_PAGE_ACCESS_TOKEN เป็น user token ของ \"{me_name}\" ไม่ใช่ Page token"
+            body = "โพสต์ในนามเพจไม่ได้ — ต้องแตก Page token ออกมาจาก /me/accounts ก่อน"
+        elif kind == "PAGE":
+            headline = f"❌ token เป็นของเพจ \"{me_name}\" (id={me_id}) แต่ FB_PAGE_ID ตั้งไว้เป็น {FB_PAGE_ID}"
+            body = "แก้ให้ตรงกันอย่างใดอย่างหนึ่ง แล้วอัปเดต secret ทั้ง GitHub และ Vercel"
+        else:
+            headline = f"❌ token เป็นของ \"{me_name}\" (id={me_id}) ไม่ใช่เพจ {FB_PAGE_ID}"
+            body = (
+                "อาจเป็น user token หรือ Page token ของเพจอื่น — "
+                "ออก Page token ให้ถูกเพจด้วย scripts/fb_page_token.py"
+            )
+        return TokenStatus(False, "\n".join([headline, body, *facts.report_lines(), f"ดู {RUNBOOK}"]))
 
     _debug_token_checks(warnings)
     return TokenStatus(True, f"🔑 token ok — เพจ \"{me_name}\" ({me_id})", warnings)
