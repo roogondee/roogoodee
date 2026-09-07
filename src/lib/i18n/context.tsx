@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { type LocaleCode, defaultLocale, LOCALE_COOKIE, locales, THAI_FIRST_PATHS } from './config'
+import { type LocaleCode, defaultLocale, LOCALE_COOKIE, locales, THAI_FIRST_PATHS, ENGLISH_NOT_A_SIGNAL_PATHS } from './config'
 import dictionaries, { type Translations } from './locales'
 
 interface I18nContextType {
@@ -27,10 +27,10 @@ function isValidLocale(code: string): code is LocaleCode {
   return locales.some(l => l.code === code)
 }
 
-function isThaiFirstPath(): boolean {
+function matchesPath(paths: readonly string[]): boolean {
   if (typeof window === 'undefined') return false
   const path = window.location.pathname
-  return THAI_FIRST_PATHS.some(p => path === p || path.startsWith(p + '/'))
+  return paths.some(p => path === p || path.startsWith(p + '/'))
 }
 
 function getInitialLocale(): LocaleCode {
@@ -40,12 +40,15 @@ function getInitialLocale(): LocaleCode {
 
   // 1b. Thai-first pages ignore browser language (see THAI_FIRST_PATHS). No
   //     cookie is written here — the visitor can still switch via NavBar.
-  if (isThaiFirstPath()) return defaultLocale
+  if (matchesPath(THAI_FIRST_PATHS)) return defaultLocale
 
-  // 2. Check browser language
+  // 2. Check browser language — except English on the pages listed in
+  //    ENGLISH_NOT_A_SIGNAL_PATHS, where it is usually an untouched default
+  //    rather than a choice. Every other language still wins there.
   if (typeof navigator !== 'undefined') {
     const browserLang = navigator.language?.split('-')[0]
-    if (browserLang && isValidLocale(browserLang)) return browserLang
+    const ignoreEnglish = browserLang === 'en' && matchesPath(ENGLISH_NOT_A_SIGNAL_PATHS)
+    if (browserLang && !ignoreEnglish && isValidLocale(browserLang)) return browserLang
   }
 
   return defaultLocale
