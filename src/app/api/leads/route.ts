@@ -13,6 +13,7 @@ const ALLOWED_SOURCES = new Set([
   'fb-broadcast',
   'campaign',
   'mou-landing',
+  'mou-chat',
   'workpermit-landing',
 ])
 

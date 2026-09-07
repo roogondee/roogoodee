@@ -41,21 +41,42 @@ declare global {
 // added for the Smart-campaign variant of /advice, where a visitor may want
 // a human immediately rather than a chat. Same conversion action.
 //
+// The MOU landing (/foreign/mou) maps the same three contact actions —
+// phone number left, call tapped, LINE tapped — from both its page form and
+// its inline Q&A assistant. It shares `ads_conversion_Contact_Us_1` rather
+// than getting its own action because that action already exists in the Ads
+// account: a new action name here would fire into nothing until someone
+// creates it in the UI. MOU performance is still readable on its own, since
+// conversions attribute to the campaign that produced the click. Split it
+// into a dedicated action only when MOU needs its own bidding target — see
+// "foreign" in docs/pillar-google-ads.md.
+//
+// NOT mapped on that page, for the same engagement-vs-contact reason as
+// /advice: mou_landing_view, mou_chat_view, mou_chat_question,
+// mou_chat_no_match, mou_chat_lead_open (opening the callback form is not
+// submitting it).
+//
 // workpermit_* (src/components/pages/ForeignWorkPermitClient.tsx,
-// WorkPermitChat.tsx, WorkPermitLeadForm.tsx) is the first pillar campaign
-// wired into this map — the foreign pillar's /foreign/workpermit landing.
-// workpermit_chat_start is deliberately NOT mapped (engagement, not contact),
-// same reasoning as advice_start/message/assessment above.
+// WorkPermitChat.tsx, WorkPermitLeadForm.tsx) is the dated
+// /foreign/workpermit renewal campaign — same action, same reasoning.
+// workpermit_chat_start is deliberately NOT mapped (engagement, not contact).
 //
 // If a visitor both leaves a phone number and taps LINE, this fires twice.
-// That is handled on the Google Ads side by setting the conversion action's
-// Count to "One" per click, not by suppressing it here.
+// The same goes for the call button on the MOU form's success screen, tapped
+// seconds after the form itself converted. That is handled on the Google Ads
+// side by setting the conversion action's Count to "One" per click, not by
+// suppressing it here.
 const ADS_CONVERSIONS: Record<string, string> = {
   advice_lead: 'ads_conversion_Contact_Us_1',
   advice_followup_call_click: 'ads_conversion_Contact_Us_1',
   advice_followup_line_click: 'ads_conversion_Contact_Us_1',
   advice_cta_call_click: 'ads_conversion_Contact_Us_1',
   advice_cta_line_click: 'ads_conversion_Contact_Us_1',
+  mou_lead_submit: 'ads_conversion_Contact_Us_1',
+  mou_chat_lead_submit: 'ads_conversion_Contact_Us_1',
+  mou_call_click: 'ads_conversion_Contact_Us_1',
+  mou_line_click: 'ads_conversion_Contact_Us_1',
+  mou_chat_line_click: 'ads_conversion_Contact_Us_1',
   workpermit_lead: 'ads_conversion_Contact_Us_1',
   workpermit_chat_lead: 'ads_conversion_Contact_Us_1',
   workpermit_call_click: 'ads_conversion_Contact_Us_1',
