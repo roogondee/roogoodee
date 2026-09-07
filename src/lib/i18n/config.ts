@@ -25,3 +25,17 @@ export const LOCALE_COOKIE = "rugondee-locale";
 // visitor who searched in Thai. The AI still replies in whatever language the
 // visitor types — this only controls the page chrome and the first greeting.
 export const THAI_FIRST_PATHS = ["/advice"] as const;
+
+// Pages where a browser reporting English is not a real language signal, but
+// any other language is. Same root cause as THAI_FIRST_PATHS — a large share
+// of handsets in Thailand report navigator.language = "en" — with one
+// difference: the foreign-worker pages are genuinely multilingual. A phone set
+// to Burmese, Khmer, Lao, Chinese or Vietnamese belongs to a worker who reads
+// that language, and those translations exist; "en" is the one value that is
+// usually a default nobody chose, and it was flipping the whole MOU page into
+// English for Thai employers searching in Thai.
+//
+// So on these paths: cookie wins, ?lang= wins, a non-English browser language
+// wins, and English falls back to Thai. Ads targeting a specific nationality
+// should link with ?lang=my / ?lang=km / ?lang=lo rather than rely on this.
+export const ENGLISH_NOT_A_SIGNAL_PATHS = ["/foreign"] as const;
