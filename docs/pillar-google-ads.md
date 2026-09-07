@@ -25,20 +25,20 @@ and go through the LIFF quiz to a voucher. Splitting them buys three things:
 ## Prerequisite: most pillar conversions are still not tracked
 
 `ADS_CONVERSIONS` in `src/lib/analytics/track.ts` maps the `/advice` chat
-events and, since 2026-09-07, the MOU landing's contact events (below). The
-pillar quiz funnel fires `quiz_start`, `quiz_complete`, and `voucher_sent`
-(see `src/components/quiz/QuizRunner.tsx` and `src/app/api/quiz/route.ts`),
-none of which are mapped — so a pillar campaign launched today would report
-**zero conversions** in Google Ads no matter how well it performed.
+events and, since 2026-09-07, the `foreign` pillar's `/foreign/mou` and
+`/foreign/workpermit` contact events (below). The pillar quiz funnel fires
+`quiz_start`, `quiz_complete`, and `voucher_sent` (see
+`src/components/quiz/QuizRunner.tsx` and `src/app/api/quiz/route.ts`), none
+of which are mapped — so a quiz-funnel pillar campaign launched today would
+report **zero conversions** in Google Ads no matter how well it performed.
 
 Before spending on any quiz-funnel campaign below, add the pillar events to
 `ADS_CONVERSIONS`. `voucher_sent` is the right primary — it means a voucher
 actually issued, not just that someone started answering questions.
 
-Two pages in the `foreign` pillar are still unmapped and would report zero:
-`/foreign/deadline` (`foreign_deadline_call_click`,
-`foreign_deadline_line_click`) and `/foreign` itself. Map them the same way
-before advertising either.
+`/foreign` itself is still unmapped (its CTAs are plain `Link`/`tel:`
+elements with no `track()` call) and would report zero. Map it the same way
+before advertising it directly.
 
 ## The offers, verbatim
 
@@ -163,7 +163,7 @@ Three red lines, all of which are already product policy:
   traffic means paying for leads we are obliged to refuse. Add such phrasings
   as negatives instead.
 
-## foreign → `/foreign`
+## foreign → `/foreign`, `/foreign/mou`, `/foreign/workpermit`
 
 ```
 "ตรวจสุขภาพแรงงานต่างด้าว"      "ใบรับรองแพทย์ต่างด้าว"
@@ -176,12 +176,20 @@ lead with group pricing and document handling, and the campaign can run on a
 wider radius than `/advice` since employers travel to arrange screening.
 Credentials to cite are in `docs/foreign-worker-tiein.md`.
 
+**2026-09-07 update: `foreign` is no longer only a backlog entry.** Two of
+its pages now have live campaigns with conversions wired up — `/foreign/mou`
+(evergreen MOU/Work Permit intent) and `/foreign/workpermit` (a time-boxed
+campaign for the 2569 renewal window, มติ ครม. 14 ก.ค. 2569, deadline 11 ธ.ค.
+2569 — see `docs/workpermit-google-ads.md`). `/foreign` itself and the other
+seven pillars' `quiz_start`/`quiz_complete`/`voucher_sent` funnel remain
+unmapped. `/foreign/workpermit` ends when the renewal window closes — it does
+not replace the evergreen `/foreign`/`/foreign/mou` rollout entry below.
+
 ### Landing page: send MOU / Work Permit keywords to `/foreign/mou`
 
 `/foreign` is the pillar overview; `/foreign/mou` is the page built for this
 search intent — price, documents, the 90-day certificate, the 7-step process,
-a callback form, and an inline Q&A assistant. It is also the only page in
-this pillar whose conversions are wired up.
+a callback form, and an inline Q&A assistant.
 
 ### Conversions (live)
 
@@ -210,6 +218,11 @@ Because all of this shares one action with `/advice`, read MOU performance
 per campaign, not per account. Give MOU its own conversion action only when
 it needs a separate bidding target — create it in the Ads UI first, then
 change the five values above.
+
+`/foreign/workpermit` follows the identical pattern with its own four events
+(`workpermit_lead`, `workpermit_chat_lead`, `workpermit_call_click`,
+`workpermit_line_click`) — see `docs/workpermit-google-ads.md` for the full
+brief.
 
 ---
 

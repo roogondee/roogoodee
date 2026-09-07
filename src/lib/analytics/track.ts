@@ -56,6 +56,11 @@ declare global {
 // mou_chat_no_match, mou_chat_lead_open (opening the callback form is not
 // submitting it).
 //
+// workpermit_* (src/components/pages/ForeignWorkPermitClient.tsx,
+// WorkPermitChat.tsx, WorkPermitLeadForm.tsx) is the dated
+// /foreign/workpermit renewal campaign — same action, same reasoning.
+// workpermit_chat_start is deliberately NOT mapped (engagement, not contact).
+//
 // If a visitor both leaves a phone number and taps LINE, this fires twice.
 // The same goes for the call button on the MOU form's success screen, tapped
 // seconds after the form itself converted. That is handled on the Google Ads
@@ -72,6 +77,10 @@ const ADS_CONVERSIONS: Record<string, string> = {
   mou_call_click: 'ads_conversion_Contact_Us_1',
   mou_line_click: 'ads_conversion_Contact_Us_1',
   mou_chat_line_click: 'ads_conversion_Contact_Us_1',
+  workpermit_lead: 'ads_conversion_Contact_Us_1',
+  workpermit_chat_lead: 'ads_conversion_Contact_Us_1',
+  workpermit_call_click: 'ads_conversion_Contact_Us_1',
+  workpermit_line_click: 'ads_conversion_Contact_Us_1',
 }
 
 export function track(name: string, params: Record<string, unknown> = {}) {
