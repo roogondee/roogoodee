@@ -21,6 +21,7 @@
 | อาการใน alert | แปลว่า | ต้องทำ |
 | --- | --- | --- |
 | `🔑 FB Page Access Token ใช้ไม่ได้` (code 190) | token หมดอายุ / ถูก revoke / บัญชีหลุด role / เป็น user token | ออก token ใหม่ตามข้อ 3 |
+| `🙅 แอปยังไม่ได้รับสิทธิ์บนเพจ` (code 190) | consent ไม่ครบ — ติ๊กเพจผิด, scope ไม่ครบ, หรือคนละแอป | ข้อ 2B (**ออก token ใหม่เฉย ๆ ไม่หาย**) |
 | `🚫 token ใช้ได้ แต่ขาดสิทธิ์` (code 200/10/3) | scope ไม่ครบ หรือ App Review ยังไม่ผ่าน | ข้อ 4 |
 | `⏳ ติด rate limit ของเพจ` (code 4/17/32/613) | ยิงถี่เกินโควตาเพจ | ไม่ต้องทำอะไร รอ cron รอบหน้า |
 | `❌ ขาด env …` | secret หาย / ชื่อผิด | ตั้ง secret ใน GitHub และ Vercel |
@@ -36,6 +37,10 @@ FB_PAGE_ID=… FB_PAGE_ACCESS_TOKEN=… python scripts/fb_graph.py
 
 สคริปต์จะบอกว่า token เป็นของเพจไหน ตรงกับ `FB_PAGE_ID` ไหม เหลืออายุกี่วัน และ scope ครบไหม
 (อายุ + scope ต้องตั้ง `FB_APP_ID` และ `FB_APP_SECRET` ด้วยถึงจะเช็คได้)
+
+ตั้งแต่รอบ 2026-09-03 เป็นต้นไป **ตอน preflight พังก็จะเรียก `/debug_token` ให้ด้วย**
+(ยิงด้วย app token เลยยังตอบได้แม้ Page token จะใช้ไม่ได้แล้ว) alert จึงมีบรรทัด `🔍 /debug_token:`
+บอก `type` / `app` / `profile_id` / scope / วันหมดอายุ ติดมาเสมอ — ไม่ต้องเดาว่า token เป็นตัวไหน
 
 ---
 
@@ -64,6 +69,52 @@ Facebook ใช้ข้อความเดียวกันนี้กั�
 
 ---
 
+## 2B. error 190 "must be granted before impersonating a user's page"
+
+ข้อความเต็ม:
+
+> Any of the pages_read_engagement, pages_manage_metadata, pages_read_user_content,
+> pages_manage_ads, pages_show_list or pages_messaging permission(s) must be granted
+> before impersonating a user's page.
+
+**คนละเรื่องกับข้อ 2** ถึงจะเป็น code 190 เหมือนกัน — ข้อ 2 คือ "บัญชีไม่มีสิทธิ์บนเพจ",
+ข้อนี้คือ "**แอป**ไม่ได้รับสิทธิ์บนเพจ" token ยังไม่หมดอายุด้วยซ้ำ
+เพราะฉะนั้น **ออก token ใหม่ด้วยวิธีเดิมจะได้ token ที่พังแบบเดิม** ต้องกลับไปแก้ที่หน้า consent
+
+สาเหตุ เรียงจากที่เจอบ่อยที่สุด:
+
+1. **ตอน consent ไม่ได้ติ๊กเพจนี้** — Facebook ให้เลือกทีละเพจ กด "ดำเนินการต่อ" รวดเดียว
+   มักได้แค่เพจ default `python scripts/fb_graph.py` จะฟ้องบรรทัด
+   `⚠️  pages_manage_posts ถูกให้กับเพจ … ไม่รวมเพจ …` ให้เห็นชัด ๆ (อ่านจาก `granular_scopes`)
+2. **token ออกจากคนละแอป** — `app` ในบรรทัด `🔍 /debug_token:` ต้องเป็น `1840096433337980`
+   ถ้าไม่ใช่ แปลว่าไปออกจากแอปอื่นที่ยังไม่ผ่าน App Review สิทธิ์เลยไม่ติดมา
+   (fingerprint ขึ้นต้นต่างกัน เช่น `EAAG…` เป็น `EAAa…` ก็เป็นสัญญาณเดียวกัน — 4 ตัวแรกเข้ารหัส App ID)
+3. **บัญชีถอนสิทธิ์แอปทีหลัง** — [Settings → Business Integrations](https://www.facebook.com/settings?tab=business_tools)
+   → RooGonDee AutoPost → ดูว่าเพจยังถูกติ๊กอยู่ไหม
+4. **ขาด `pages_show_list`** — ไม่ได้ใช้ตอนโพสต์ แต่ถ้าไม่มี `/me/accounts` จะไม่คืนเพจ
+   เลยแตก Page token ไม่ได้ตั้งแต่ต้น
+
+### วิธีแก้
+
+```bash
+# 1) ลิงก์ consent ที่ scope ครบ + auth_type=rerequest (บังคับให้แสดงหน้าเลือกเพจใหม่)
+python scripts/fb_page_token.py --consent-url
+
+# 2) เอา user token จาก URL bar มาแลก long-lived แล้วแตกเป็น Page token
+python scripts/fb_page_token.py --user-token "EAA…"
+
+# 3) เห็นค่าจริงเพื่อเอาไปวาง secret (ปกติพิมพ์แค่ fingerprint)
+python scripts/fb_page_token.py --user-token "EAA…" --show-token
+```
+
+ขั้นตอนที่ 2 จะเช็คให้ครบเลยว่า scope มาครบไหม เพจอยู่ใน `/me/accounts` ไหม
+บัญชีมี task `CREATE_CONTENT` บนเพจไหม และยิง `GET /me` ด้วย token ใหม่ให้ดูก่อนว่าโพสต์ได้จริง
+ถ้าเพจไม่โผล่ในลิสต์ = ข้อ 1 ด้านบน กลับไปกด consent ใหม่แล้วติ๊กเพจให้ถูก
+
+> วิธีตัดปัญหาถาวรยังเป็น System User token (ข้อ 3B) — สิทธิ์ผูกกับ Business ไม่ใช่หน้า consent ของคน
+
+---
+
 ## 3. ออก Page token ใหม่
 
 ### 3A. ทางเร็ว — Graph API Explorer (อายุ ~60 วัน)
@@ -89,6 +140,9 @@ curl -sG "https://graph.facebook.com/v19.0/me/accounts" \
 ```
 
 หา entry ที่ `id` = `1042552638945974` แล้วใช้ค่า `access_token` ของ entry นั้น
+
+> ข้อ 4-5 ทำรวดเดียวได้ด้วย `python scripts/fb_page_token.py --user-token "$SHORT_LIVED_TOKEN"`
+> ซึ่งตรวจ scope/เพจ/task ให้ด้วย แทนที่จะรู้ว่าพังตอน cron รอบถัดไป
 
 ### 3B. ทางที่ควรทำ — System User token (ไม่หมดอายุ)
 
