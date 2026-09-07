@@ -158,7 +158,7 @@ Three red lines, all of which are already product policy:
   traffic means paying for leads we are obliged to refuse. Add such phrasings
   as negatives instead.
 
-## foreign → `/foreign`
+## foreign → `/foreign`, `/foreign/mou`, `/foreign/workpermit`
 
 ```
 "ตรวจสุขภาพแรงงานต่างด้าว"      "ใบรับรองแพทย์ต่างด้าว"
@@ -170,6 +170,20 @@ B2B: the searcher is an HR officer or employer, not a patient. Ad copy should
 lead with group pricing and document handling, and the campaign can run on a
 wider radius than `/advice` since employers travel to arrange screening.
 Credentials to cite are in `docs/foreign-worker-tiein.md`.
+
+**2026-09-07 update: `foreign` is no longer only a backlog entry.**
+`/foreign/workpermit` shipped as a dated campaign page for the 2569 renewal
+window (มติ ครม. 14 ก.ค. 2569, deadline 11 ธ.ค. 2569) and is the **first
+pillar page with its funnel wired into `ADS_CONVERSIONS`**
+(`workpermit_lead`, `workpermit_chat_lead`, `workpermit_call_click`,
+`workpermit_line_click` — see `docs/workpermit-google-ads.md` for the full
+campaign brief). This resolves the "pillar conversions are not tracked yet"
+prerequisite above **for `foreign` only** — `/foreign` and `/foreign/mou`'s
+own events (`mou_lead_submit`, etc.) are still unmapped, and the other seven
+pillars' `quiz_start`/`quiz_complete`/`voucher_sent` remain unmapped too.
+`/foreign/workpermit` is a time-boxed campaign (ends when the renewal window
+closes) — it does not replace the evergreen `/foreign`/`/foreign/mou` rollout
+entry below, which still applies once the deadline passes.
 
 ---
 

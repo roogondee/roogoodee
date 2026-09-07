@@ -41,6 +41,12 @@ declare global {
 // added for the Smart-campaign variant of /advice, where a visitor may want
 // a human immediately rather than a chat. Same conversion action.
 //
+// workpermit_* (src/components/pages/ForeignWorkPermitClient.tsx,
+// WorkPermitChat.tsx, WorkPermitLeadForm.tsx) is the first pillar campaign
+// wired into this map — the foreign pillar's /foreign/workpermit landing.
+// workpermit_chat_start is deliberately NOT mapped (engagement, not contact),
+// same reasoning as advice_start/message/assessment above.
+//
 // If a visitor both leaves a phone number and taps LINE, this fires twice.
 // That is handled on the Google Ads side by setting the conversion action's
 // Count to "One" per click, not by suppressing it here.
@@ -50,6 +56,10 @@ const ADS_CONVERSIONS: Record<string, string> = {
   advice_followup_line_click: 'ads_conversion_Contact_Us_1',
   advice_cta_call_click: 'ads_conversion_Contact_Us_1',
   advice_cta_line_click: 'ads_conversion_Contact_Us_1',
+  workpermit_lead: 'ads_conversion_Contact_Us_1',
+  workpermit_chat_lead: 'ads_conversion_Contact_Us_1',
+  workpermit_call_click: 'ads_conversion_Contact_Us_1',
+  workpermit_line_click: 'ads_conversion_Contact_Us_1',
 }
 
 export function track(name: string, params: Record<string, unknown> = {}) {

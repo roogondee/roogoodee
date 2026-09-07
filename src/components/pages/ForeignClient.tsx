@@ -45,11 +45,11 @@ export default function ForeignClient() {
 
       {/* DEADLINE BANNER — links to the dated campaign page; remove once 11 ธ.ค. 2569 has passed */}
       <section className="pt-20 md:pt-24 px-6 md:px-20 pb-2">
-        <Link href="/foreign/deadline-2569" className="block max-w-5xl mx-auto bg-red-50 border border-red-200 hover:bg-red-100 transition-colors rounded-2xl px-5 py-4 flex flex-col md:flex-row gap-2 md:items-center">
+        <Link href="/foreign/workpermit" className="block max-w-5xl mx-auto bg-red-50 border border-red-200 hover:bg-red-100 transition-colors rounded-2xl px-5 py-4 flex flex-col md:flex-row gap-2 md:items-center">
           <span className="text-2xl">⏰</span>
           <div className="flex-1 text-sm">
             <span className="font-bold text-red-700">ประกาศสำคัญ — </span>
-            <span className="text-red-700/85">ต่ออายุ/ตรวจสุขภาพแรงงานต่างด้าว ก่อนหมดเขต 11 ธันวาคม 2569 ดูรายละเอียด →</span>
+            <span className="text-red-700/85">ต่ออายุใบอนุญาตทำงานแรงงานต่างด้าว ก่อนปิดระบบ 11 ธันวาคม 2569 ดูรายละเอียด →</span>
           </div>
         </Link>
       </section>

@@ -13,6 +13,7 @@ const ALLOWED_SOURCES = new Set([
   'fb-broadcast',
   'campaign',
   'mou-landing',
+  'workpermit-landing',
 ])
 
 // UTM values come straight from the URL — keep only short plain strings.
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
         utm_source: cleanUtm(body.utm_source),
         utm_medium: cleanUtm(body.utm_medium),
         utm_campaign: cleanUtm(body.utm_campaign),
+        gclid: cleanUtm(body.gclid),
       }])
       .select()
 
