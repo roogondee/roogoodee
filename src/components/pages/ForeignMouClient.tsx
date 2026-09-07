@@ -4,7 +4,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import th from '@/lib/i18n/locales/th'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
-import MouLeadForm, { trackCallClick } from '@/components/ui/MouLeadForm'
+import MouLeadForm, { trackCallClick, trackLineClick } from '@/components/ui/MouLeadForm'
 import MouChat from '@/components/ui/MouChat'
 
 const PHONE_TEL = 'tel:0819023540'
@@ -228,7 +228,7 @@ export default function ForeignMouClient() {
           <p className="text-muted mb-8">{m.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <CallButton position="final_cta" label={m.ctaCall} />
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => trackLineClick('final_cta')} className="flex items-center justify-center bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
           </div>
         </div>
       </section>
