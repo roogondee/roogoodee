@@ -10,6 +10,7 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendMetaEvent } from '@/lib/meta-events'
 import { verifyLiffIdToken } from '@/lib/liff-verify'
 import { resolveContact } from '@/lib/crm/contacts'
 import type { Service } from '@/types'
@@ -45,6 +46,8 @@ interface ClaimPayload {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbc?: string
+  fbp?: string
   liff_id_token?: string
 }
 
@@ -372,6 +375,30 @@ export async function POST(req: NextRequest) {
         currency: 'THB',
         lead_score: scoring.tier,
         vertical: body.service,
+      },
+    })
+
+    // Meta Conversions API — the only way Meta ever learns this conversion
+    // happened: the quiz completes inside LINE, where the browser pixel cannot
+    // reach. event_id = voucher code, matching the TikTok convention above.
+    void sendMetaEvent({
+      event_name: 'Lead',
+      event_id: voucher.code,
+      service: body.service,
+      user: {
+        external_id: voucher.code,
+        ip: clientIp || undefined,
+        user_agent: req.headers.get('user-agent') || undefined,
+        fbc: body.fbc,
+        fbp: body.fbp,
+      },
+      custom_data: {
+        content_name: `${body.service.toUpperCase()} Voucher`,
+        content_category: body.service,
+        content_type: 'lead',
+        value: scoring.score,
+        currency: 'THB',
+        lead_score: scoring.tier,
       },
     })
 

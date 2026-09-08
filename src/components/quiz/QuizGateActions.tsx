@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Service } from '@/types'
+import { readAttribution } from '@/lib/analytics/track'
 
 // Interactive island of the LINE gate: campaign passthrough + pixel events.
 //
@@ -36,6 +37,11 @@ export default function QuizGateActions({
 
     // Carry the visitor's attribution into LINE so the lead created inside
     // LIFF still reports the ad / article that brought them in.
+    //
+    // utm answers "which campaign", the click ids answer "which click" — and
+    // only the latter lets the Conversions API attribute the lead back to the
+    // ad that paid for it. They have to ride the URL: the LIFF quiz opens in
+    // LINE's in-app browser, which cannot see cookies set here.
     try {
       const here = new URLSearchParams(window.location.search)
       const url = new URL(baseHref)
@@ -43,6 +49,10 @@ export default function QuizGateActions({
       for (const k of UTM_KEYS) {
         const v = here.get(k)
         if (v) { url.searchParams.set(k, v); changed = true }
+      }
+      for (const [k, v] of Object.entries(readAttribution())) {
+        url.searchParams.set(k, v)
+        changed = true
       }
       if (changed) setHref(url.toString())
     } catch {}

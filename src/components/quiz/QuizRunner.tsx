@@ -10,6 +10,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import thDict from '@/lib/i18n/locales/th'
 import { formatDate } from '@/lib/i18n/format'
 import type { LiffIdentity } from '@/lib/liff-client'
+import { readAttribution } from '@/lib/analytics/track'
 
 declare global {
   interface Window {
@@ -239,11 +240,20 @@ export default function QuizRunner({ definition, liff }: Props) {
     } catch {}
   }, [definition.service, definition.questions.length, utm])
 
-  // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
+  // Persist the attribution ids that arrived on the URL into 30-day cookies so
+  // they survive the multi-step quiz — inside LIFF the params are only present
+  // on the first render, and a refresh mid-quiz would otherwise drop the click
+  // id that lets the Conversions API attribute this lead to a paid click.
   useEffect(() => {
-    const ttclid = searchParams?.get('ttclid')
-    if (ttclid && typeof document !== 'undefined') {
-      document.cookie = `ttclid=${encodeURIComponent(ttclid)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    if (typeof document === 'undefined') return
+    const arrived = readAttribution()
+    const COOKIE_NAME: Record<string, string> = {
+      fbc: '_fbc', fbp: '_fbp', ttclid: 'ttclid', ttp: '_ttp',
+    }
+    for (const [key, value] of Object.entries(arrived)) {
+      const name = COOKIE_NAME[key]
+      if (!name) continue
+      document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
     }
   }, [searchParams])
 
@@ -390,8 +400,9 @@ export default function QuizRunner({ definition, liff }: Props) {
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
           recaptcha_token: recaptchaToken,
-          ttclid: readCookie('ttclid'),
-          ttp:    readCookie('_ttp'),
+          // fbc/fbp/ttclid/ttp — forwarded from the gate through the LIFF URL,
+          // since LINE's in-app browser cannot read the gate's cookies.
+          ...readAttribution(),
           liff_id_token: liff?.idToken || undefined,
         }),
       })
@@ -435,8 +446,7 @@ export default function QuizRunner({ definition, liff }: Props) {
     setLoading(true)
     try {
       const recaptchaToken = await getRecaptchaToken(`quiz_${definition.service}`)
-      const ttclid = readCookie('ttclid')
-      const ttp = readCookie('_ttp')
+      const attribution = readAttribution()
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -453,8 +463,7 @@ export default function QuizRunner({ definition, liff }: Props) {
           utm_medium:   utm.utm_medium,
           utm_campaign: utm.utm_campaign,
           recaptcha_token: recaptchaToken,
-          ttclid,
-          ttp,
+          ...attribution,
         }),
       })
       const data = await res.json()
