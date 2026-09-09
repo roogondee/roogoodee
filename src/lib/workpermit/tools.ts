@@ -23,12 +23,19 @@ const CREATE_LEAD_TOOL: Anthropic.Tool = {
     properties: {
       name: { type: 'string', description: 'Name as the user gave it.' },
       phone: { type: 'string', description: 'Thai phone number, 9-10 digits, starts with 0.' },
+      worker_count: {
+        type: 'string',
+        description:
+          'How many people need the checkup, as the user gave it (e.g. "1", "5", "20-30 คน"). ' +
+          'Only ask this when it is natural — an employer/HR booking for staff, or anyone ' +
+          'mentioning a group. Omit for a single walk-in worker asking about themself.',
+      },
       note: {
         type: 'string',
         description:
           'Short Thai briefing (<300 chars) for whoever calls back: what they actually asked ' +
-          '(e.g. document question, nationality, worker count, "จะทันไหม"), so the call opens on ' +
-          'the right context instead of starting from scratch.',
+          '(e.g. document question, nationality, "จะทันไหม"), so the call opens on the right ' +
+          'context instead of starting from scratch.',
       },
     },
     required: ['name', 'phone'],
@@ -46,13 +53,20 @@ export async function executeWorkPermitTool(
     const input = (rawInput && typeof rawInput === 'object' ? rawInput : {}) as {
       name?: string
       phone?: string
+      worker_count?: string
       note?: string
     }
+    // worker_count folded into note (no dedicated leads column), same pattern
+    // as WorkPermitLeadForm's static "จำนวนแรงงาน: ..." prefix.
+    const note = [
+      input.worker_count?.trim() && `จำนวนคน: ${input.worker_count.trim()}`,
+      input.note?.trim(),
+    ].filter(Boolean).join(' | ')
     // service is fixed to 'foreign' — this bot only ever lives on the
     // work-permit landing page, never routed dynamically like the advice agent.
     return executeTool(
       'create_lead',
-      { name: input.name, phone: input.phone, service: 'foreign', note: input.note },
+      { name: input.name, phone: input.phone, service: 'foreign', note },
       ctx
     )
   }
