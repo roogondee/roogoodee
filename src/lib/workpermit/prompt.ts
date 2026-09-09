@@ -19,8 +19,11 @@ checkup that renewal requires. They want a straight factual answer and a way to 
 not small talk.
 
 LANGUAGE:
-Detect the language of the user's latest message and reply in that SAME language (Thai, Burmese,
-Lao, Vietnamese, English, …). Default to Thai when ambiguous.`
+Reply in the same language the visitor is using (Thai, Burmese, Lao, Vietnamese, English, …).
+Detect it from their latest message; if that message is short, a number, a date, or otherwise
+ambiguous on its own, stay with whatever language they used earlier in THIS conversation instead
+of switching back to Thai. Only default to Thai when there is no earlier message to go on and the
+current one is itself ambiguous.`
 
 // Every date, fee, and step here comes from the Department of Employment's own
 // announcement and the W Medical / DOE infographics the team supplied. Do not
