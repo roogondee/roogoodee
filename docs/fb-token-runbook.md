@@ -23,6 +23,8 @@
 | `🔑 FB Page Access Token ใช้ไม่ได้` (code 190) | token หมดอายุ / ถูก revoke / บัญชีหลุด role / เป็น user token | ออก token ใหม่ตามข้อ 3 |
 | `🙅 แอปยังไม่ได้รับสิทธิ์บนเพจ` (code 190) | consent ไม่ครบ — ติ๊กเพจผิด, scope ไม่ครบ, หรือคนละแอป | ข้อ 2B (**ออก token ใหม่เฉย ๆ ไม่หาย**) |
 | `🚫 token ใช้ได้ แต่ขาดสิทธิ์` (code 200/10/3) | scope ไม่ครบ หรือ App Review ยังไม่ผ่าน | ข้อ 4 |
+| `❌ token เป็นของ "<ชื่อคน>" … ไม่ใช่เพจ` | วาง user token แทน Page token — มักเพราะ `/me/accounts` คืนค่าว่าง | ข้อ 2C |
+| `🐛 นี่คือบั๊กในโค้ด` (code 100) | เราขอ field ที่ Graph ไม่รู้จัก — **อย่าออก token ใหม่** | แก้ params ของ request |
 | `⏳ ติด rate limit ของเพจ` (code 4/17/32/613) | ยิงถี่เกินโควตาเพจ | ไม่ต้องทำอะไร รอ cron รอบหน้า |
 | `❌ ขาด env …` | secret หาย / ชื่อผิด | ตั้ง secret ใน GitHub และ Vercel |
 
@@ -112,6 +114,57 @@ python scripts/fb_page_token.py --user-token "EAA…" --show-token
 ถ้าเพจไม่โผล่ในลิสต์ = ข้อ 1 ด้านบน กลับไปกด consent ใหม่แล้วติ๊กเพจให้ถูก
 
 > วิธีตัดปัญหาถาวรยังเป็น System User token (ข้อ 3B) — สิทธิ์ผูกกับ Business ไม่ใช่หน้า consent ของคน
+
+---
+
+## 2C. `/me/accounts` คืน `[]` ว่าง — เพจอยู่ใต้ Business แต่บัญชีมีแค่สิทธิ์โฆษณา
+
+**นี่คือสถานะปัจจุบันของโปรเจกต์ (2026-09-10) และเป็นเหตุผลที่ cron ถูกปิดอยู่**
+
+อาการ: ทำตามข้อ 2B ครบแล้ว — consent ผ่าน, scope ครบทั้ง 3 ตัว, ไม่มี error 190 แล้ว
+แต่ยิง `me/accounts` ได้ `{"data": []}` ว่างเปล่า จึงไม่มี Page token ให้หยิบตั้งแต่แรก
+ถ้าเผลอเอา user token ไปวางใน secret แทน preflight จะฟ้องว่า
+`❌ token เป็นของ "<ชื่อคน>" (id=…) ไม่ใช่เพจ …`
+
+สาเหตุ: เพจ `1042552638945974` **เป็นทรัพย์สินของ Business "Roogondee-รู้งี้"**
+(`business_id=944660955086551`) ไม่ได้ผูกกับบัญชีส่วนตัวโดยตรง และบัญชีที่ใช้ออก token
+มีสิทธิ์บนเพจแค่ระดับ **`CREATE_ADS` (ลงโฆษณา)**
+
+`/me/accounts` คืนเฉพาะเพจที่บัญชีมี role **จัดการเนื้อหา** (task `CREATE_CONTENT`)
+สิทธิ์ระดับโฆษณาไม่นับ — เพจจึงไม่โผล่ และแตก Page token ไม่ได้เลย
+(สังเกตว่าเครื่องมือฝั่งโฆษณายังเห็นเพจนี้อยู่ ทำให้เข้าใจผิดได้ง่ายว่า "มีสิทธิ์แล้ว")
+
+### แก้ทางใดทางหนึ่ง — ทั้งสองทางต้องมีสิทธิ์ **Business admin**
+
+**A. เพิ่ม role ให้บัญชีคนบนเพจ** (เร็ว แต่ผูกกับบัญชีคน)
+
+1. [Business Settings → Pages](https://business.facebook.com/settings/pages?business_id=944660955086551)
+   → เลือกเพจ รู้งี้ → แท็บ **People** → **Add People**
+2. เลือกบัญชีที่จะใช้ออก token → เปิด **Full control** (อย่างน้อยต้องมี **Content**)
+3. กลับไปทำข้อ 2B ใหม่ คราวนี้ `me/accounts` จะคืนเพจพร้อม `access_token` และ
+   `tasks` ที่มี `CREATE_CONTENT`
+
+**B. System User token** (ข้อ 3B) — ทางที่ควรใช้กับเพจที่อยู่ใต้ Business
+สิทธิ์ผูกกับ Business ไม่ใช่กับคน ไม่ตายตอนใครลาออกหรือเปลี่ยนรหัสผ่าน และไม่หมดอายุ
+System User ที่ถูก assign เพจแล้วจะเห็นเพจใน `/me/accounts` ของตัวเอง จึงแตก Page token ได้ตามปกติ
+
+> เช็คว่าใครเป็น Business admin ได้ที่
+> [Business Settings → People](https://business.facebook.com/settings/people?business_id=944660955086551)
+
+### cron ถูกปิดชั่วคราว (2026-09-10)
+
+`fb_story.yml`, `fb_caption.yml`, `fb_token_check.yml` ถูก **comment `schedule:` ออกทั้งบล็อก**
+ตามที่เจ้าของ repo สั่ง เพราะมันล้มทุกเช้าและยิง alert ทิ้งไว้โดยไม่มีอะไรให้แก้ในโค้ด
+ทั้งสามยังกด **Run workflow** เองได้ตลอด และ `🚨 Cron Failure Alert` หยุดตามเองเพราะมันจับ
+`workflow_run` ของ cron พวกนี้
+
+**เปิดคืนเมื่อ token พร้อม:**
+
+1. แก้สิทธิ์ตาม A หรือ B ด้านบน แล้วออก Page token ใหม่
+2. วาง `FB_PAGE_ACCESS_TOKEN` ทั้ง GitHub Secrets และ Vercel (ข้อ 5)
+3. Actions → **🔑 RuGonDee Facebook Token Check** → Run workflow → ต้องขึ้น `🔑 token ok`
+4. เอา `# ` ออกจากบล็อก `schedule:` ในทั้งสามไฟล์ (ต้องเอาออกทั้ง `schedule:` และบรรทัด
+   `- cron:` — ถ้าเหลือ `schedule:` ลอย ๆ ไม่มีรายการ GitHub จะตีว่า workflow เสียทั้งไฟล์)
 
 ---
 
