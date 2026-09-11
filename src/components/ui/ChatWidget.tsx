@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
+import { isWorkPermitWindowOpen } from '@/lib/workpermit/deadline'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -97,6 +98,16 @@ export default function ChatWidget() {
   // than model output. A second, floating chat there would offer an LLM route
   // to the same questions and could improvise those numbers.
   if (pathname?.startsWith('/foreign/mou')) return null
+
+  // Hide on /foreign/workpermit — its inline WorkPermitChat answers from a
+  // fixed FACTS block (dates, fees, documents); a floating LLM chat beside it
+  // would be a second route to the same questions that could improvise them.
+  if (pathname?.startsWith('/foreign/workpermit')) return null
+
+  // Hide on the homepage while it opens with the inline work-permit chat
+  // (HomeWorkPermitHero, until 11 ธ.ค. 2569) — same reasoning as /advice: one
+  // chat per page, and that one routes other-service questions itself.
+  if (pathname === '/' && isWorkPermitWindowOpen()) return null
 
   return (
     <>
