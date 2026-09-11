@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import ForeignWorkPermitClient from '@/components/pages/ForeignWorkPermitClient'
+import { daysUntilWorkPermitDeadline } from '@/lib/workpermit/deadline'
 
 export const metadata: Metadata = {
   title: 'ต่ออายุใบอนุญาตทำงานแรงงานต่างด้าว 2569 — ตรวจสุขภาพที่ W Medical | รู้ก่อนดี(รู้งี้)',
@@ -13,14 +14,6 @@ export const metadata: Metadata = {
   },
 }
 
-const DEADLINE = new Date('2026-12-11T00:00:00+07:00')
-
-function daysUntilDeadline(): number {
-  const now = new Date()
-  const diffMs = DEADLINE.getTime() - now.getTime()
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
-}
-
 export default function ForeignWorkPermitPage() {
-  return <ForeignWorkPermitClient daysLeft={daysUntilDeadline()} />
+  return <ForeignWorkPermitClient daysLeft={daysUntilWorkPermitDeadline()} />
 }

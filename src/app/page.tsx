@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import HomeClient from '@/components/pages/HomeClient'
+import { daysUntilWorkPermitDeadline, isWorkPermitWindowOpen } from '@/lib/workpermit/deadline'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,5 +27,11 @@ export default async function Home() {
       .limit(3),
   ])
 
-  return <HomeClient posts={posts} news={news} />
+  // While the 2569 work-permit renewal window is open the homepage leads with
+  // that campaign (countdown + inline Q&A chat). Computed here, not in the
+  // client, so the switch-over is decided by server time; ISR (revalidate 60)
+  // means it flips within a minute of the window closing.
+  const workPermitDaysLeft = isWorkPermitWindowOpen() ? daysUntilWorkPermitDeadline() : null
+
+  return <HomeClient posts={posts} news={news} workPermitDaysLeft={workPermitDaysLeft} />
 }

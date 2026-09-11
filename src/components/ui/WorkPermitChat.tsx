@@ -26,7 +26,11 @@ type TriageLevel = 'routine' | 'urgent' | 'emergency'
 
 const SESSION_KEY = 'roogondee_workpermit_session'
 
-export default function WorkPermitChat({ className = '' }: { className?: string }) {
+// `surface` tags workpermit_chat_start so homepage views (where the chat is
+// open on every visit) don't inflate the landing page's chat-start count.
+// Leads keep source 'workpermit-chat' on both — on-site vs paid is already
+// told apart by the absence of gclid/utm_*, same as /advice.
+export default function WorkPermitChat({ className = '', surface = 'workpermit' }: { className?: string; surface?: 'workpermit' | 'home' }) {
   const { t } = useTranslation()
   const w = t.foreignWorkpermit
   const searchParams = useSearchParams()
@@ -53,12 +57,12 @@ export default function WorkPermitChat({ className = '' }: { className?: string 
     }
     if (!viewedRef.current) {
       viewedRef.current = true
-      track('workpermit_chat_start')
+      track('workpermit_chat_start', { surface })
       // gclid persisted so a lead created several messages in still carries
       // the click id back to Google Ads for offline conversion import.
       persistClickId('gclid', searchParams?.get('gclid'))
     }
-  }, [searchParams])
+  }, [searchParams, surface])
 
   useEffect(() => {
     const el = scrollRef.current

@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import { formatDate } from '@/lib/i18n/format'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
+import HomeWorkPermitHero from '@/components/pages/HomeWorkPermitHero'
 import homepageImages from '@/config/homepage-images'
 
 interface Post {
@@ -29,7 +30,14 @@ const SERVICE_COLORS: Record<string, string> = {
   mind: 'bg-violet-100 text-violet-700',
 }
 
-export default function HomeClient({ posts, news }: { posts: Post[] | null; news?: Post[] | null }) {
+// workPermitDaysLeft is non-null only while the 2569 renewal window is open
+// (decided server-side in app/page.tsx) — that is what puts the campaign hero
+// + inline chat on top of the page.
+export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
+  posts: Post[] | null
+  news?: Post[] | null
+  workPermitDaysLeft?: number | null
+}) {
   const { locale, t } = useTranslation()
   const brand = locale === 'th' ? <>รู้ก่อน<span className="text-mint italic">ดี</span></> : <>RooGon<span className="text-mint italic">Dee</span></>
 
@@ -61,10 +69,15 @@ export default function HomeClient({ posts, news }: { posts: Post[] | null; news
     <main className="min-h-screen bg-cream">
       <NavBar />
 
+      {/* CAMPAIGN HERO — foreign-worker checkup for the 2569 work-permit
+          renewal, with the Q&A chat open right away. Only until 11 ธ.ค. 2569;
+          the voucher hero below is what the page opens with after that. */}
+      {workPermitDaysLeft !== null && <HomeWorkPermitHero daysLeft={workPermitDaysLeft} />}
+
       {/* HERO — voucher-quiz cards for every locale. Thai and Burmese get
           native copy; every other locale falls back to English so the
           primary conversion path is never blank or wrong-script. */}
-      <VoucherHero locale={locale} />
+      <VoucherHero locale={locale} compact={workPermitDaysLeft !== null} />
 
       {/* TRUST STATS */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
@@ -390,13 +403,17 @@ const VOUCHER_OFFERS: Record<VoucherLocale, Array<{ emoji: string; tag: string; 
   ],
 }
 
-function VoucherHero({ locale }: { locale: string }) {
+// `compact` = rendered under the work-permit campaign hero: no navbar offset
+// (the campaign section already carries it) and the headline drops to an h2
+// so the page keeps a single h1.
+function VoucherHero({ locale, compact = false }: { locale: string; compact?: boolean }) {
   const voucherLocale: VoucherLocale = locale === 'th' || locale === 'my' ? locale : 'en'
   const s = VOUCHER_STRINGS[voucherLocale]
   const OFFERS = VOUCHER_OFFERS[voucherLocale]
+  const Heading = compact ? 'h2' : 'h1'
 
   return (
-    <section className="pt-20 md:pt-24 pb-12 md:pb-20 px-6 md:px-20 bg-gradient-to-br from-forest via-sage to-mint relative overflow-hidden">
+    <section className={`${compact ? 'pt-12 md:pt-16 border-t border-white/10' : 'pt-20 md:pt-24'} pb-12 md:pb-20 px-6 md:px-20 bg-gradient-to-br from-forest via-sage to-mint relative overflow-hidden`}>
       <div className="absolute top-20 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-mint/20 rounded-full blur-3xl" />
 
@@ -406,9 +423,9 @@ function VoucherHero({ locale }: { locale: string }) {
           {s.badge}
         </div>
 
-        <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
+        <Heading className="font-display text-4xl md:text-6xl lg:text-7xl text-white leading-tight mb-4 md:mb-6">
           {s.heroLine1} <em className="text-mint not-italic">{s.heroLine2}</em><br/>{s.heroSub}
-        </h1>
+        </Heading>
 
         <p className="text-base md:text-xl text-white/80 leading-relaxed mb-8 md:mb-10 max-w-2xl">
           {s.ctaLine}
