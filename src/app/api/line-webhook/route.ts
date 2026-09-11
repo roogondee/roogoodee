@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { generateReply } from '@/lib/chatbot/reply'
 import { detectService, extractVoucherCode } from '@/lib/chatbot/service-detect'
 import { captureBotLead } from '@/lib/chatbot/lead'
+import { getActivePause, isBurmeseText, pauseBotForUser } from '@/lib/chatbot/line-pause'
 import { resolveContact } from '@/lib/crm/contacts'
 import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
@@ -211,6 +212,12 @@ async function handleEvent(event: any): Promise<void> {
 
   const userId: string = event.source?.userId || ''
 
+  // Conversation is paused (Burmese hand-off or a staff member already
+  // replied manually) — stay silent so the bot doesn't talk over a human.
+  // Voucher-code linkage below is unaffected; it's account bookkeeping, not
+  // the AI chatting.
+  const pause = userId ? await getActivePause(userId) : null
+
   // Voucher code linkage: if the message is a voucher code,
   // match to a lead and save line_user_id for future push.
   const code = extractVoucherCode(text)
@@ -247,8 +254,32 @@ async function handleEvent(event: any): Promise<void> {
     return
   }
 
-  // Fallback: AI chat assistant
   const service = detectService(text)
+
+  // Burmese customer — the AI prompt is Thai-tuned, so hand off to staff
+  // instead of replying in a language it doesn't handle well. Send one
+  // hand-off notice, then stay silent for the pause window (re-armed on
+  // every further Burmese message from this user).
+  if (userId && isBurmeseText(text)) {
+    await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
+    await pauseBotForUser(userId, 'burmese')
+    if (replyToken && !pause) {
+      await replyToLine(
+        replyToken,
+        'ကျေးဇူးပြု၍ခဏစောင့်ပါ — ဝန်ထမ်းတစ်ဦးက မကြာမီပြန်လည်ဆက်သွယ်ပါမည်။\n(ทีมงานจะติดต่อกลับโดยเร็วที่สุดค่ะ)'
+      )
+    }
+    return
+  }
+
+  // Conversation is paused — a human is already handling it, so record the
+  // message for the record but don't let the AI jump in.
+  if (pause) {
+    await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
+    return
+  }
+
+  // Fallback: AI chat assistant
   const aiReply = await generateReply(text)
 
   await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
