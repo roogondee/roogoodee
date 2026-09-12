@@ -35,6 +35,16 @@ function readCookie(name: string): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined
 }
 
+// Meta click id in the _fbc cookie format. Prefer the pixel's own cookie;
+// when the pixel never loaded (LIFF browser, consent-blocked) rebuild it from
+// the fbclid we persisted off the URL — Meta accepts a constructed value.
+function readFbc(): string | undefined {
+  const fbc = readCookie('_fbc')
+  if (fbc) return fbc
+  const fbclid = readCookie('fbclid')
+  return fbclid ? `fb.1.${Date.now()}.${fbclid}` : undefined
+}
+
 async function getRecaptchaToken(action: string): Promise<string | undefined> {
   if (!RECAPTCHA_SITE_KEY || typeof window === 'undefined' || !window.grecaptcha) return undefined
   // Race against a timeout — a blocked or half-loaded grecaptcha must never
@@ -239,11 +249,17 @@ export default function QuizRunner({ definition, liff }: Props) {
     } catch {}
   }, [definition.service, definition.questions.length, utm])
 
-  // Persist ttclid from URL into a 30-day cookie so it survives across the multi-step quiz
+  // Persist click ids from URL into 30-day cookies so they survive across the
+  // multi-step quiz. fbclid matters most on the LIFF path: the gate passes it
+  // through the liff.line.me URL, and inside the LINE browser Meta's own _fbc
+  // cookie never exists (fresh browser context, pixel usually consent-blocked)
+  // — this cookie is what lets the server-side CAPI event still attribute the
+  // ad click.
   useEffect(() => {
-    const ttclid = searchParams?.get('ttclid')
-    if (ttclid && typeof document !== 'undefined') {
-      document.cookie = `ttclid=${encodeURIComponent(ttclid)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    if (typeof document === 'undefined') return
+    for (const key of ['ttclid', 'fbclid'] as const) {
+      const v = searchParams?.get(key)
+      if (v) document.cookie = `${key}=${encodeURIComponent(v)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
     }
   }, [searchParams])
 
@@ -336,9 +352,12 @@ export default function QuizRunner({ definition, liff }: Props) {
       event: funnelEvent,
       total_questions: definition.questions.length,
     })
+    // eventID = voucher code dedupes against the server-side Conversions API
+    // events (meta-capi.ts) — Meta merges per (event_name, event_id) pair.
+    const fbqOpts = data.voucher?.code ? { eventID: data.voucher.code } : undefined
     try {
-      window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' })
-      window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service })
+      window.fbq?.('track', 'Lead', { content_category: definition.service, value: data.score, currency: 'THB' }, fbqOpts)
+      window.fbq?.('track', 'CompleteRegistration', { content_category: definition.service }, fbqOpts)
     } catch {}
     if (data.voucher?.code) try {
       window.ttq?.track('SubmitForm', {
@@ -392,6 +411,8 @@ export default function QuizRunner({ definition, liff }: Props) {
           recaptcha_token: recaptchaToken,
           ttclid: readCookie('ttclid'),
           ttp:    readCookie('_ttp'),
+          fbc:    readFbc(),
+          fbp:    readCookie('_fbp'),
           liff_id_token: liff?.idToken || undefined,
         }),
       })
@@ -455,6 +476,8 @@ export default function QuizRunner({ definition, liff }: Props) {
           recaptcha_token: recaptchaToken,
           ttclid,
           ttp,
+          fbc: readFbc(),
+          fbp: readCookie('_fbp'),
         }),
       })
       const data = await res.json()
