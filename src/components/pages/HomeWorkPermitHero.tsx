@@ -2,6 +2,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
+import { isWorkPermitQueueTight } from '@/lib/workpermit/deadline'
 import WorkPermitChat from '@/components/ui/WorkPermitChat'
 import WorkPermitLeadForm from '@/components/ui/WorkPermitLeadForm'
 import WorkPermitStickyBar from '@/components/ui/WorkPermitStickyBar'
@@ -50,6 +51,11 @@ export default function HomeWorkPermitHero({ daysLeft }: { daysLeft: number }) {
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
             {w.badgePrefix} {daysLeft} {w.badgeSuffix}
           </div>
+          {isWorkPermitQueueTight(daysLeft) && (
+            <p className="text-xs md:text-sm text-amber-200 font-semibold mb-4 md:mb-5">
+              {w.badgeQueueNote}
+            </p>
+          )}
 
           <h1 className="font-display text-3xl md:text-5xl lg:text-6xl text-white leading-tight mb-4 md:mb-5">
             {h.wpTitle1}<br />

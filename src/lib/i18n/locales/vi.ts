@@ -798,6 +798,7 @@ const vi = {
     navCta: 'Gọi ngay',
     badgePrefix: '⏰ Còn lại để nộp hồ sơ',
     badgeSuffix: 'ngày (hệ thống đóng 11/12/2026)',
+    badgeQueueNote: 'Càng gần hạn chót càng kín lịch — nên đặt trước',
     heroTitle1: 'Gia hạn giấy phép lao động',
     heroTitle2: 'cho lao động nước ngoài 2026',
     heroTitle3: 'Khám sức khỏe là bước đầu tiên',

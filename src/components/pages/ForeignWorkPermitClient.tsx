@@ -1,6 +1,7 @@
 'use client'
 import { Suspense } from 'react'
 import { useTranslation } from '@/lib/i18n/context'
+import { isWorkPermitQueueTight } from '@/lib/workpermit/deadline'
 import th from '@/lib/i18n/locales/th'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
@@ -113,6 +114,11 @@ export default function ForeignWorkPermitClient({ daysLeft }: { daysLeft: number
           <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-full text-xs font-semibold mb-6">
             {w.badgePrefix} {daysLeft} {w.badgeSuffix}
           </div>
+          {isWorkPermitQueueTight(daysLeft) && (
+            <p className="text-xs md:text-sm text-amber-700 font-semibold mb-4 md:mb-5">
+              {w.badgeQueueNote}
+            </p>
+          )}
           <h1 className="font-display text-4xl md:text-6xl text-forest leading-tight mb-5">
             {w.heroTitle1}<br />{w.heroTitle2}<br /><em className="text-amber-600">{w.heroTitle3}</em>
           </h1>

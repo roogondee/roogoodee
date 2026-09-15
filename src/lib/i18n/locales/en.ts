@@ -496,6 +496,7 @@ const en = {
     navCta: 'Call now',
     badgePrefix: '⏰ Application window closes in',
     badgeSuffix: 'days (system closes 11 Dec 2026)',
+    badgeQueueNote: 'Slots fill up as the deadline nears — better to book ahead',
     heroTitle1: 'Renew the 2026 Work Permit',
     heroTitle2: 'for migrant workers',
     heroTitle3: 'Health checkup starts here',

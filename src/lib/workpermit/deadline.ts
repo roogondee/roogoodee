@@ -22,3 +22,13 @@ export function daysUntilWorkPermitDeadline(now: Date = new Date()): number {
 export function isWorkPermitWindowOpen(now: Date = new Date()): boolean {
   return now.getTime() < WINDOW_CLOSES.getTime()
 }
+
+// Below this many days left, the countdown stops being a neutral fact and
+// starts being a reason to act today: the hospital's checkup slots are finite
+// and the whole cohort renews in the same window. A bare "93 days" reads as
+// plenty of time, which is exactly the wrong signal for a one-shot deadline.
+export const QUEUE_PRESSURE_DAYS = 60
+
+export function isWorkPermitQueueTight(daysLeft: number): boolean {
+  return daysLeft <= QUEUE_PRESSURE_DAYS
+}

@@ -31,7 +31,7 @@ const SESSION_KEY = 'roogondee_workpermit_session'
 // Leads keep source 'workpermit-chat' on both — on-site vs paid is already
 // told apart by the absence of gclid/utm_*, same as /advice.
 export default function WorkPermitChat({ className = '', surface = 'workpermit' }: { className?: string; surface?: 'workpermit' | 'home' }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const w = t.foreignWorkpermit
   const searchParams = useSearchParams()
 
@@ -92,6 +92,9 @@ export default function WorkPermitChat({ className = '', surface = 'workpermit' 
           messages: newMessages,
           sessionId: sessionIdRef.current,
           attribution,
+          // Lets the route answer in the visitor's language on the paths that
+          // never reach the model — errors, limits, the safety block.
+          locale,
         }),
       })
       const data = await res.json()
