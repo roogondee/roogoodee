@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
-import { track, persistClickId } from '@/lib/analytics/track'
+import { track, persistClickId, trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/lib/analytics/track'
 
 // Work Permit renewal Q&A bot, inline at the top of /foreign/workpermit.
 // Deliberately its own component (not AdviceChat) — different audience
@@ -31,7 +31,7 @@ const SESSION_KEY = 'roogondee_workpermit_session'
 // Leads keep source 'workpermit-chat' on both — on-site vs paid is already
 // told apart by the absence of gclid/utm_*, same as /advice.
 export default function WorkPermitChat({ className = '', surface = 'workpermit' }: { className?: string; surface?: 'workpermit' | 'home' }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const w = t.foreignWorkpermit
   const searchParams = useSearchParams()
 
@@ -92,6 +92,9 @@ export default function WorkPermitChat({ className = '', surface = 'workpermit' 
           messages: newMessages,
           sessionId: sessionIdRef.current,
           attribution,
+          // Lets the route answer in the visitor's language on the paths that
+          // never reach the model — errors, limits, the safety block.
+          locale,
         }),
       })
       const data = await res.json()
@@ -102,7 +105,9 @@ export default function WorkPermitChat({ className = '', surface = 'workpermit' 
       }
       if (data.leadCaptured) {
         setLeadCaptured(true)
-        track('workpermit_chat_lead')
+        // `surface` distinguishes a lead captured by the homepage copy of this
+        // chat from one on the landing page; both are the same Ads conversion.
+        track('workpermit_chat_lead', { service: 'foreign', surface })
       }
       if (data.sessionId && typeof window !== 'undefined') {
         sessionIdRef.current = data.sessionId
@@ -198,11 +203,11 @@ export default function WorkPermitChat({ className = '', surface = 'workpermit' 
         <div className="border-t border-gray-100 px-3 py-2 flex-shrink-0">
           <p className="text-[11px] text-muted text-center mb-1.5">{w.chatDirectPrompt}</p>
           <div className="flex gap-2">
-            <a href="tel:0819023540" onClick={() => track('workpermit_call_click', { position: 'chat' })}
+            <a href="tel:0819023540" onClick={() => trackWorkPermitCallClick('chat')}
               className="flex-1 flex items-center justify-center gap-1 bg-amber-500 text-white px-3 py-2 rounded-full text-xs font-bold">
               📞 081-902-3540
             </a>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => track('workpermit_line_click', { position: 'chat' })}
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => trackWorkPermitLineClick('chat')}
               className="flex-1 flex items-center justify-center gap-1 bg-[#06C755] text-white px-3 py-2 rounded-full text-xs font-bold">
               💬 {w.chatLineLabel}
             </a>

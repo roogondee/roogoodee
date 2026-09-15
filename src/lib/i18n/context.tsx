@@ -1,6 +1,6 @@
 'use client'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { type LocaleCode, defaultLocale, LOCALE_COOKIE, locales, THAI_FIRST_PATHS, ENGLISH_NOT_A_SIGNAL_PATHS } from './config'
+import { type LocaleCode, defaultLocale, LOCALE_COOKIE, isValidLocale } from './config'
 import dictionaries, { type Translations } from './locales'
 
 interface I18nContextType {
@@ -11,71 +11,39 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | null>(null)
 
-function getCookie(name: string): string | undefined {
-  if (typeof document === 'undefined') return undefined
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : undefined
-}
-
 function setCookie(name: string, value: string, days = 365) {
   const d = new Date()
   d.setTime(d.getTime() + days * 86400000)
   document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`
 }
 
-function isValidLocale(code: string): code is LocaleCode {
-  return locales.some(l => l.code === code)
-}
+// `initialLocale` comes from the middleware via the root layout, so the server
+// already rendered this tree in the right language. Seeding state with it means
+// the first client render matches the HTML exactly — no post-hydration language
+// swap, and no hydration mismatch. Resolution itself (cookie > path override >
+// Accept-Language > Thai) lives in config.ts's resolveLocale and now runs once,
+// on the server, instead of in a useEffect after the JS has downloaded.
+export function I18nProvider({
+  children,
+  initialLocale = defaultLocale,
+}: {
+  children: ReactNode
+  initialLocale?: LocaleCode
+}) {
+  const [locale, setLocaleState] = useState<LocaleCode>(
+    isValidLocale(initialLocale) ? initialLocale : defaultLocale
+  )
 
-function matchesPath(paths: readonly string[]): boolean {
-  if (typeof window === 'undefined') return false
-  const path = window.location.pathname
-  return paths.some(p => path === p || path.startsWith(p + '/'))
-}
-
-function getInitialLocale(): LocaleCode {
-  // 1. Check cookie
-  const cookieVal = getCookie(LOCALE_COOKIE)
-  if (cookieVal && isValidLocale(cookieVal)) return cookieVal
-
-  // 1b. Thai-first pages ignore browser language (see THAI_FIRST_PATHS). No
-  //     cookie is written here — the visitor can still switch via NavBar.
-  if (matchesPath(THAI_FIRST_PATHS)) return defaultLocale
-
-  // 2. Check browser language — except English on the pages listed in
-  //    ENGLISH_NOT_A_SIGNAL_PATHS, where it is usually an untouched default
-  //    rather than a choice. Every other language still wins there.
-  if (typeof navigator !== 'undefined') {
-    const browserLang = navigator.language?.split('-')[0]
-    const ignoreEnglish = browserLang === 'en' && matchesPath(ENGLISH_NOT_A_SIGNAL_PATHS)
-    if (browserLang && !ignoreEnglish && isValidLocale(browserLang)) return browserLang
-  }
-
-  return defaultLocale
-}
-
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<LocaleCode>(defaultLocale)
-  const [mounted, setMounted] = useState(false)
-
+  // The middleware already resolved ?lang= and wrote the cookie, so nothing
+  // here needs to read it — but the param has to come off the URL, or a later
+  // reload would keep overriding a language the visitor picks with the
+  // switcher. Stripping it is all that is left of what used to be full
+  // client-side locale detection.
   useEffect(() => {
-    // ?lang=<code> in the URL wins over cookie/browser language — lets ads and
-    // shared links force a language (e.g. /foreign/mou?lang=th for Thai-targeted
-    // campaigns, ?lang=my for Burmese ones). Persisted so navigation keeps it.
-    const urlLang = new URLSearchParams(window.location.search).get('lang')
-    if (urlLang && isValidLocale(urlLang)) {
-      setLocaleState(urlLang)
-      setCookie(LOCALE_COOKIE, urlLang)
-      document.documentElement.lang = urlLang
-      // One-shot: drop the param once applied, otherwise a reload would keep
-      // overriding a language the visitor later picks with the switcher.
-      const url = new URL(window.location.href)
-      url.searchParams.delete('lang')
-      window.history.replaceState(window.history.state, '', url)
-    } else {
-      setLocaleState(getInitialLocale())
-    }
-    setMounted(true)
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has('lang')) return
+    url.searchParams.delete('lang')
+    window.history.replaceState(window.history.state, '', url)
   }, [])
 
   const setLocale = useCallback((code: LocaleCode) => {
@@ -85,15 +53,6 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const t = dictionaries[locale] || dictionaries[defaultLocale]
-
-  // During SSR, use default locale translations
-  if (!mounted) {
-    return (
-      <I18nContext.Provider value={{ locale: defaultLocale, t: dictionaries[defaultLocale], setLocale }}>
-        {children}
-      </I18nContext.Provider>
-    )
-  }
 
   return (
     <I18nContext.Provider value={{ locale, t, setLocale }}>

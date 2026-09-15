@@ -2,8 +2,11 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
+import { isWorkPermitQueueTight } from '@/lib/workpermit/deadline'
 import WorkPermitChat from '@/components/ui/WorkPermitChat'
-import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/components/ui/WorkPermitLeadForm'
+import WorkPermitLeadForm from '@/components/ui/WorkPermitLeadForm'
+import WorkPermitStickyBar from '@/components/ui/WorkPermitStickyBar'
+import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/lib/analytics/track'
 
 // Campaign hero for the homepage while the 2569 work-permit renewal window is
 // open (see src/lib/workpermit/deadline.ts). Sits ABOVE the regular voucher
@@ -48,6 +51,11 @@ export default function HomeWorkPermitHero({ daysLeft }: { daysLeft: number }) {
             <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
             {w.badgePrefix} {daysLeft} {w.badgeSuffix}
           </div>
+          {isWorkPermitQueueTight(daysLeft) && (
+            <p className="text-xs md:text-sm text-amber-200 font-semibold mb-4 md:mb-5">
+              {w.badgeQueueNote}
+            </p>
+          )}
 
           <h1 className="font-display text-3xl md:text-5xl lg:text-6xl text-white leading-tight mb-4 md:mb-5">
             {h.wpTitle1}<br />
@@ -101,6 +109,17 @@ export default function HomeWorkPermitHero({ daysLeft }: { daysLeft: number }) {
           <Suspense fallback={<div className="bg-white rounded-3xl p-10 shadow-xl text-center text-muted text-sm">...</div>}>
             <WorkPermitChat surface="home" />
           </Suspense>
+          {/* Until now the homepage offered only LINE and a phone number, so an
+              employer with fifty workers and a worker booking for himself
+              arrived as the same undifferentiated lead. The three-field version
+              asks for the headcount, which is the answer that tells them apart
+              and the one the callback needs to quote a price. */}
+          <div className="mt-4">
+            <Suspense fallback={<div className="bg-white rounded-3xl p-8 shadow-xl text-center text-muted text-sm">...</div>}>
+              <WorkPermitLeadForm compact position="home_hero" />
+            </Suspense>
+          </div>
+
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs md:text-sm">
             <Link href="/foreign/workpermit" className="text-white font-semibold hover:text-amber-200 transition-colors">
               {h.wpDetailsLink}
@@ -121,6 +140,8 @@ export default function HomeWorkPermitHero({ daysLeft }: { daysLeft: number }) {
           ))}
         </div>
       </div>
+
+      <WorkPermitStickyBar position="home_sticky" />
     </section>
   )
 }

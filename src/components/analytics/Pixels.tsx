@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Script from 'next/script'
 import { CONSENT_EVENT, hasConsent, type ConsentValue } from '@/lib/analytics/consent'
+import { flushPendingMetaEvents } from '@/lib/analytics/track'
 
 // Google tag (gtag.js) is NOT gated here — it loads unconditionally in
 // app/layout.tsx with Consent Mode defaulting to denied, and this component
@@ -62,7 +63,16 @@ export default function Pixels() {
     <>
       {metaPixel && (
         <>
-          <Script id={metaKey} key={metaKey} strategy="afterInteractive">
+          <Script
+            id={metaKey}
+            key={metaKey}
+            strategy="afterInteractive"
+            // Events fired between page load and the PDPA banner being accepted
+            // are held in track()'s queue, because window.fbq does not exist
+            // yet. Replay them now that it does — otherwise a visitor who taps
+            // a CTA and then accepts consent registers as no contact at all.
+            onReady={flushPendingMetaEvents}
+          >
             {`
               !function(f,b,e,v,n,t,s)
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?

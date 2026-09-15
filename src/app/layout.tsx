@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
-import Script from 'next/script'
+import { headers } from 'next/headers'
 import './globals.css'
-import ChatWidget from '@/components/ui/ChatWidget'
 import MobileNav from '@/components/ui/MobileNav'
 import PDPABanner from '@/components/ui/PDPABanner'
 import LINEFloat from '@/components/ui/LINEFloat'
 import Pixels from '@/components/analytics/Pixels'
+import Recaptcha from '@/components/analytics/Recaptcha'
+import LazyChatWidget from '@/components/ui/LazyChatWidget'
 import { I18nProvider } from '@/lib/i18n/context'
 import HrefLangTags from '@/components/ui/HrefLangTags'
 import { Analytics } from '@vercel/analytics/next'
+import { fontVariables } from './fonts'
+import { LOCALE_HEADER, defaultLocale, isValidLocale } from '@/lib/i18n/config'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://roogondee.com'),
@@ -39,8 +42,6 @@ const orgJsonLd = {
   contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', availableLanguage: ['Thai', 'English', 'Burmese', 'Lao', 'Khmer', 'Chinese', 'Vietnamese', 'Hindi', 'Japanese', 'Korean'] },
   sameAs: ['https://line.me/ti/p/@roogondee'],
 }
-
-const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
 // Google tag (gtag.js). Rendered server-side on every page so Google's
 // installation checker finds it in the raw HTML. Google Consent Mode keeps it
@@ -82,8 +83,14 @@ ${GA_IDS.map((id) => `gtag('config', '${id}', { page_path: window.location.pathn
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Resolved by src/middleware.ts from ?lang= / cookie / Accept-Language, so
+  // the HTML that leaves the server is already in the visitor's language
+  // instead of always being Thai and swapping once the JS lands.
+  const headerLocale = headers().get(LOCALE_HEADER)
+  const locale = isValidLocale(headerLocale) ? headerLocale : defaultLocale
+
   return (
-    <html lang="th" suppressHydrationWarning>
+    <html lang={locale} className={fontVariables} suppressHydrationWarning>
       <body>
         <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
         <script dangerouslySetInnerHTML={{ __html: GTAG_INIT }} />
@@ -92,18 +99,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <Pixels />
 
-        {RECAPTCHA_SITE_KEY && (
-          <Script
-            src={`https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`}
-            strategy="afterInteractive"
-          />
-        )}
+        <Recaptcha />
 
-        <I18nProvider>
+        <I18nProvider initialLocale={locale}>
           <HrefLangTags />
           {children}
           <MobileNav />
-          <ChatWidget />
+          <LazyChatWidget />
           <LINEFloat />
           <PDPABanner />
         </I18nProvider>

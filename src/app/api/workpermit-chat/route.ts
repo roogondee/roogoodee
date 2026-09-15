@@ -7,6 +7,8 @@ import { WORKPERMIT_SYSTEM_PROMPT } from '@/lib/workpermit/prompt'
 import { triage } from '@/lib/advice/triage'
 import { checkAdviceRateLimit, clientIpFrom } from '@/lib/advice/rate-limit'
 import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
+import { isValidLocale, LOCALE_COOKIE, type LocaleCode } from '@/lib/i18n/config'
+import { workPermitReply, localizeSafetyReply } from '@/lib/workpermit/replies'
 
 // POST /api/workpermit-chat — Work Permit renewal Q&A bot behind the
 // /foreign/workpermit Google Ads landing page. See src/lib/workpermit/prompt.ts
@@ -24,8 +26,6 @@ import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
 const MAX_TOOL_ITERATIONS = 4
 const MAX_TOKENS = 800
 const MAX_SESSION_TURNS = 40
-const SESSION_LIMIT_REPLY =
-  'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือโทร 081-902-3540 / แชท LINE @roogondee'
 
 type ClientMessage = { role: 'user' | 'assistant'; content: string }
 
@@ -33,6 +33,11 @@ interface WorkPermitChatRequest {
   messages?: ClientMessage[]
   sessionId?: string | null
   attribution?: LeadAttribution
+  // The page's active locale. The model infers language from what the visitor
+  // types, but every reply that bypasses the model — rate limit, session limit,
+  // errors, the deterministic safety block — had no way to know and answered in
+  // Thai regardless.
+  locale?: string | null
 }
 
 function extractDisplayText(blocks: Anthropic.ContentBlock[]): string {
@@ -64,18 +69,30 @@ function cleanAttrValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value.trim().slice(0, 120) : null
 }
 
+// Locale for the paths that answer before (or instead of) reading the body.
+// The middleware already resolved it for the page; the same cookie is the
+// cheapest way to get it here without re-running negotiation.
+function localeFromRequest(req: NextRequest): LocaleCode | null {
+  const cookie = req.cookies.get(LOCALE_COOKIE)?.value
+  return isValidLocale(cookie) ? cookie : null
+}
+
 export async function POST(req: NextRequest) {
   try {
     const clientIp = clientIpFrom(req)
     const rl = checkAdviceRateLimit(clientIp)
     if (!rl.allowed) {
+      // Read before the body is parsed so a rate-limited request still answers
+      // in the right language.
+      const rlLocale = localeFromRequest(req)
       return NextResponse.json(
-        { error: 'มีคำขอมากเกินไป กรุณาลองใหม่อีกสักครู่ หรือโทร 081-902-3540' },
+        { error: workPermitReply('rateLimit', rlLocale) },
         { status: 429, headers: rl.retryAfterSec ? { 'Retry-After': String(rl.retryAfterSec) } : undefined }
       )
     }
 
     const body = (await req.json()) as WorkPermitChatRequest
+    const locale: LocaleCode | null = isValidLocale(body.locale) ? body.locale : null
     const clientMessages = Array.isArray(body.messages) ? body.messages : []
     if (clientMessages.length === 0) {
       return NextResponse.json({ error: 'messages required' }, { status: 400 })
@@ -94,7 +111,7 @@ export async function POST(req: NextRequest) {
         messages = data.messages as Anthropic.MessageParam[]
         if (data.turn_count >= MAX_SESSION_TURNS) {
           return NextResponse.json(
-            { error: 'session_limit', text: SESSION_LIMIT_REPLY },
+            { error: 'session_limit', text: workPermitReply('sessionLimit', locale) },
             { status: 200 }
           )
         }
@@ -119,7 +136,9 @@ export async function POST(req: NextRequest) {
 
     if (result.hardcodedReply) {
       // Emergency / crisis: deterministic reply only, model is never called.
-      finalText = result.hardcodedReply
+      // localizeSafetyReply only PREPENDS a translated call-1669 line — the
+      // vetted Thai block underneath is passed through untouched.
+      finalText = localizeSafetyReply(result.hardcodedReply, locale)
       messages.push({ role: 'assistant', content: finalText })
     } else {
       const attribution = {
@@ -174,7 +193,7 @@ export async function POST(req: NextRequest) {
       }
 
       if (!finalText) {
-        finalText = 'ขออภัยค่ะ ระบบประมวลผลไม่สำเร็จ กรุณาลองพิมพ์ใหม่ หรือโทร 081-902-3540 / LINE @roogondee'
+        finalText = workPermitReply('processingError', locale)
       }
     }
 
@@ -211,7 +230,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('Work permit chat error:', err)
     return NextResponse.json(
-      { error: 'เกิดข้อผิดพลาด กรุณาลองใหม่ หรือโทร 081-902-3540 / LINE @roogondee' },
+      { error: workPermitReply('serverError', localeFromRequest(req)) },
       { status: 500 }
     )
   }

@@ -15,7 +15,13 @@ const ALLOWED_SOURCES = new Set([
   'mou-landing',
   'mou-chat',
   'workpermit-landing',
+  'workpermit-chat',
 ])
+
+// Headcount bands offered by WorkPermitLeadForm. Closed set for the same
+// reason as ALLOWED_SOURCES: this endpoint is public, and the column is meant
+// to be groupable in reporting, not free text.
+const WORKER_COUNTS = new Set(['1-5', '6-20', '21-50', '50+'])
 
 // UTM values come straight from the URL — keep only short plain strings.
 function cleanUtm(value: unknown): string | null {
@@ -46,10 +52,20 @@ export async function POST(req: NextRequest) {
     const rawLineId = typeof body.line_id === 'string' ? body.line_id : ''
     const line_id = /^U[0-9a-f]{32}$/.test(rawLineId) ? rawLineId : null
 
+    // Headcount and company used to survive only as Thai text inside `note`
+    // ("จำนวนแรงงาน: 21-50"), so nobody could sort the pipeline by deal size or
+    // ask how many 50+ enquiries a campaign produced without parsing prose.
+    const rawWorkerCount = typeof body.worker_count === 'string' ? body.worker_count : ''
+    const worker_count = WORKER_COUNTS.has(rawWorkerCount) ? rawWorkerCount : null
+    const company = typeof body.company === 'string' && body.company.trim() !== ''
+      ? body.company.trim().slice(0, 200)
+      : null
+
     const { data, error } = await supabaseAdmin
       .from('leads')
       .insert([{
         service, first_name, last_name, phone, age, gender, note, source, line_id,
+        company, worker_count,
         consent_pdpa: body.consent_pdpa === true,
         consent_at: typeof body.consent_at === 'string' ? body.consent_at : null,
         utm_source: cleanUtm(body.utm_source),

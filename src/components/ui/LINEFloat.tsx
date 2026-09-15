@@ -2,6 +2,14 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
+import { track, trackWorkPermitLineClick } from '@/lib/analytics/track'
+import { isWorkPermitWindowOpen } from '@/lib/workpermit/deadline'
+
+// Paths where a LINE tap is a work-permit campaign contact, so it should count
+// as one. Everything else fires a generic event that is deliberately NOT in
+// ADS_CONVERSIONS — a LINE tap from the blog is not a campaign conversion and
+// must not be attributed to one.
+const WORKPERMIT_PATHS = ['/', '/foreign/workpermit']
 
 export default function LINEFloat() {
   const [show, setShow] = useState(false)
@@ -20,11 +28,32 @@ export default function LINEFloat() {
   // own LINE add-friend button.
   if (pathname?.startsWith('/quiz/')) return null
 
+  // Both work-permit surfaces pin their own call/LINE bar to the bottom of the
+  // viewport, and this button sits right on top of it — two LINE buttons in the
+  // same corner, only one of which was tracked. The sticky bar wins. On the
+  // homepage that bar only exists while the renewal window is open, so this
+  // mirrors the same condition (see HomeWorkPermitHero / ChatWidget).
+  if (pathname === '/foreign/workpermit') return null
+  if (pathname === '/' && isWorkPermitWindowOpen()) return null
+
+  // This was a bare <a> with no onClick at all: the most visually prominent
+  // LINE CTA on the site (it pings and pulses) sat on both paid landing pages
+  // sending nothing to GA4, Meta or Google Ads. Every LINE contact it produced
+  // was invisible, which is a large part of why the campaign looked unmeasured.
+  const onClick = () => {
+    if (pathname && WORKPERMIT_PATHS.includes(pathname)) {
+      trackWorkPermitLineClick('float')
+    } else {
+      track('line_float_click', { position: 'float', path: pathname })
+    }
+  }
+
   return (
     <a
       href="https://line.me/ti/p/@roogondee"
       target="_blank"
       rel="noopener noreferrer"
+      onClick={onClick}
       aria-label={t.common.lineConsultFree}
       className={`fixed bottom-24 right-4 z-40 flex items-center gap-2 bg-[#06C755] text-white rounded-full shadow-2xl ring-2 ring-white transition-all duration-500 hover:shadow-xl hover:scale-105 active:scale-95 ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'} md:right-6`}
     >
