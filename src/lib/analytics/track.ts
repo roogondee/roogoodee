@@ -99,6 +99,17 @@ export function track(name: string, params: Record<string, unknown> = {}) {
   }
 }
 
+// Lived in WorkPermitLeadForm.tsx, which meant HomeWorkPermitHero pulled the
+// entire lead form — fields, validation, success screen — into the homepage
+// bundle just to get these two lines.
+export function trackWorkPermitCallClick(position: string) {
+  track('workpermit_call_click', { service: 'foreign', position })
+}
+
+export function trackWorkPermitLineClick(position: string) {
+  track('workpermit_line_click', { service: 'foreign', position })
+}
+
 export function readUtm(searchParams: ReadonlyURLSearchParams | null) {
   return {
     utm_source:   searchParams?.get('utm_source')   || undefined,

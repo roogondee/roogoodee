@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
 import WorkPermitChat from '@/components/ui/WorkPermitChat'
-import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/components/ui/WorkPermitLeadForm'
+import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/lib/analytics/track'
 
 // Campaign hero for the homepage while the 2569 work-permit renewal window is
 // open (see src/lib/workpermit/deadline.ts). Sits ABOVE the regular voucher

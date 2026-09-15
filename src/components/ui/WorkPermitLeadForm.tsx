@@ -2,7 +2,14 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { track, readUtm, persistClickId } from '@/lib/analytics/track'
+import {
+  track,
+  readUtm,
+  persistClickId,
+  readCookie,
+  trackWorkPermitCallClick,
+  trackWorkPermitLineClick,
+} from '@/lib/analytics/track'
 
 const WORKER_COUNTS = ['1-5', '6-20', '21-50', '50+']
 const NATIONALITIES = [
@@ -13,13 +20,6 @@ const NATIONALITIES = [
 ]
 const NAT_NOTE_LABEL: Record<string, string> = {
   myanmar: 'เมียนมา', laos: 'ลาว', vietnam: 'เวียดนาม', other: 'อื่นๆ',
-}
-
-export function trackWorkPermitCallClick(position: string) {
-  track('workpermit_call_click', { service: 'foreign', position })
-}
-export function trackWorkPermitLineClick(position: string) {
-  track('workpermit_line_click', { service: 'foreign', position })
 }
 
 export default function WorkPermitLeadForm() {

@@ -1,4 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
+/* Fonts are loaded by next/font in src/app/fonts.ts (self-hosted, preloaded
+   at build time). The Google Fonts @import that used to live here forced the
+   browser through two extra third-party round trips before any text painted.
+   Which face downloads is decided by the :lang() rules below, not by loading
+   fewer variables — a custom property is free, a font file is not. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,13 +17,29 @@
 }
 
 body {
-  font-family: 'Sarabun', sans-serif;
+  font-family: var(--font-sarabun), sans-serif;
   background: var(--cream);
   color: var(--text);
 }
 
+/* Sarabun carries no Burmese or Lao glyphs, so those scripts used to fall back
+   to whatever the handset had. Keying off :lang() rather than a class means the
+   browser only fetches a Noto face when an element actually renders in that
+   language — and it keeps working when the language switcher runs, because
+   setLocale updates <html lang> live. :lang(my) matches my-MM by prefix. */
+:lang(my) body {
+  font-family: var(--font-myanmar), var(--font-sarabun), sans-serif;
+}
+:lang(lo) body {
+  font-family: var(--font-lao), var(--font-sarabun), sans-serif;
+}
+
+/* Playfair has no Thai or Burmese glyphs. Without the Sarabun fallback the Thai
+   headline on /foreign/workpermit — the LCP element — dropped to an unstyled
+   system serif while still paying to download Playfair for the few Latin words
+   in it. Sarabun 700 is already loaded, so this costs no extra request. */
 .font-display {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display), var(--font-sarabun), Georgia, serif;
 }
 
 /* Blog article body */
@@ -29,14 +49,14 @@ body {
   font-size: 1rem;
 }
 .article-body h2 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display), var(--font-sarabun), Georgia, serif;
   font-size: 1.5rem;
   color: #1B4332;
   margin-top: 2rem;
   margin-bottom: 1rem;
 }
 .article-body h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display), var(--font-sarabun), Georgia, serif;
   font-size: 1.2rem;
   color: #1B4332;
   margin-top: 1.5rem;
