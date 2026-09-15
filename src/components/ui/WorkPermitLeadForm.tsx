@@ -54,7 +54,11 @@ export default function WorkPermitLeadForm() {
     setLoading(true)
     try {
       const utm = readUtm(searchParams)
-      const gclid = searchParams?.get('gclid') || undefined
+      // Fall back to the cookie persisted on mount: a visitor who browses to
+      // another page before filling this in still has the click id, but the
+      // URL no longer carries it, so reading searchParams alone silently lost
+      // the attribution on exactly the leads that took time to decide.
+      const gclid = searchParams?.get('gclid') || readCookie('gclid')
       const note = [
         form.company.trim() && `บริษัท: ${form.company.trim()}`,
         form.worker_count && `จำนวนแรงงาน: ${form.worker_count}`,

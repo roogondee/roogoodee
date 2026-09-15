@@ -83,10 +83,68 @@ const ADS_CONVERSIONS: Record<string, string> = {
   workpermit_line_click: 'ads_conversion_Contact_Us_1',
 }
 
+// Meta standard events, keyed by the internal event that means the same thing.
+//
+// track() only ever called fbq('trackCustom', …), so every contact from these
+// pages arrived in Meta as a custom event named e.g. `workpermit_line_click`.
+// Custom events carry no value and are not what Meta's Lead/Contact
+// optimisation bids on, so a campaign could run perfectly and still look like
+// it produced nothing. Mapping them to the standard events — alongside, not
+// instead of, the existing custom ones so reporting built on those keeps
+// working — fixes that without touching a single call site.
+//
+// `value` is a relative weight telling Meta which contacts matter more, not
+// revenue: a submitted form outranks a tapped phone number, which outranks a
+// tapped LINE button. Replace with real per-lead economics when we have them.
+const META_STANDARD_EVENTS: Record<string, { event: string; value: number; contentName: string }> = {
+  workpermit_lead: { event: 'Lead', value: 300, contentName: 'workpermit_form' },
+  workpermit_chat_lead: { event: 'Lead', value: 300, contentName: 'workpermit_chat' },
+  workpermit_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
+  workpermit_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
+}
+
+// Meta's pixel is consent-gated (src/components/analytics/Pixels.tsx): window.fbq
+// simply does not exist until the PDPA banner is accepted, and track()'s
+// optional chaining meant anything fired before that vanished with no trace —
+// including the clicks of a visitor who taps Accept a second later. Holding
+// them here and replaying once fbq installs recovers those without sending
+// anything before consent, which is the part PDPA actually cares about.
+type QueuedEvent = { name: string; params: Record<string, unknown> }
+const pendingMetaEvents: QueuedEvent[] = []
+const MAX_PENDING_META_EVENTS = 20
+
+function sendToMeta({ name, params }: QueuedEvent) {
+  try { window.fbq?.('trackCustom', name, params) } catch {}
+
+  const standard = META_STANDARD_EVENTS[name]
+  if (!standard) return
+  try {
+    window.fbq?.('track', standard.event, {
+      ...params,
+      value: standard.value,
+      currency: 'THB',
+      content_name: standard.contentName,
+    })
+  } catch {}
+}
+
+// Called by Pixels.tsx once the Meta snippet has installed window.fbq.
+export function flushPendingMetaEvents() {
+  if (typeof window === 'undefined' || !window.fbq) return
+  while (pendingMetaEvents.length) sendToMeta(pendingMetaEvents.shift()!)
+}
+
 export function track(name: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return
   try { window.gtag?.('event', name, params) } catch {}
-  try { window.fbq?.('trackCustom', name, params) } catch {}
+
+  if (window.fbq) {
+    flushPendingMetaEvents()
+    sendToMeta({ name, params })
+  } else if (pendingMetaEvents.length < MAX_PENDING_META_EVENTS) {
+    pendingMetaEvents.push({ name, params })
+  }
+
   try { window.ttq?.track(name, params) } catch {}
 
   // Reaches Google Ads only once the tag carries an AW- destination — either
