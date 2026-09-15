@@ -6,6 +6,7 @@ import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 import WorkPermitChat from '@/components/ui/WorkPermitChat'
 import WorkPermitLeadForm from '@/components/ui/WorkPermitLeadForm'
+import WorkPermitStickyBar from '@/components/ui/WorkPermitStickyBar'
 import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/lib/analytics/track'
 
 const PHONE_TEL = 'tel:0819023540'
@@ -292,17 +293,7 @@ export default function ForeignWorkPermitClient({ daysLeft }: { daysLeft: number
 
       <FooterMinimal />
 
-      {/* Sticky mobile CTA bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/95 backdrop-blur border-t border-amber-200 md:hidden flex gap-2">
-        <a href={PHONE_TEL} onClick={() => trackWorkPermitCallClick('sticky_bar')}
-          className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-white py-3.5 rounded-full font-bold text-sm shadow-lg">
-          {w.stickyCall}
-        </a>
-        <a href={LINE_URL} target="_blank" rel="noopener noreferrer" onClick={() => trackWorkPermitLineClick('sticky_bar')}
-          className="flex-1 flex items-center justify-center gap-2 bg-[#06C755] text-white py-3.5 rounded-full font-bold text-sm shadow-lg">
-          {w.stickyLine}
-        </a>
-      </div>
+      <WorkPermitStickyBar position="sticky_bar" />
     </main>
   )
 }

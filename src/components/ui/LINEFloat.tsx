@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 import { track, trackWorkPermitLineClick } from '@/lib/analytics/track'
+import { isWorkPermitWindowOpen } from '@/lib/workpermit/deadline'
 
 // Paths where a LINE tap is a work-permit campaign contact, so it should count
 // as one. Everything else fires a generic event that is deliberately NOT in
@@ -27,10 +28,13 @@ export default function LINEFloat() {
   // own LINE add-friend button.
   if (pathname?.startsWith('/quiz/')) return null
 
-  // /foreign/workpermit has its own sticky call/LINE bar pinned to the bottom
-  // of the viewport, and this button sits right on top of it — two LINE buttons
-  // in the same corner, only one of which was tracked. The sticky bar wins.
+  // Both work-permit surfaces pin their own call/LINE bar to the bottom of the
+  // viewport, and this button sits right on top of it — two LINE buttons in the
+  // same corner, only one of which was tracked. The sticky bar wins. On the
+  // homepage that bar only exists while the renewal window is open, so this
+  // mirrors the same condition (see HomeWorkPermitHero / ChatWidget).
   if (pathname === '/foreign/workpermit') return null
+  if (pathname === '/' && isWorkPermitWindowOpen()) return null
 
   // This was a bare <a> with no onClick at all: the most visually prominent
   // LINE CTA on the site (it pings and pulses) sat on both paid landing pages
