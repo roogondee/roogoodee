@@ -143,6 +143,23 @@ export default function ForeignHealthProgramClient() {
         </div>
       </section>
 
+      {/* Call-for-price band. Sits straight after the audience split because a
+          visitor who came to find out what this costs bounces long before the
+          six pillar detail blocks. There is no price list yet, so the page asks
+          for the call rather than stating a number — when the partner supplies
+          one, it replaces this copy (t.foreignHealthProgram.price*). */}
+      <section className="py-14 px-6 md:px-20 bg-cream">
+        <div className="max-w-4xl mx-auto bg-amber-50 border border-amber-100 rounded-2xl p-7 md:p-9">
+          <p className="text-xs font-bold tracking-widest uppercase text-amber-700 mb-2">{h.priceLabel}</p>
+          <h2 className="font-display text-2xl md:text-3xl text-forest mb-3">{h.priceTitle}</h2>
+          <p className="text-muted text-sm md:text-base leading-relaxed mb-6">{h.priceDesc}</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <CallButton position="price_band" label={h.priceCallCta} />
+            <a href="#lead-form" className="flex items-center justify-center gap-2 border-2 border-forest/30 text-forest px-7 py-4 rounded-full text-sm font-semibold hover:bg-forest hover:text-white transition-all">{h.priceFormCta}</a>
+          </div>
+        </div>
+      </section>
+
       {/* Six pillars overview */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-forest">
         <div className="max-w-6xl mx-auto">
@@ -260,7 +277,7 @@ export default function ForeignHealthProgramClient() {
       <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/95 backdrop-blur border-t border-amber-200 md:hidden">
         <a href={PHONE_TEL} onClick={() => trackHealthProgramCallClick('sticky_bar')}
           className="flex items-center justify-center gap-2 bg-amber-500 text-white py-3.5 rounded-full font-bold text-base shadow-lg">
-          📞 {h.stickyLabel}
+          📞 {h.stickyCall}
         </a>
       </div>
     </main>

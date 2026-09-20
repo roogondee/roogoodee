@@ -956,7 +956,7 @@ const vi = {
     heroTitle1: 'Chăm sóc sức khỏe', heroTitle2: 'cho người lao động cả năm', heroTitle3: 'không chỉ ngày khám giấy phép',
     heroDesc: 'Chương trình nâng cao sức khỏe và phòng bệnh cho lao động Myanmar, Lào, Việt Nam và các quốc tịch khác\nXây dựng cùng bệnh viện đối tác tại Samut Sakhon — khám, phòng ngừa, đào tạo và theo dõi liên tục',
     ctaQuote: '📋 Tư vấn chương trình / xin báo giá',
-    ctaCall: '📞 Gọi 081-902-3540',
+    ctaCall: '📞 Gọi hỏi giá 081-902-3540',
     trust1: 'Bệnh viện được cấp phép khám sức khỏe cho lao động nước ngoài',
     trust2: 'Phòng xét nghiệm đạt chuẩn MOPH LAB',
     trust3: 'Nhân viên nói được tiếng Myanmar, Trung và Anh',
@@ -1092,6 +1092,15 @@ const vi = {
     ctaTitle: 'Bắt đầu lên kế hoạch sức khỏe cho người lao động năm nay',
     ctaDesc: 'Trao đổi với đội ngũ để thiết kế chương trình đúng với công việc và số lượng lao động của bạn',
     ctaLine: 'Nhắn qua LINE @roogondee',
+    // Prices are still unknown, so the page asks for the call instead of
+    // stating a number. When the partner supplies a price list, this block
+    // is where it goes; the red line in CLAUDE.md lifts only then.
+    priceLabel: 'Giá',
+    priceTitle: 'Hỏi giá và xin báo giá ngay',
+    priceDesc: 'Mỗi nhà máy khác nhau về số lượng lao động, tính chất công việc và mức rủi ro, nên giá tính theo danh mục thực sự được chọn chứ không phải gói cố định. Gọi cho chúng tôi, cho biết số người và loại công việc, đội ngũ sẽ chuẩn bị báo giá.',
+    priceCallCta: '📞 Gọi hỏi giá 081-902-3540',
+    priceFormCta: 'Để đội ngũ gọi lại kèm báo giá',
+    stickyCall: 'Gọi hỏi giá',
     stickyLabel: 'Tư vấn chương trình',
   },
 } as const

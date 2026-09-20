@@ -626,7 +626,7 @@ const en = {
     heroTitle1: 'Year-round health care', heroTitle2: 'for your workers', heroTitle3: 'not just permit day',
     heroDesc: 'A health-promotion and disease-prevention program for Myanmar, Lao, Vietnamese and other migrant workers\nBuilt with our partner hospital in Samut Sakhon — screen, prevent, educate, follow up',
     ctaQuote: '📋 Talk to us / request a quote',
-    ctaCall: '📞 Call 081-902-3540',
+    ctaCall: '📞 Call for pricing 081-902-3540',
     trust1: 'Licensed to perform migrant-worker health checks',
     trust2: 'MOPH LAB accredited laboratory',
     trust3: 'Staff speak Burmese, Chinese and English',
@@ -762,6 +762,15 @@ const en = {
     ctaTitle: 'Start planning this year of worker health',
     ctaDesc: 'Talk to the team and shape the program around your work and your headcount',
     ctaLine: 'Chat on LINE @roogondee',
+    // Prices are still unknown, so the page asks for the call instead of
+    // stating a number. When the partner supplies a price list, this block
+    // is where it goes; the red line in CLAUDE.md lifts only then.
+    priceLabel: 'Pricing',
+    priceTitle: 'Ask about pricing and request a quote',
+    priceDesc: 'Every factory differs in headcount, type of work and risk, so the price follows the panel actually chosen rather than a fixed package. Call and tell us the headcount and the kind of work, and the team will prepare a quote.',
+    priceCallCta: '📞 Call for pricing 081-902-3540',
+    priceFormCta: 'Have the team call back with a quote',
+    stickyCall: 'Call for pricing',
     stickyLabel: 'Talk to us',
   },
   mens: {
