@@ -185,6 +185,21 @@ seven pillars' `quiz_start`/`quiz_complete`/`voucher_sent` funnel remain
 unmapped. `/foreign/workpermit` ends when the renewal window closes — it does
 not replace the evergreen `/foreign`/`/foreign/mou` rollout entry below.
 
+**2026-09-20 update: a third `foreign` page is wired —
+`/foreign/health-program`.** It is the year-round prevention program (annual
+checkup + NCDs, vaccines by job risk, health education, primary-care access,
+mental health, nutrition), aimed at HR rather than at someone renewing a
+permit. Its `healthprogram_lead` / `healthprogram_call_click` /
+`healthprogram_line_click` events map to `ads_conversion_Contact_Us_1` like
+the other two. Two things make this campaign different from its siblings and
+both are hard limits: **no price may appear in any ad, extension or landing
+copy** (the vaccine/training/NCD price list does not exist yet), and **no ad
+may imply a named vaccine is available** — the partner has not confirmed a
+stocked list. Keyword set, negatives (which push permit-price and
+urgent-certificate intent back to `/foreign/workpermit`), the sales script and
+the open items still to confirm with the partner live in
+`docs/foreign-health-program-sales-kit.md`.
+
 ### Landing page: send MOU / Work Permit keywords to `/foreign/mou`
 
 `/foreign` is the pillar overview; `/foreign/mou` is the page built for this

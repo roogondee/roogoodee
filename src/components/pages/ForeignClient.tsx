@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
+import { track } from '@/lib/analytics/track'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
 
@@ -89,6 +90,23 @@ export default function ForeignClient() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Year-round program entry point. Sits right after "our services",
+          which is the moment an HR manager has just read what the statutory
+          checkup covers and asks what else there is. Amber, not red, so it
+          does not read as a second deadline alarm next to the work-permit
+          banner at the top of the page. */}
+      <section className="py-14 px-6 md:px-20 bg-cream">
+        <div className="max-w-5xl mx-auto bg-amber-50 border border-amber-100 rounded-2xl p-7 md:p-9">
+          <h2 className="font-display text-2xl md:text-3xl text-forest mb-3">{f.programLinkTitle}</h2>
+          <p className="text-muted text-sm leading-relaxed mb-5">{f.programLinkDesc}</p>
+          <Link href="/foreign/health-program"
+            onClick={() => track('healthprogram_entry_click', { service: 'foreign', position: 'foreign_hub' })}
+            className="inline-flex items-center gap-2 text-forest font-semibold text-sm underline hover:text-sage">
+            {f.programLinkCta}
+          </Link>
         </div>
       </section>
 
