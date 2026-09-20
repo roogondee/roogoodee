@@ -678,7 +678,7 @@ const th = {
     heroTitle1: 'ดูแลสุขภาพแรงงาน', heroTitle2: 'ตลอดทั้งปี', heroTitle3: 'ไม่ใช่แค่วันตรวจใบอนุญาต',
     heroDesc: 'โปรแกรมสร้างเสริมสุขภาพและป้องกันโรคสำหรับแรงงานเมียนมา ลาว เวียดนาม และสัญชาติอื่น\nออกแบบร่วมกับโรงพยาบาลพันธมิตรในสมุทรสาคร — ตรวจ ป้องกัน ให้ความรู้ และดูแลต่อเนื่อง',
     ctaQuote: '📋 ปรึกษาโปรแกรม / ขอใบเสนอราคา',
-    ctaCall: '📞 โทร 081-902-3540',
+    ctaCall: '📞 โทรสอบถามราคา 081-902-3540',
     trust1: 'รพ. ที่ได้รับอนุญาตตรวจสุขภาพคนต่างด้าว',
     trust2: 'ห้องแล็บมาตรฐาน MOPH LAB',
     trust3: 'ทีมสื่อสารภาษาเมียนมา จีน อังกฤษ',
@@ -814,6 +814,15 @@ const th = {
     ctaTitle: 'เริ่มวางแผนสุขภาพแรงงานปีนี้',
     ctaDesc: 'คุยกับทีมงานเพื่อออกแบบโปรแกรมให้ตรงกับลักษณะงานและจำนวนแรงงานของคุณ',
     ctaLine: 'คุยทาง LINE @roogondee',
+    // Prices are still unknown, so the page asks for the call instead of
+    // stating a number. When the partner supplies a price list, this block
+    // is where it goes; the red line in CLAUDE.md lifts only then.
+    priceLabel: 'ราคา',
+    priceTitle: 'สอบถามราคา และขอใบเสนอราคาได้เลย',
+    priceDesc: 'แต่ละโรงงานมีจำนวนแรงงาน ลักษณะงาน และความเสี่ยงไม่เหมือนกัน ราคาจึงคิดตามรายการที่เลือกจริง ไม่ใช่แพ็กเกจตายตัว โทรมาบอกจำนวนคนและลักษณะงาน ทีมงานทำใบเสนอราคาให้',
+    priceCallCta: '📞 โทรสอบถามราคา 081-902-3540',
+    priceFormCta: 'ให้ทีมงานโทรกลับพร้อมใบเสนอราคา',
+    stickyCall: 'โทรสอบถามราคา',
     stickyLabel: 'ปรึกษาโปรแกรม',
   },
   // Mens (Andropause + Sexual Wellness)
