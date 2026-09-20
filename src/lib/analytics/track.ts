@@ -81,7 +81,17 @@ const ADS_CONVERSIONS: Record<string, string> = {
   workpermit_chat_lead: 'ads_conversion_Contact_Us_1',
   workpermit_call_click: 'ads_conversion_Contact_Us_1',
   workpermit_line_click: 'ads_conversion_Contact_Us_1',
+  healthprogram_lead: 'ads_conversion_Contact_Us_1',
+  healthprogram_call_click: 'ads_conversion_Contact_Us_1',
+  healthprogram_line_click: 'ads_conversion_Contact_Us_1',
 }
+
+// Deliberately NOT mapped above, and the omission is the point:
+// `healthprogram_entry_click` is a click on an internal link from /foreign —
+// mapping it would count a scroll as a Contact and teach Smart Bidding to buy
+// pageviews. `healthprogram_advice_click` hands the visitor to /advice, which
+// fires its own advice_* conversions downstream; mapping the hand-off too
+// would count the same person twice before any contact happened.
 
 // Meta standard events, keyed by the internal event that means the same thing.
 //
@@ -101,6 +111,14 @@ const META_STANDARD_EVENTS: Record<string, { event: string; value: number; conte
   workpermit_chat_lead: { event: 'Lead', value: 300, contentName: 'workpermit_chat' },
   workpermit_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
   workpermit_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
+  // A health-program enquiry covers a whole workforce for a year, where a
+  // work-permit lead is one worker's one visit — hence 500 against 300. The
+  // call/LINE weights stay identical to the workpermit pair on purpose, so
+  // the channel ranking stays comparable across the whole foreign pillar.
+  // Changing these rewrites bidding history; do not "normalise" them.
+  healthprogram_lead: { event: 'Lead', value: 500, contentName: 'health_program_form' },
+  healthprogram_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
+  healthprogram_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
 }
 
 // Meta's pixel is consent-gated (src/components/analytics/Pixels.tsx): window.fbq
@@ -166,6 +184,16 @@ export function trackWorkPermitCallClick(position: string) {
 
 export function trackWorkPermitLineClick(position: string) {
   track('workpermit_line_click', { service: 'foreign', position })
+}
+
+// Same hoisting reason as the pair above: ForeignClient's entry card and the
+// health-program sticky bar fire these without importing the lead form.
+export function trackHealthProgramCallClick(position: string) {
+  track('healthprogram_call_click', { service: 'foreign', position })
+}
+
+export function trackHealthProgramLineClick(position: string) {
+  track('healthprogram_line_click', { service: 'foreign', position })
 }
 
 export function readUtm(searchParams: ReadonlyURLSearchParams | null) {

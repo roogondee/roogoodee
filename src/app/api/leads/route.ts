@@ -16,6 +16,7 @@ const ALLOWED_SOURCES = new Set([
   'mou-chat',
   'workpermit-landing',
   'workpermit-chat',
+  'health-program-landing',
 ])
 
 // Headcount bands offered by WorkPermitLeadForm. Closed set for the same

@@ -17,6 +17,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: 'https://roogondee.com/ckd', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/foreign', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/foreign/mou', priority: 0.9, changeFrequency: 'monthly', lastModified: new Date() },
+    // /foreign/workpermit and /women were live but absent from the sitemap.
+    { url: 'https://roogondee.com/foreign/workpermit', priority: 0.9, changeFrequency: 'monthly', lastModified: new Date() },
+    { url: 'https://roogondee.com/foreign/health-program', priority: 0.9, changeFrequency: 'monthly', lastModified: new Date() },
+    { url: 'https://roogondee.com/women', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/mens', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/dna', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
     { url: 'https://roogondee.com/advice', priority: 0.95, changeFrequency: 'monthly', lastModified: new Date() },
