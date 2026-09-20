@@ -130,14 +130,28 @@ Upload via Google Ads → Conversions → Uploads, same as the `/advice` SOP.
 
 | Never write | Write instead |
 |---|---|
-| ตรวจฟรี / ไม่มีค่าใช้จ่าย | เริ่มต้น 500 บาท/คน |
+| ตรวจฟรี / ไม่มีค่าใช้จ่าย | สอบถามราคา / ราคาขึ้นกับจำนวนคน (กลุ่มใหญ่มีส่วนลด) |
 | รับรองผ่าน / อนุมัติแน่นอน | ตรวจตามมาตรฐานกรมการจัดหางาน |
 | ยื่นเรื่องให้ / ดำเนินการต่ออายุให้ | ตรวจสุขภาพและออกใบรับรองแพทย์ (ยื่นต่ออายุผ่าน eworkpermit.doe.go.th) |
-| รพ. ทุกแห่งใช้ได้ | รพ. ที่เชื่อมข้อมูลกับกรมการจัดหางานแล้วเท่านั้น |
+| รพ. ทุกแห่งใช้ได้ | รพ. ที่เชื่อมข้อมูลกับกรมการจัดหางานแล้วเท่านั้น (W Medical = 1 ใน 64 แห่ง, ลำดับที่ 47) |
 
 The first row matters most: `foreign` is a non-free pillar and Google Ads
 healthcare policy treats a false "free" claim as both a policy violation and
 a Quality Score problem once users report the mismatch.
+
+The landing page no longer prints a starting figure (2026-09-15): competitors
+advertise 230–280 บาท, so a visible "เริ่มต้น 500 บาท/คน" let a price-shopper
+compare and bounce before anyone could explain what the 9 steps include or what
+a group booking costs. Pricing now happens on LINE or by phone. **This does not
+relax the "never free" rule** — it narrows it: ad copy and the bot must neither
+claim the checkup is free nor quote any figure. The bot's FACTS block
+(`src/lib/workpermit/prompt.ts`) states no number at all, so it cannot leak one.
+
+**The "1 ใน 64 แห่ง" count is not verifiable from the codebase.** It is stated in
+`foreignWorkpermit.trust2` / `whyPara2` / `faq3a` and the bot FACTS. The DOE can
+add hospitals to that list, and a stale count on a healthcare ad landing page is
+a false claim — re-check it against the DOE announcement before each campaign
+flight. W Medical's list position (ลำดับที่ 47) is the stable part.
 
 ## Sales team SOP
 

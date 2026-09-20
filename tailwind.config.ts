@@ -21,8 +21,8 @@ const config: Config = {
         muted:  '#6B8C72',
       },
       fontFamily: {
-        sarabun:  ['Sarabun', 'sans-serif'],
-        playfair: ['"Playfair Display"', 'serif'],
+        sarabun:  ['var(--font-sarabun)', 'sans-serif'],
+        playfair: ['var(--font-display)', 'var(--font-sarabun)', 'serif'],
       },
     },
   },
