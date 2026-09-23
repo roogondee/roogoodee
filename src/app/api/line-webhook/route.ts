@@ -7,6 +7,7 @@ import { getActivePause, isBurmeseText, pauseBotForUser } from '@/lib/chatbot/li
 import { resolveContact } from '@/lib/crm/contacts'
 import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
+import { handleReviewPostback, isReviewPostback } from '@/lib/growth/review'
 
 export const maxDuration = 60
 
@@ -103,15 +104,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid signature' }, { status: 403 })
     }
 
+    const body = JSON.parse(rawBody)
+    let events = body.events || []
+
     // Silent when disabled or outside the active window (staff answer manually
     // during the day): ack so LINE keeps the webhook healthy, but process
     // nothing — no AI reply, no voucher link, no welcome.
+    //
+    // One exception outside active hours (never when the kill switch is off):
+    // a star tap on our own post-visit review request. It is a deterministic
+    // answer to a button we sent, not a conversation, and leaving it unanswered
+    // until 22:00 would look broken. See src/lib/growth/review.ts.
     if (!isBotActive(new Date())) {
-      return NextResponse.json({ ok: true, disabled: true })
+      events = LINE_BOT_ENABLED
+        ? events.filter((e: { type?: string; postback?: { data?: string } }) =>
+            e.type === 'postback' && isReviewPostback(e.postback?.data))
+        : []
+      if (events.length === 0) return NextResponse.json({ ok: true, disabled: true })
     }
-
-    const body = JSON.parse(rawBody)
-    const events = body.events || []
 
     // Process events in parallel: LINE batches up to ~100 events per delivery
     // and each replyToken has its own 60s TTL. Serial processing made later
@@ -145,6 +155,11 @@ export async function POST(req: NextRequest) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleEvent(event: any): Promise<void> {
+  if (event.type === 'postback' && isReviewPostback(event.postback?.data)) {
+    await handleReviewPostback(event)
+    return
+  }
+
   // Spec §5.3: follow event = user added the OA. Send welcome + ask for
   // voucher code so we can link their userId to a lead for future push.
   if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {

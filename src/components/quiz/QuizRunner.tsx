@@ -257,7 +257,7 @@ export default function QuizRunner({ definition, liff }: Props) {
   // ad click.
   useEffect(() => {
     if (typeof document === 'undefined') return
-    for (const key of ['ttclid', 'fbclid'] as const) {
+    for (const key of ['ttclid', 'fbclid', 'gclid'] as const) {
       const v = searchParams?.get(key)
       if (v) document.cookie = `${key}=${encodeURIComponent(v)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
     }
@@ -413,6 +413,7 @@ export default function QuizRunner({ definition, liff }: Props) {
           ttp:    readCookie('_ttp'),
           fbc:    readFbc(),
           fbp:    readCookie('_fbp'),
+          gclid:  readCookie('gclid'),
           liff_id_token: liff?.idToken || undefined,
         }),
       })
@@ -478,6 +479,7 @@ export default function QuizRunner({ definition, liff }: Props) {
           ttp,
           fbc: readFbc(),
           fbp: readCookie('_fbp'),
+          gclid: readCookie('gclid'),
         }),
       })
       const data = await res.json()

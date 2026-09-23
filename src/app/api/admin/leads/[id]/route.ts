@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser, requestIp } from '@/lib/auth'
 import { logLeadAccess } from '@/lib/audit'
+import { markLeadVisited } from '@/lib/growth/visit'
 
 // Spec §6.1 pipeline + legacy 'converted'
 const VALID_STATUSES = [
@@ -49,6 +50,15 @@ export async function PATCH(
     .eq('id', params.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Same visit-conversion hook as the pipeline status route — idempotent.
+  if (body.status === 'visited' || body.status === 'customer' || body.status === 'converted') {
+    try {
+      await markLeadVisited(params.id)
+    } catch (err) {
+      console.error('[lead patch] visit conversion failed:', err)
+    }
+  }
 
   logLeadAccess({
     leadId:  params.id,

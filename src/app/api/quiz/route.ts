@@ -19,12 +19,18 @@ type QuizPayload = Partial<QuizSubmission> & {
   ttp?: string
   fbc?: string
   fbp?: string
+  gclid?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna']
 
 // Spec §5.2: "จำกัด 50 สิทธิ์/service/เดือน"
 const MONTHLY_QUOTA = 50
+
+// Client-supplied tracking strings — bounded so a junk value can't bloat a row.
+function clip(v: string | null | undefined, max = 500): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
 
 function normalizePhone(p: string): string {
   let s = p.replace(/[-\s().]/g, '')
@@ -170,6 +176,12 @@ export async function POST(req: NextRequest) {
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
         utm_campaign:  body.utm_campaign || null,
+        // Click ids + UA kept on the lead so the visit conversion reported
+        // days later from the redeem screen can still be matched to the ad.
+        gclid:         clip(body.gclid),
+        fbc:           clip(body.fbc),
+        fbp:           clip(body.fbp),
+        user_agent:    clip(req.headers.get('user-agent')),
         status:        quotaFull ? 'waitlist' : 'new',
         recaptcha_ok:     captcha.success,
         recaptcha_reason: captcha.reason || null,

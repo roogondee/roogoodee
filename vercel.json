@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/nurture-runner",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/post-visit",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSessionUser, requestIp } from '@/lib/auth'
 import { logLeadAccess } from '@/lib/audit'
+import { markLeadVisited } from '@/lib/growth/visit'
 
 interface RouteParams { params: { code: string } }
 
@@ -61,6 +62,17 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     .from('leads')
     .update({ status: 'visited' })
     .eq('id', voucher.lead_id)
+
+  // Stamps leads.visited_at and reports the visit to Meta CAPI; Google Ads
+  // reads the same stamp via the offline-conversion export. Never blocks the
+  // redeem — a failed ad ping must not leave a patient at the counter.
+  if (voucher.lead_id) {
+    try {
+      await markLeadVisited(voucher.lead_id, { voucherCode: code })
+    } catch (err) {
+      console.error('[redeem] visit conversion failed:', err)
+    }
+  }
 
   logLeadAccess({
     leadId:  voucher.lead_id,
