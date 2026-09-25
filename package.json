@@ -8,7 +8,8 @@
     "prebuild": "npm run check:i18n",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/**/*.test.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

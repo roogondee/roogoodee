@@ -8,6 +8,7 @@ import { resolveContact } from '@/lib/crm/contacts'
 import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
 import { handleReviewPostback, isReviewPostback } from '@/lib/growth/review'
+import { handleDmglpRefMessage } from '@/lib/dmglp/webhook'
 
 export const maxDuration = 60
 
@@ -232,6 +233,18 @@ async function handleEvent(event: any): Promise<void> {
   // Voucher-code linkage below is unaffected; it's account bookkeeping, not
   // the AI chatting.
   const pause = userId ? await getActivePause(userId) : null
+
+  // DMGLP landing (roogondee.com/dmglp): the LINE button pre-fills a
+  // "DM-4821" ref code — link this user to that click and record the
+  // line_contact conversion. Runs regardless of the bot schedule: it is lead
+  // bookkeeping, not the AI chatting, same as voucher linkage below.
+  if (userId) {
+    const dmReply = await handleDmglpRefMessage(userId, text)
+    if (dmReply) {
+      if (replyToken) await replyToLine(replyToken, dmReply)
+      return
+    }
+  }
 
   // Voucher code linkage: if the message is a voucher code,
   // match to a lead and save line_user_id for future push.

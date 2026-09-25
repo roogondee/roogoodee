@@ -3,26 +3,33 @@ import { LOCALE_COOKIE, LOCALE_HEADER, isValidLocale, resolveLocale } from '@/li
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
-// Minimal session-cookie gate for /admin/*.
+// Minimal session-cookie gate for /admin/* and /dmglp/staff/* (the W Medical
+// GLP-1 program's staff area reuses the admin login; its per-role checks run
+// in src/lib/dmglp/roles.ts).
 // Full user lookup + role check happens in route handlers / server components
 // (Edge middleware can't access the DB client comfortably).
 // Formats accepted:
 //   1. "<userId>.<hmac>"  — new ACL session
 //   2. exact ADMIN_SECRET — legacy bootstrap (still usable before first user exists)
 function adminGate(req: NextRequest): NextResponse | null {
-  if (!req.nextUrl.pathname.startsWith('/admin')) return null
-  if (req.nextUrl.pathname === '/admin/login') return null
+  const { pathname } = req.nextUrl
+  const isStaffArea = pathname.startsWith('/dmglp/staff')
+  if (!pathname.startsWith('/admin') && !isStaffArea) return null
+  if (pathname === '/admin/login') return null
+
+  const loginUrl = new URL('/admin/login', req.url)
+  if (isStaffArea) loginUrl.searchParams.set('next', pathname)
 
   const session = req.cookies.get('admin_session')?.value
   if (!session) {
-    return NextResponse.redirect(new URL('/admin/login', req.url))
+    return NextResponse.redirect(loginUrl)
   }
 
   const looksLikeSignedSession = /^[^.]+\.[A-Za-z0-9_-]+$/.test(session)
   const isLegacy = session === process.env.ADMIN_SECRET
 
   if (!looksLikeSignedSession && !isLegacy) {
-    return NextResponse.redirect(new URL('/admin/login', req.url))
+    return NextResponse.redirect(loginUrl)
   }
 
   return null
