@@ -22,19 +22,22 @@ and go through the LIFF quiz to a voucher. Splitting them buys three things:
 3. **Offer accuracy.** Each pillar's ad copy has to state that pillar's
    actual offer, and they differ — some are genuinely free, two are not.
 
-## Prerequisite: most pillar conversions are still not tracked
+## Prerequisite: pillar quiz conversions — solved server-side (2026-09-23)
 
 `ADS_CONVERSIONS` in `src/lib/analytics/track.ts` maps the `/advice` chat
-events and, since 2026-09-07, the `foreign` pillar's `/foreign/mou` and
-`/foreign/workpermit` contact events (below). The pillar quiz funnel fires
-`quiz_start`, `quiz_complete`, and `voucher_sent` (see
-`src/components/quiz/QuizRunner.tsx` and `src/app/api/quiz/route.ts`), none
-of which are mapped — so a quiz-funnel pillar campaign launched today would
-report **zero conversions** in Google Ads no matter how well it performed.
+events and the `foreign` pillar's `/foreign/mou` and `/foreign/workpermit`
+contact events (below). The pillar quiz funnel (`quiz_start`,
+`quiz_complete`, `voucher_sent`) is still **not** in that map, and mapping it
+would not help: the quiz completes inside LINE's LIFF browser, a fresh
+context with no Google cookie, so a client-side Ads tag there can never be
+attributed to the click.
 
-Before spending on any quiz-funnel campaign below, add the pillar events to
-`ADS_CONVERSIONS`. `voucher_sent` is the right primary — it means a voucher
-actually issued, not just that someone started answering questions.
+The fix is the offline-conversion feed instead (`docs/growth-loops.md` §1):
+the gate now carries `gclid` through to LIFF and onto `leads.gclid`, and
+`/api/ads/offline-conversions` reports `RGD Quiz Voucher` (voucher issued)
+and `RGD Patient Visit` (patient came) back to Google Ads daily. Before
+spending on any quiz-funnel campaign below: create those two conversion
+actions and the scheduled upload, and make `RGD Patient Visit` the primary.
 
 `/foreign` itself is still unmapped (its CTAs are plain `Link`/`tel:`
 elements with no `track()` call) and would report zero. Map it the same way

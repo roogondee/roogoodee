@@ -48,6 +48,7 @@ interface ClaimPayload {
   ttp?: string
   fbc?: string
   fbp?: string
+  gclid?: string
   liff_id_token?: string
 }
 
@@ -55,6 +56,11 @@ const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'me
 
 // Spec §5.2 — same monthly voucher quota as the form path
 const MONTHLY_QUOTA = 50
+
+// Client-supplied tracking strings — bounded so a junk value can't bloat a row.
+function clip(v: string | null | undefined, max = 500): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -205,6 +211,12 @@ export async function POST(req: NextRequest) {
           utm_source:    body.utm_source || null,
           utm_medium:    body.utm_medium || null,
           utm_campaign:  body.utm_campaign || null,
+          // No phone on this path — these are the only keys a later visit
+          // conversion (redeem screen) can match on. See src/lib/growth/visit.ts.
+          gclid:         clip(body.gclid),
+          fbc:           clip(body.fbc),
+          fbp:           clip(body.fbp),
+          user_agent:    clip(req.headers.get('user-agent')),
           status:        quotaFull ? 'waitlist' : 'new',
           recaptcha_ok:     captcha.success,
           recaptcha_reason: captcha.reason || null,

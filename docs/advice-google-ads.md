@@ -514,6 +514,11 @@ between the last two means the follow-up-call offer isn't landing.
 
 ## Offline conversion import
 
+> **Automated since 2026-09-23** — `/api/ads/offline-conversions` serves this as a
+> Google Ads scheduled-upload feed (every lead with a gclid that reached `visited_at`,
+> as `RGD Patient Visit`). Set it up once per `docs/growth-loops.md` §1; the manual
+> query below is kept for ad-hoc checks.
+
 Once a lead from `/advice` books an actual appointment or converts, upload it
 back to Google Ads as an offline conversion using `leads.gclid`:
 

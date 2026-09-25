@@ -33,6 +33,7 @@ export type MetaEventName =
   | 'CompleteRegistration'
   | 'Contact'
   | 'SubmitApplication'
+  | 'Purchase'
 
 export interface MetaEventsInput {
   // One user_data + custom_data shared by every event in the batch; each
@@ -51,6 +52,10 @@ export interface MetaEventsInput {
   }
   custom_data?: Record<string, unknown>
   event_source_url?: string
+  // 'website' for events that happen on the site (default). A patient walking
+  // into the hospital is 'physical_store' — Meta accepts those up to 62 days
+  // after the click instead of 7, which is what a 14-day voucher needs.
+  action_source?: 'website' | 'physical_store' | 'system_generated'
   // Service vertical — 'mens' routes to the isolated mens pixel (see above).
   service?: string
 }
@@ -90,7 +95,7 @@ export async function sendMetaEvents(input: MetaEventsInput): Promise<void> {
       event_name: e.event_name,
       event_time: eventTime,
       event_id: e.event_id,
-      action_source: 'website',
+      action_source: input.action_source ?? 'website',
       event_source_url: input.event_source_url,
       user_data: userData,
       custom_data: input.custom_data ?? {},

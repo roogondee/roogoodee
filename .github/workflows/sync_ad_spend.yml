@@ -1,0 +1,36 @@
+name: 💸 RuGonDee Sync Ad Spend
+
+on:
+  schedule:
+    - cron: "30 18 * * *"   # 18:30 UTC = 01:30 Bangkok (ดึงค่าแอดของเมื่อวาน + แก้ย้อนหลัง 7 วัน)
+  workflow_dispatch:
+    inputs:
+      sync_days:
+        description: "ย้อนหลังกี่วัน"
+        required: false
+        default: "7"
+
+jobs:
+  sync_ad_spend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 💸 Sync Meta ad spend
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET:          ${{ secrets.SUPABASE_SECRET }}
+          META_ADS_ACCESS_TOKEN:    ${{ secrets.META_ADS_ACCESS_TOKEN }}
+          META_AD_ACCOUNT_ID:       ${{ secrets.META_AD_ACCOUNT_ID }}
+          SYNC_DAYS:                ${{ github.event.inputs.sync_days || '7' }}
+        run: python scripts/sync_ad_spend.py
