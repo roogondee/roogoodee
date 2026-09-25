@@ -68,6 +68,9 @@ returns void language sql as $$
   update public.referral_codes set clicks = clicks + 1 where code = p_code;
 $$;
 
+-- Server-only: Supabase exposes public functions to the anon key by default.
+revoke execute on function public.bump_referral_click(text) from public, anon, authenticated;
+
 -- ── 2. ad_spend_daily ───────────────────────────────────────────────────
 -- Filled by scripts/sync_ad_spend.py (Meta Insights) and by hand from
 -- /admin/growth for platforms without an API hookup (Google, TikTok, LINE).
