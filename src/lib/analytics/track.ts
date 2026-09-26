@@ -77,6 +77,12 @@ const ADS_CONVERSIONS: Record<string, string> = {
   mou_call_click: 'ads_conversion_Contact_Us_1',
   mou_line_click: 'ads_conversion_Contact_Us_1',
   mou_chat_line_click: 'ads_conversion_Contact_Us_1',
+  // /dmglp (W Medical diabetes programme landing): LINE / call taps are
+  // contacts like every other landing. dmglp_landing_view is deliberately
+  // NOT mapped. Booked / treatment-started are OFFLINE conversions from
+  // /api/dmglp/conversions-export, never client events.
+  dmglp_line_click: 'ads_conversion_Contact_Us_1',
+  dmglp_call_click: 'ads_conversion_Contact_Us_1',
   workpermit_lead: 'ads_conversion_Contact_Us_1',
   workpermit_chat_lead: 'ads_conversion_Contact_Us_1',
   workpermit_call_click: 'ads_conversion_Contact_Us_1',

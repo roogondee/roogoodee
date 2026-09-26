@@ -104,6 +104,12 @@ export default function ChatWidget() {
   // would be a second route to the same questions that could improvise them.
   if (pathname?.startsWith('/foreign/workpermit')) return null
 
+  // Hide on /dmglp — the W Medical diabetes-programme landing must carry no
+  // drug brand names, strengths or drug prices (spec hard boundary), and its
+  // only CTA is LINE with a ref code. A floating LLM chat there is a second
+  // route that could improvise exactly those things.
+  if (pathname?.startsWith('/dmglp')) return null
+
   // Hide on the homepage while it opens with the inline work-permit chat
   // (HomeWorkPermitHero, until 11 ธ.ค. 2569) — same reasoning as /advice: one
   // chat per page, and that one routes other-service questions itself.

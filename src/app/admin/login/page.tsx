@@ -20,7 +20,10 @@ export default function AdminLoginPage() {
     })
     const data = await res.json()
     if (res.ok) {
-      router.push('/admin')
+      // ?next= is set by the middleware for /dmglp/staff; only same-origin
+      // paths are honoured so the param can never bounce someone off-site.
+      const next = new URLSearchParams(window.location.search).get('next') || ''
+      router.push(/^\/[a-z]/i.test(next) && !next.startsWith('//') ? next : '/admin')
     } else {
       setError(data.error || 'เข้าสู่ระบบไม่สำเร็จ')
       setLoading(false)
