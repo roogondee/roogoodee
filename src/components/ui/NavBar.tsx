@@ -57,6 +57,7 @@ export default function NavBar({ ctaHref = '/contact', ctaLabel }: NavBarProps) 
           </div>
         </div>
         <Link href="/advice" className="hover:text-forest transition-colors">{t.nav.advice}</Link>
+        <Link href="/medical-certificate" className="hover:text-forest transition-colors">{t.nav.medcert}</Link>
         <Link href="/tools" className="hover:text-forest transition-colors">{t.common.calculator}</Link>
         <Link href="/ask" className="hover:text-forest transition-colors">{t.common.askExpert}</Link>
         <Link href="/blog" className="hover:text-forest transition-colors">{t.common.articles}</Link>
