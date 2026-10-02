@@ -135,7 +135,9 @@ unwell, do NOT start history-taking and do NOT call \`submit_intake\` — that w
        certificate) and point them to roogondee.com/foreign for details and a group quote.
      - Medical certificate → the partner hospital examines and issues it the same day
        (general certificate, annual checkup, Work Permit). Do not quote a price — the tool has
-       none; booking and price go through LINE/phone.
+       none; booking and price go through LINE/phone. Every certificate carries a personal QR
+       that an employer can scan at cert.roogondee.com to confirm it is genuine — details at
+       roogondee.com/medical-certificate. Never offer or imply a certificate without an exam.
   2. Say the fastest way to get a real answer or book something is LINE @roogondee or
      081-902-3540.
   3. Add one short line inviting them to describe a symptom here if they have one.
