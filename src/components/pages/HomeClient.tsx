@@ -7,6 +7,7 @@ import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
 import HomeWorkPermitHero from '@/components/pages/HomeWorkPermitHero'
 import homepageImages from '@/config/homepage-images'
+import { SERVICE_IMAGES } from '@/config/service-images'
 
 interface Post {
   id: string
@@ -94,7 +95,10 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
       {/* TRUST — โรงพยาบาลพันธมิตร */}
       <section className="py-8 px-6 md:px-20 bg-mint/5 border-b border-mint/10">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
-          <div className="w-12 h-12 bg-forest rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0">🏥</div>
+          <div className="relative w-full md:w-40 h-32 md:h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
+            <Image src={SERVICE_IMAGES.hospital} alt={t.home.hospitalPartner as string} fill className="object-cover" sizes="(max-width: 768px) 100vw, 160px" />
+            <span className="absolute bottom-2 left-2 w-9 h-9 bg-forest rounded-xl flex items-center justify-center text-white text-lg shadow">🏥</span>
+          </div>
           <div>
             <p className="font-semibold text-forest text-sm">{t.home.hospitalPartner}</p>
             <p className="text-muted text-xs leading-relaxed">{t.home.hospitalDesc}</p>
@@ -105,7 +109,11 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
       {/* ADVICE AI — entry point for visitors who feel unwell but don't know
           which service fits. Chat first, then route to LINE / a pillar. */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
-        <div className="max-w-4xl mx-auto bg-gradient-to-br from-forest to-sage rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+        <div className="max-w-4xl mx-auto bg-gradient-to-br from-forest to-sage rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 md:gap-10 relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-64 h-64 bg-mint/25 rounded-full blur-3xl animate-blob pointer-events-none" aria-hidden />
+          <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden ring-4 ring-white/20 shadow-xl flex-shrink-0 animate-float-slow">
+            <Image src={SERVICE_IMAGES.advice} alt="" fill className="object-cover" sizes="144px" />
+          </div>
           <div className="flex-1 text-center md:text-left">
             <span className="inline-block text-xs font-bold tracking-widest uppercase text-white/70 bg-white/10 px-3 py-1 rounded-full mb-3">{t.home.adviceTag}</span>
             <h2 className="font-display text-2xl md:text-3xl text-white mb-2">{t.home.adviceTitle}</h2>
@@ -113,8 +121,9 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
           </div>
           <Link
             href="/advice"
-            className="flex-shrink-0 bg-white text-forest px-8 py-4 rounded-full text-sm font-bold hover:bg-mint/20 transition-all hover:-translate-y-0.5 shadow-lg"
+            className="relative overflow-hidden flex-shrink-0 bg-white text-forest px-8 py-4 rounded-full text-sm font-bold hover:bg-mint/20 transition-all hover:-translate-y-0.5 shadow-lg"
           >
+            <span className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-mint/30 to-transparent animate-shine pointer-events-none" aria-hidden />
             {t.home.adviceCta}
           </Link>
         </div>
@@ -127,17 +136,18 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
         <p className="text-muted text-base md:text-lg mb-10 md:mb-16 max-w-lg">{t.home.servicesDesc}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {SERVICES.map((s) => {
-            const imgUrl = homepageImages[s.key as keyof typeof homepageImages]
+            const imgUrl = homepageImages[s.key as keyof typeof homepageImages] ?? SERVICE_IMAGES[s.key as keyof typeof SERVICE_IMAGES]
             return (
-            <Link href={s.href} key={s.tag} className={`bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl overflow-hidden hover:-translate-y-1 hover:shadow-2xl transition-all duration-300`}>
+            <Link href={s.href} key={s.tag} className={`group bg-gradient-to-br ${s.color} border rounded-2xl md:rounded-3xl overflow-hidden hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300`}>
               {imgUrl ? (
                 <div className="aspect-video relative overflow-hidden">
-                  <Image src={imgUrl} alt={s.name as string} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+                  <Image src={imgUrl} alt={s.name as string} fill className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out" sizes="(max-width: 768px) 100vw, 50vw" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
+                  <span className="absolute bottom-4 left-4 w-14 h-14 md:w-16 md:h-16 bg-white/95 backdrop-blur rounded-2xl shadow-lg flex items-center justify-center text-3xl md:text-4xl group-hover:-translate-y-1 group-hover:rotate-6 transition-transform duration-500">{s.emoji}</span>
                 </div>
               ) : null}
               <div className="p-7 md:p-10">
-              <span className="text-4xl md:text-5xl mb-4 md:mb-5 block">{s.emoji}</span>
+              {!imgUrl && <span className="text-4xl md:text-5xl mb-4 md:mb-5 block">{s.emoji}</span>}
               <span className="text-xs font-bold tracking-widest uppercase opacity-60 bg-black/5 px-3 py-1 rounded-full">{s.tag}</span>
               <h3 className="font-display text-2xl md:text-3xl text-forest mt-3 mb-2 md:mb-3 whitespace-pre-line">{s.name}</h3>
               <p className="text-muted text-sm leading-relaxed mb-4 md:mb-5">{s.desc}</p>
@@ -149,7 +159,7 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
                   </li>
                 ))}
               </ul>
-              <span className="text-sm font-bold text-forest flex items-center gap-1 group">{t.common.consultFree} <span className="group-hover:translate-x-1 transition-transform">→</span></span>
+              <span className="text-sm font-bold text-forest flex items-center gap-1">{t.common.consultFree} <span className="group-hover:translate-x-1.5 transition-transform">→</span></span>
               </div>
             </Link>
             )
@@ -159,7 +169,8 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
 
       {/* HOW */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-forest relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-mint/10 rounded-full -translate-y-1/2 translate-x-1/2 hidden md:block"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-mint/15 rounded-full blur-2xl animate-blob hidden md:block pointer-events-none" aria-hidden></div>
+        <div className="absolute -bottom-32 -left-24 w-80 h-80 bg-leaf/10 rounded-full blur-3xl animate-blob [animation-delay:-9s] pointer-events-none" aria-hidden></div>
         <p className="text-xs font-bold tracking-widest uppercase text-leaf mb-3 md:mb-4">{t.home.howLabel}</p>
         <h2 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4">{t.home.howTitle}</h2>
         <p className="text-white/60 text-base md:text-lg mb-10 md:mb-16">{t.home.howDesc}</p>
@@ -167,7 +178,7 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
           {STEPS.map((s) => (
             <div key={s.num} className="bg-white/5 border border-white/10 rounded-2xl p-7 md:p-9 hover:bg-white/8 hover:-translate-y-1 transition-all relative">
               <span className="absolute top-5 right-7 font-display text-6xl md:text-7xl text-white/5 font-bold">{s.num}</span>
-              <span className="text-3xl md:text-4xl mb-4 md:mb-5 block">{s.icon}</span>
+              <span className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-mint/15 flex items-center justify-center text-3xl md:text-4xl mb-4 md:mb-5">{s.icon}</span>
               <h3 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-3">{s.title}</h3>
               <p className="text-white/55 text-sm leading-relaxed">{s.desc}</p>
             </div>
@@ -180,7 +191,15 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
         <div className="max-w-5xl mx-auto">
           <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">{t.home.aboutLabel}</p>
           <h2 className="font-display text-3xl md:text-4xl text-forest mb-4">{t.home.teamTitle}</h2>
-          <p className="text-muted text-base md:text-lg mb-10 md:mb-14 max-w-xl">{t.home.teamDesc}</p>
+          <p className="text-muted text-base md:text-lg mb-8 md:mb-10 max-w-xl">{t.home.teamDesc}</p>
+          <div className="relative aspect-[16/9] md:aspect-[21/8] rounded-3xl overflow-hidden shadow-xl mb-8 md:mb-10 group">
+            <Image src={SERVICE_IMAGES.care} alt={t.home.teamTitle as string} fill className="object-cover group-hover:scale-105 transition-transform duration-[1.5s]" sizes="(max-width: 1024px) 100vw, 1024px" />
+            <div className="absolute inset-0 bg-gradient-to-r from-forest/70 via-forest/20 to-transparent" />
+            <div className="absolute bottom-5 left-5 md:bottom-8 md:left-8 max-w-sm">
+              <p className="text-xs font-bold tracking-widest uppercase text-leaf mb-1">{t.home.stat1Num} {t.home.stat1Label}</p>
+              <p className="font-display text-xl md:text-3xl text-white leading-tight">{t.home.teamHospital}</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { emoji: '🏥', title: t.home.teamHospital, subtitle: t.home.teamHospitalSub, desc: t.home.teamHospitalDesc },
@@ -414,8 +433,8 @@ function VoucherHero({ locale, compact = false }: { locale: string; compact?: bo
 
   return (
     <section className={`${compact ? 'pt-12 md:pt-16 border-t border-white/10' : 'pt-20 md:pt-24'} pb-12 md:pb-20 px-6 md:px-20 bg-gradient-to-br from-forest via-sage to-mint relative overflow-hidden`}>
-      <div className="absolute top-20 right-10 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-mint/20 rounded-full blur-3xl" />
+      <div className="absolute top-20 right-10 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-blob pointer-events-none" aria-hidden />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-mint/25 rounded-full blur-3xl animate-blob [animation-delay:-7s] pointer-events-none" aria-hidden />
 
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2 rounded-full text-xs md:text-sm font-semibold mb-6 md:mb-8">
@@ -439,7 +458,7 @@ function VoucherHero({ locale, compact = false }: { locale: string; compact?: bo
               className="group bg-white rounded-2xl p-6 md:p-7 hover:-translate-y-1 hover:shadow-2xl transition-all border border-white/10"
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-4xl md:text-5xl">{o.emoji}</span>
+                <span className="text-4xl md:text-5xl inline-block group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-300">{o.emoji}</span>
                 <span className={`text-xs font-bold tracking-widest uppercase bg-gradient-to-r ${o.accent} bg-clip-text text-transparent`}>
                   {o.tag}
                 </span>

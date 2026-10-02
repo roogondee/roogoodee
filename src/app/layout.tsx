@@ -7,6 +7,7 @@ import LINEFloat from '@/components/ui/LINEFloat'
 import Pixels from '@/components/analytics/Pixels'
 import Recaptcha from '@/components/analytics/Recaptcha'
 import LazyChatWidget from '@/components/ui/LazyChatWidget'
+import ScrollMotion from '@/components/ui/ScrollMotion'
 import { I18nProvider } from '@/lib/i18n/context'
 import HrefLangTags from '@/components/ui/HrefLangTags'
 import { Analytics } from '@vercel/analytics/next'
@@ -108,6 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LazyChatWidget />
           <LINEFloat />
           <PDPABanner />
+          <ScrollMotion />
         </I18nProvider>
         <Analytics />
       </body>
