@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
@@ -35,8 +36,8 @@ export default function CKDClient() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <NavBar ctaHref="/quiz/ckd" />
 
-      <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-blue-50 via-cream to-cream">
-        <div className="max-w-3xl">
+      <section className="min-h-[70vh] flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-14 pb-16 lg:pb-16 relative overflow-hidden pt-24 lg:pt-28 px-6 md:px-20 bg-gradient-to-br from-blue-50 via-cream to-cream">
+        <div className="max-w-3xl w-full lg:flex-1 relative z-10">
           <div className="inline-flex items-center gap-2 bg-blue-100 border border-blue-200 text-blue-700 px-4 py-2 rounded-full text-xs font-semibold mb-6">{ckd.heroTag}</div>
           <h1 className="font-display text-4xl md:text-6xl text-forest leading-tight mb-5">
             {ckd.heroTitle1}<br/>{ckd.heroTitle2}<br/><em className="text-blue-600">{ckd.heroTitle3}</em>
@@ -52,6 +53,7 @@ export default function CKDClient() {
             ))}
           </div>
         </div>
+        <PillarHeroImage service="ckd" alt={String(ckd.heroTag)} badgeIcon="🩺" badgeTitle={String(ckd.trustDoctor)} blobClass="bg-blue-300/40" />
       </section>
 
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white">

@@ -115,3 +115,42 @@ body {
   margin: 1.5rem 0;
   display: block;
 }
+
+/* Scroll-reveal — classes are added by ScrollMotion (src/components/ui/
+   ScrollMotion.tsx) only after JS runs and only to sections that start below
+   the fold, so no-JS visitors, crawlers and the hero never see hidden content.
+   .rv = section fades/slides up; .rv-child = grid items stagger in after it
+   (delay comes from --rv-d, set per item). */
+@media (prefers-reduced-motion: no-preference) {
+  .rv {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .rv .rv-child {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+    transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transition-delay: var(--rv-d, 0ms);
+  }
+  .rv.rv-in,
+  .rv.rv-in .rv-child {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media print {
+  .rv, .rv .rv-child { opacity: 1 !important; transform: none !important; }
+}
+
+/* Decorative loops (float, blob, shine) are pure ornament — stop them for
+   visitors who asked their OS for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-slow,
+  .animate-blob,
+  .animate-shine,
+  .animate-rise-in {
+    animation: none !important;
+  }
+}

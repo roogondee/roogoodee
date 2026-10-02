@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
@@ -60,8 +61,8 @@ export default function DnaClient() {
         </div>
       </nav>
 
-      <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-sky-50 via-cream to-cream">
-        <div className="max-w-3xl">
+      <section className="min-h-[70vh] flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-14 pb-16 lg:pb-16 relative overflow-hidden pt-24 lg:pt-28 px-6 md:px-20 bg-gradient-to-br from-sky-50 via-cream to-cream">
+        <div className="max-w-3xl w-full lg:flex-1 relative z-10">
           <div className="inline-flex items-center gap-2 bg-sky-100 border border-sky-200 text-sky-700 px-4 py-2 rounded-full text-xs font-semibold mb-6">
             {t.dna.heroTag}
           </div>
@@ -92,6 +93,7 @@ export default function DnaClient() {
             ))}
           </div>
         </div>
+        <PillarHeroImage service="dna" alt={String(t.dna.heroTag)} badgeIcon="🤝" badgeTitle={String(t.dna.trustConsent)} blobClass="bg-sky-300/40" />
       </section>
 
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
