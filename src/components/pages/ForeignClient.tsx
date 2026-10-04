@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n/context'
 import { track } from '@/lib/analytics/track'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
+import CertPromoBanner from '@/components/ui/CertPromoBanner'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
 
@@ -110,6 +111,10 @@ export default function ForeignClient() {
             {f.programLinkCta}
           </Link>
         </div>
+      </section>
+
+      <section className="pb-14 px-6 md:px-20 bg-cream">
+        <CertPromoBanner position="foreign_hub" className="max-w-5xl mx-auto" />
       </section>
 
       <section className="py-16 md:py-20 px-6 md:px-20 bg-forest">

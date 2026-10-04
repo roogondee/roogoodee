@@ -1,5 +1,6 @@
 'use client'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n/context'
 import th from '@/lib/i18n/locales/th'
 import NavBar from '@/components/ui/NavBar'
@@ -137,8 +138,8 @@ export default function AdviceClient() {
           sick but need paperwork (Work Permit checkup, a medical certificate).
           Requested 2026-09-04 so those visitors learn we do this without
           having to ask the chat. Foreign card goes to the B2B pillar page,
-          which has its own quote funnel; the certificate card routes to
-          LINE/call since there's no dedicated page for it. */}
+          which has its own quote funnel; the certificate card keeps the
+          LINE/call pair and links to /medical-certificate (2026-10-04). */}
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
         <div className="max-w-5xl mx-auto">
           <p className="text-xs font-bold tracking-widest uppercase text-mint mb-3">{m.otherServicesLabel}</p>
@@ -160,6 +161,8 @@ export default function AdviceClient() {
               <p className="text-muted text-sm leading-relaxed mb-4 flex-1">{m.certCardDesc}</p>
               <p className="text-xs text-muted mb-2">{m.certCardHint}</p>
               <AdviceContactCtas placement="services" />
+              <Link href="/medical-certificate" onClick={() => track('medcert_banner_click', { position: 'advice_card' })}
+                className="mt-3 text-mint font-bold text-sm hover:text-forest">{t.home.certCta} →</Link>
             </div>
           </div>
         </div>

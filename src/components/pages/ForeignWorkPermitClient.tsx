@@ -8,6 +8,7 @@ import FooterMinimal from '@/components/ui/FooterMinimal'
 import WorkPermitChat from '@/components/ui/WorkPermitChat'
 import WorkPermitLeadForm from '@/components/ui/WorkPermitLeadForm'
 import WorkPermitStickyBar from '@/components/ui/WorkPermitStickyBar'
+import CertPromoBanner from '@/components/ui/CertPromoBanner'
 import { trackWorkPermitCallClick, trackWorkPermitLineClick } from '@/lib/analytics/track'
 
 const PHONE_TEL = 'tel:0819023540'
@@ -267,6 +268,10 @@ export default function ForeignWorkPermitClient({ daysLeft }: { daysLeft: number
             <WorkPermitLeadForm />
           </Suspense>
         </div>
+      </section>
+
+      <section className="pt-16 md:pt-20 px-6 md:px-20 bg-white">
+        <CertPromoBanner position="workpermit" className="max-w-3xl mx-auto" />
       </section>
 
       {/* FAQ */}

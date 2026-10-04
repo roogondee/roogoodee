@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 // automatically via scripts/sync_ad_spend.py (source='meta_api').
 
 const PLATFORMS = ['meta', 'google', 'tiktok', 'line', 'other']
-const SERVICES = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna', 'advice', 'unknown']
+const SERVICES = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna', 'advice', 'medcert', 'unknown']
 
 export async function POST(req: NextRequest) {
   const me = await getSessionUser()

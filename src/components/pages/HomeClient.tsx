@@ -83,34 +83,10 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
           primary conversion path is never blank or wrong-script. */}
       <VoucherHero locale={locale} compact={workPermitDaysLeft !== null} />
 
-      {/* TRUST STATS */}
-      <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {TRUST_STATS.map(s => (
-            <div key={s.label} className="text-center">
-              <p className="font-display text-3xl md:text-4xl text-forest font-bold">{s.num}</p>
-              <p className="text-xs text-muted mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* TRUST — โรงพยาบาลพันธมิตร */}
-      <section className="py-8 px-6 md:px-20 bg-mint/5 border-b border-mint/10">
-        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
-          <div className="relative w-full md:w-40 h-32 md:h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
-            <Image src={SERVICE_IMAGES.hospital} alt={t.home.hospitalPartner as string} fill className="object-cover" sizes="(max-width: 768px) 100vw, 160px" />
-            <span className="absolute bottom-2 left-2 w-9 h-9 bg-forest rounded-xl flex items-center justify-center text-white text-lg shadow">🏥</span>
-          </div>
-          <div>
-            <p className="font-semibold text-forest text-sm">{t.home.hospitalPartner}</p>
-            <p className="text-muted text-xs leading-relaxed">{t.home.hospitalDesc}</p>
-          </div>
-        </div>
-      </section>
-
       {/* MEDICAL CERTIFICATE — the QR verification system (cert.roogondee.com)
           is the selling point against certificates sold without an exam.
+          Sits directly under the hero (owner, 2026-10-04) so it is seen
+          before the first scroll ends.
           Entry clicks are internal navigation, so medcert_home_click is not
           an Ads conversion; the contact events fire on /medical-certificate. */}
       <section className="py-12 md:py-16 px-6 md:px-20 bg-gradient-to-br from-emerald-50 via-white to-cream border-b border-mint/10 overflow-hidden">
@@ -142,6 +118,32 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
             confirmed: t.home.certSampleConfirmed as string,
             qrHint: t.home.certPoint3 as string,
           }} />
+        </div>
+      </section>
+
+      {/* TRUST STATS */}
+      <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          {TRUST_STATS.map(s => (
+            <div key={s.label} className="text-center">
+              <p className="font-display text-3xl md:text-4xl text-forest font-bold">{s.num}</p>
+              <p className="text-xs text-muted mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TRUST — โรงพยาบาลพันธมิตร */}
+      <section className="py-8 px-6 md:px-20 bg-mint/5 border-b border-mint/10">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-4 text-center md:text-left">
+          <div className="relative w-full md:w-40 h-32 md:h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-md">
+            <Image src={SERVICE_IMAGES.hospital} alt={t.home.hospitalPartner as string} fill className="object-cover" sizes="(max-width: 768px) 100vw, 160px" />
+            <span className="absolute bottom-2 left-2 w-9 h-9 bg-forest rounded-xl flex items-center justify-center text-white text-lg shadow">🏥</span>
+          </div>
+          <div>
+            <p className="font-semibold text-forest text-sm">{t.home.hospitalPartner}</p>
+            <p className="text-muted text-xs leading-relaxed">{t.home.hospitalDesc}</p>
+          </div>
         </div>
       </section>
 

@@ -30,6 +30,7 @@ const SERVICES = [
   { value: 'women', label: 'สุขภาพหญิง' },
   { value: 'mind', label: 'สุขภาพจิต' },
   { value: 'dna', label: 'DNA' },
+  { value: 'medcert', label: 'ใบรับรองแพทย์' },
   { value: 'unknown', label: 'ไม่ระบุ' },
 ]
 
