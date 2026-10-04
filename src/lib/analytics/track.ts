@@ -90,6 +90,11 @@ const ADS_CONVERSIONS: Record<string, string> = {
   healthprogram_lead: 'ads_conversion_Contact_Us_1',
   healthprogram_call_click: 'ads_conversion_Contact_Us_1',
   healthprogram_line_click: 'ads_conversion_Contact_Us_1',
+  // /medical-certificate: LINE / call taps are contacts. medcert_verify_click
+  // (opens cert.roogondee.com) and medcert_landing_view are deliberately NOT
+  // mapped — checking a certificate is not asking for one.
+  medcert_line_click: 'ads_conversion_Contact_Us_1',
+  medcert_call_click: 'ads_conversion_Contact_Us_1',
 }
 
 // Deliberately NOT mapped above, and the omission is the point:
@@ -125,6 +130,8 @@ const META_STANDARD_EVENTS: Record<string, { event: string; value: number; conte
   healthprogram_lead: { event: 'Lead', value: 500, contentName: 'health_program_form' },
   healthprogram_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
   healthprogram_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
+  medcert_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
+  medcert_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
 }
 
 // Meta's pixel is consent-gated (src/components/analytics/Pixels.tsx): window.fbq

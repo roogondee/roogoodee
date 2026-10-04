@@ -8,6 +8,9 @@ import FooterFull from '@/components/ui/FooterFull'
 import HomeWorkPermitHero from '@/components/pages/HomeWorkPermitHero'
 import homepageImages from '@/config/homepage-images'
 import { SERVICE_IMAGES } from '@/config/service-images'
+import CertVerifyMock from '@/components/ui/CertVerifyMock'
+import { CERT_VERIFY_URL } from '@/lib/certs/verify-site'
+import { track } from '@/lib/analytics/track'
 
 interface Post {
   id: string
@@ -79,6 +82,44 @@ export default function HomeClient({ posts, news, workPermitDaysLeft = null }: {
           native copy; every other locale falls back to English so the
           primary conversion path is never blank or wrong-script. */}
       <VoucherHero locale={locale} compact={workPermitDaysLeft !== null} />
+
+      {/* MEDICAL CERTIFICATE — the QR verification system (cert.roogondee.com)
+          is the selling point against certificates sold without an exam.
+          Sits directly under the hero (owner, 2026-10-04) so it is seen
+          before the first scroll ends.
+          Entry clicks are internal navigation, so medcert_home_click is not
+          an Ads conversion; the contact events fire on /medical-certificate. */}
+      <section className="py-12 md:py-16 px-6 md:px-20 bg-gradient-to-br from-emerald-50 via-white to-cream border-b border-mint/10 overflow-hidden">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-[1.2fr_1fr] gap-10 items-center">
+          <div className="text-center md:text-left">
+            <span className="inline-block text-xs font-bold tracking-widest uppercase text-emerald-800 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full mb-3">{t.home.certTag}</span>
+            <h2 className="font-display text-2xl md:text-3xl text-forest mb-3">{t.home.certTitle}</h2>
+            <p className="text-muted text-sm md:text-base leading-relaxed mb-5">{t.home.certDesc}</p>
+            <ul className="space-y-2 mb-6 text-sm inline-block text-left">
+              {[t.home.certPoint1, t.home.certPoint2, t.home.certPoint3].map(p => (
+                <li key={p} className="flex gap-2"><span className="text-mint font-bold">✓</span><span className="text-forest font-medium">{p}</span></li>
+              ))}
+            </ul>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
+              <Link href="/medical-certificate" onClick={() => track('medcert_home_click', { position: 'home_cert' })}
+                className="inline-flex items-center justify-center bg-forest text-white px-7 py-3.5 rounded-full text-sm font-bold hover:bg-sage transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                {t.home.certCta}
+              </Link>
+              <a href={CERT_VERIFY_URL} target="_blank" rel="noopener noreferrer" onClick={() => track('medcert_verify_click', { position: 'home_cert' })}
+                className="inline-flex items-center justify-center border border-forest/30 text-forest px-7 py-3.5 rounded-full text-sm font-bold hover:bg-mint/10">
+                {t.home.certVerifyCta}
+              </a>
+            </div>
+          </div>
+          <CertVerifyMock compact labels={{
+            sample: t.home.certSample as string,
+            valid: t.home.certSampleValid as string,
+            issuer: t.home.certSampleIssuer as string,
+            confirmed: t.home.certSampleConfirmed as string,
+            qrHint: t.home.certPoint3 as string,
+          }} />
+        </div>
+      </section>
 
       {/* TRUST STATS */}
       <section className="py-10 md:py-14 px-6 md:px-20 bg-white border-b border-mint/10">

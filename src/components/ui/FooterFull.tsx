@@ -25,6 +25,7 @@ export default function FooterFull() {
             <li><Link href="/women" className="hover:text-white transition-colors">{t.home.footerWomen}</Link></li>
             <li><Link href="/mind" className="hover:text-white transition-colors">{t.home.footerMind}</Link></li>
             <li><Link href="/dna" className="hover:text-white transition-colors">{t.home.footerDna}</Link></li>
+            <li><Link href="/medical-certificate" className="hover:text-white transition-colors">{t.nav.medcert}</Link></li>
           </ul>
         </div>
         <div>

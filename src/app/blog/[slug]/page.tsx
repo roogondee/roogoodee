@@ -7,6 +7,7 @@ import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
 import MediaBlock from '@/components/ui/MediaBlock'
 import ArticleQuiz from '@/components/quiz/ArticleQuiz'
+import CertPromoBanner from '@/components/ui/CertPromoBanner'
 import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
@@ -163,6 +164,9 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
         {/* Main CTA */}
         <BlogPostCTA service={post.service} />
+
+        {/* Verifiable medical certificate — site-wide promo */}
+        <CertPromoBanner position="blog_post" className="mt-8" />
 
         {/* Share bottom */}
         <div className="mt-8 bg-white border border-mint/15 rounded-2xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
