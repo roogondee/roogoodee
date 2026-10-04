@@ -12,10 +12,13 @@ import CertVerifyMock from '@/components/ui/CertVerifyMock'
 // certificate sold without an examination cannot offer: cert.roogondee.com.
 //
 // Every claim below is something that system actually does (see the
-// medicalcertificate repo README): per-person QR with a random token,
-// number-only lookup that shows status but no health data, confirmation
-// stamped with who and when, void/expiry shown live, sick-leave diagnosis
-// hidden on the public page, guessing rate-limited. Keep it that way — a
+// medicalcertificate repo README, `main`): per-person QR with a random token,
+// number-only lookup that shows status but no health data, 3-step
+// certification (medical technologist for lab results when there are any,
+// then the doctor, then a sha256 seal — editing a result drops all three),
+// X-ray / lab images + readings visible only via the QR and only when that
+// certificate has them, void/expiry shown live, sick-leave diagnosis hidden
+// on the public page, guessing rate-limited. Keep it that way — a
 // trust page that overclaims is worse than none.
 //
 // Red lines: no competitor named, no price quoted (none agreed for this page,
@@ -33,13 +36,15 @@ const COMPARE: { label: string; ours: string; unverified: string }[] = [
   { label: 'QR เฉพาะบุคคลบนใบ', ours: 'มี', unverified: 'ไม่มี' },
   { label: 'ผู้รับเอกสารสแกนเช็กได้เองว่าใบมีจริง', ours: 'ได้ทันที ไม่ต้องล็อกอิน', unverified: 'เช็กไม่ได้' },
   { label: 'แสดงสถานะหมดอายุ / ถูกยกเลิก', ours: 'อัปเดตตามจริง', unverified: 'ไม่มี' },
-  { label: 'บันทึกว่าใครยืนยันข้อมูล เมื่อไหร่', ours: 'มี', unverified: 'ไม่มี' },
+  { label: 'แพทย์รับรองผล ระบุชื่อ + เลขใบอนุญาต', ours: 'มี พร้อมวันเวลา', unverified: 'ไม่มี' },
+  { label: 'รหัสผนึกผลตรวจ — แก้ผลย้อนหลังแล้วรู้ทันที', ours: 'มี', unverified: 'ไม่มี' },
+  { label: 'ดูผลแล็บ / ฟิล์มเอกซเรย์ต้นฉบับผ่าน QR', ours: 'ได้ (ใบที่มีการตรวจ)', unverified: 'ไม่มี' },
   { label: 'ความเสี่ยงทางกฎหมายของผู้ใช้ใบ', ours: 'ไม่มี', unverified: 'ผิดประมวลกฎหมายอาญา ม.269' },
 ]
 
 const HOW = [
   { n: '1', title: 'พบแพทย์ ตรวจจริง', desc: 'ซักประวัติ ตรวจร่างกาย วัดความดัน ชีพจร น้ำหนัก และตรวจเพิ่มตามแบบฟอร์มที่ต้องใช้' },
-  { n: '2', title: 'ยืนยันข้อมูลในระบบ', desc: 'เจ้าหน้าที่ตรวจทานข้อมูลบนใบก่อนส่งมอบ ระบบบันทึกผู้ยืนยันและวันเวลาไว้ทุกครั้ง' },
+  { n: '2', title: 'รับรองผล แล้วผนึกผล', desc: 'ถ้ามีตรวจแล็บ นักเทคนิคการแพทย์รับรองผลก่อน จากนั้นแพทย์รับรองผลการตรวจ แล้วระบบผนึกผลด้วยรหัสตรวจสอบ ถ้าผลถูกแก้ภายหลัง การรับรองหลุดทันทีและต้องรับรองใหม่ทั้งชุด' },
   { n: '3', title: 'รับใบพร้อม QR ในวันเดียว', desc: 'QR แต่ละดวงผูกกับใบของคุณคนเดียว มีรหัสสุ่มที่เดาไม่ได้' },
   { n: '4', title: 'ผู้รับเอกสารสแกนตรวจได้เอง', desc: 'นายจ้าง ฝ่ายบุคคล หรือหน่วยงาน สแกนแล้วเห็นใบฉบับจริงจากระบบโรงพยาบาลทันที ตลอด 24 ชั่วโมง' },
 ]
@@ -87,7 +92,7 @@ const FAQS = [
   },
   {
     q: 'คนที่สแกน QR จะเห็นข้อมูลอะไรบ้าง',
-    a: `QR บนใบเปิดใบรับรองฉบับเต็มจากระบบของโรงพยาบาล พร้อมสถานะ (ใช้ได้ / หมดอายุ / ถูกยกเลิก) และผู้ยืนยันข้อมูล ส่วนการกรอกเลขที่ใบ 10 หลักที่ ${VERIFY_HOST} จะเห็นเฉพาะผลยืนยันขั้นต้น ไม่เห็นชื่อหรือผลตรวจ ใบลาป่วยจะไม่แสดงอาการหรือการวินิจฉัยบนหน้าตรวจสอบสาธารณะ`,
+    a: `QR บนใบเปิดใบรับรองฉบับเต็มจากระบบของโรงพยาบาล พร้อมสถานะ (ใช้ได้ / หมดอายุ / ถูกยกเลิก) ไทม์ไลน์การตรวจ แพทย์ผู้รับรองผล และผลเทียบรหัสผนึกว่าผลตรวจไม่ถูกแก้ไข ใบที่มีการตรวจแล็บหรือเอกซเรย์จะเห็นรูปผลต้นฉบับพร้อมผลอ่านด้วย ส่วนการกรอกเลขที่ใบ 10 หลักที่ ${VERIFY_HOST} จะเห็นเฉพาะผลยืนยันขั้นต้น ไม่เห็นชื่อหรือผลตรวจ ใบลาป่วยจะไม่แสดงอาการหรือการวินิจฉัยบนหน้าตรวจสอบสาธารณะ`,
   },
   {
     q: 'มีคนเอาเลขใบของฉันไปสุ่มเปิดได้ไหม',
@@ -125,7 +130,7 @@ export default function MedicalCertificateClient() {
             </h1>
             <p className="text-muted text-base md:text-lg leading-relaxed mb-6 max-w-xl">
               ทุกใบออกหลังพบแพทย์และตรวจร่างกายจริง พร้อม QR เฉพาะของคุณ — นายจ้าง ฝ่ายบุคคล หรือหน่วยงานที่รับเอกสาร
-              สแกนแล้วเห็นทันทีว่าใบนี้ออกจริง ยังไม่หมดอายุ และผ่านการยืนยันข้อมูลแล้ว ไม่ต้องโทรถาม
+              สแกนแล้วเห็นทันทีว่าใบนี้ออกจริง ยังไม่หมดอายุ และแพทย์รับรองผลแล้ว ไม่ต้องโทรถาม
             </p>
             <ul className="grid sm:grid-cols-3 gap-2 mb-7 text-sm">
               {['พบแพทย์จริงทุกใบ', 'รับใบได้ในวันเดียว', 'ตรวจสอบได้ 24 ชม.'].map(t => (
@@ -245,7 +250,7 @@ export default function MedicalCertificateClient() {
             {[
               'เห็นใบฉบับจริงจากระบบโรงพยาบาล ไม่ใช่ไฟล์ที่ส่งต่อกันมา',
               'ใบที่โรงพยาบาลยกเลิกจะขึ้นว่า "ถูกยกเลิก" ทันที',
-              'บอกได้ว่าข้อมูลบนใบผ่านการยืนยันแล้วหรือยัง',
+              'บอกได้ว่าแพทย์รับรองผลแล้วหรือยัง และผลถูกแก้หลังผนึกหรือไม่',
               'ใช้ได้กับใบทุกแบบที่โรงพยาบาลออก',
             ].map(t => (
               <li key={t} className="flex gap-3 bg-white/10 rounded-xl px-4 py-3">
