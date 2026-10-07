@@ -261,6 +261,15 @@ export default function QuizRunner({ definition, liff }: Props) {
       const v = searchParams?.get(key)
       if (v) document.cookie = `${key}=${encodeURIComponent(v)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
     }
+    // The gate also forwards its pixel cookies (fbc/fbp/ttp, see
+    // QuizGateActions). Restore them under the pixels' own names so the
+    // existing readCookie('_fbp') / readFbc() calls pick them up — but never
+    // overwrite one a pixel already set in this browser.
+    const PIXEL_COOKIES = { fbc: '_fbc', fbp: '_fbp', ttp: '_ttp' } as const
+    for (const [param, cookie] of Object.entries(PIXEL_COOKIES)) {
+      const v = searchParams?.get(param)
+      if (v && !readCookie(cookie)) document.cookie = `${cookie}=${encodeURIComponent(v)}; max-age=${60 * 60 * 24 * 30}; path=/; SameSite=Lax`
+    }
   }, [searchParams])
 
   const totalSteps = definition.questions.length + 1 // +1 for contact step

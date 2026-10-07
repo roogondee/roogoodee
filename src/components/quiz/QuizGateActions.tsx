@@ -22,6 +22,19 @@ const PHONE_TEL = 'tel:0819023540'
 // into a visit can be uploaded back via /api/ads/offline-conversions.
 const PASSTHROUGH_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'ttclid', 'gclid'] as const
 
+// The pixels' own first-party ids ride the same URL for the same reason: the
+// LIFF browser cannot read this site's cookies. _fbc keeps the original click
+// timestamp (QuizRunner would otherwise rebuild it from fbclid with "now"),
+// _fbp/_ttp let Meta/TikTok tie the server event to the browser that saw the
+// ad. They only exist once the PDPA banner was accepted here, since the
+// pixels are consent-gated (Pixels.tsx).
+const COOKIE_PASSTHROUGH: Record<string, string> = { _fbc: 'fbc', _fbp: 'fbp', _ttp: 'ttp' }
+
+function readCookie(name: string): string | undefined {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  return m ? decodeURIComponent(m[1]) : undefined
+}
+
 function track(name: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return
   try { window.gtag?.('event', name, params) } catch {}
@@ -49,6 +62,10 @@ export default function QuizGateActions({
       for (const k of PASSTHROUGH_KEYS) {
         const v = here.get(k)
         if (v) { url.searchParams.set(k, v); changed = true }
+      }
+      for (const [cookie, param] of Object.entries(COOKIE_PASSTHROUGH)) {
+        const v = readCookie(cookie)
+        if (v) { url.searchParams.set(param, v); changed = true }
       }
       if (changed) setHref(url.toString())
     } catch {}
