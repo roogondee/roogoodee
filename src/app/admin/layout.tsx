@@ -14,9 +14,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/admin/queue" className="text-white/70 hover:text-white transition-colors">📋 คิว</Link>
             <Link href="/admin/chats" className="text-white/70 hover:text-white transition-colors">💬 Chats</Link>
             <Link href="/admin/analytics" className="text-white/70 hover:text-white transition-colors">📊 Analytics</Link>
+            <Link href="/admin/growth" className="text-white/70 hover:text-white transition-colors">💸 Growth</Link>
             <Link href="/admin/quiz-funnel" className="text-white/70 hover:text-white transition-colors">🪜 Funnel</Link>
             <Link href="/admin/lab" className="text-white/70 hover:text-white transition-colors">🧪 Lab</Link>
             <Link href="/admin/certs" className="text-white/70 hover:text-white transition-colors">📜 ใบรับรอง</Link>
+            <Link href="/admin/employers" className="text-white/70 hover:text-white transition-colors">🏭 HR โรงงาน</Link>
             <Link href="/admin/ads" className="text-white/70 hover:text-white transition-colors">📣 Ads</Link>
             <Link href="/admin/compose" className="text-white/70 hover:text-white transition-colors">✍️ Compose</Link>
             <Link href="/admin/redeem" className="text-white/70 hover:text-white transition-colors">🎟 รับ Voucher</Link>

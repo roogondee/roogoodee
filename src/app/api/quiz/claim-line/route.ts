@@ -10,6 +10,7 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendMetaEvents } from '@/lib/meta-capi'
 import { verifyLiffIdToken } from '@/lib/liff-verify'
 import { resolveContact } from '@/lib/crm/contacts'
 import type { Service } from '@/types'
@@ -45,6 +46,9 @@ interface ClaimPayload {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbc?: string
+  fbp?: string
+  gclid?: string
   liff_id_token?: string
 }
 
@@ -52,6 +56,11 @@ const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'me
 
 // Spec §5.2 — same monthly voucher quota as the form path
 const MONTHLY_QUOTA = 50
+
+// Client-supplied tracking strings — bounded so a junk value can't bloat a row.
+function clip(v: string | null | undefined, max = 500): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -202,6 +211,12 @@ export async function POST(req: NextRequest) {
           utm_source:    body.utm_source || null,
           utm_medium:    body.utm_medium || null,
           utm_campaign:  body.utm_campaign || null,
+          // No phone on this path — these are the only keys a later visit
+          // conversion (redeem screen) can match on. See src/lib/growth/visit.ts.
+          gclid:         clip(body.gclid),
+          fbc:           clip(body.fbc),
+          fbp:           clip(body.fbp),
+          user_agent:    clip(req.headers.get('user-agent')),
           status:        quotaFull ? 'waitlist' : 'new',
           recaptcha_ok:     captcha.success,
           recaptcha_reason: captcha.reason || null,
@@ -373,6 +388,36 @@ export async function POST(req: NextRequest) {
         lead_score: scoring.tier,
         vertical: body.service,
       },
+    })
+
+    // Meta Conversions API — event_id = voucher code, dedupes against the
+    // client-side fbq fires in QuizRunner. This is the path that matters most
+    // for Meta: inside the LIFF browser the PDPA banner is rarely accepted,
+    // so the client pixel usually never loads and this server event is the
+    // only signal. No phone/email here (zero-form) — match quality rides on
+    // fbc (carried through the gate → LIFF as ?fbclid) + ip + user_agent.
+    // Lead row above was created with consent_pdpa=true.
+    void sendMetaEvents({
+      events: [
+        { event_name: 'CompleteRegistration', event_id: voucher.code },
+        { event_name: 'Lead', event_id: voucher.code },
+      ],
+      service: body.service,
+      user: {
+        external_id: voucher.code,
+        ip: clientIp || undefined,
+        user_agent: req.headers.get('user-agent') || undefined,
+        fbc: body.fbc,
+        fbp: body.fbp,
+      },
+      custom_data: {
+        content_category: body.service,
+        content_name: `${body.service.toUpperCase()} Voucher`,
+        value: scoring.score,
+        currency: 'THB',
+        lead_tier: scoring.tier,
+      },
+      event_source_url: req.headers.get('referer') || `https://roogondee.com/liff/quiz?service=${body.service}`,
     })
 
     return NextResponse.json({

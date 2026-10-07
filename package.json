@@ -8,11 +8,11 @@
     "prebuild": "npm run check:i18n",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/**/*.test.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
-    "@next/font": "^14.2.15",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",

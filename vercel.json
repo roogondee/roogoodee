@@ -1,4 +1,7 @@
 {
+  "regions": [
+    "sin1"
+  ],
   "crons": [
     {
       "path": "/api/cron/voucher-reminders",
@@ -15,6 +18,14 @@
     {
       "path": "/api/cron/nurture-runner",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/post-visit",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/dmglp-daily",
+      "schedule": "0 2 * * *"
     }
   ]
 }

@@ -14,7 +14,13 @@ import type { Service } from '@/types'
 const PHONE_DISPLAY = '081-902-3540'
 const PHONE_TEL = 'tel:0819023540'
 
-const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign'] as const
+// utm_* keeps lead attribution; fbclid/ttclid/gclid keep the ad-platform click ids
+// alive across the LINE hop — the LIFF browser is a fresh context with none
+// of this site's cookies, so the URL is the only way a click id survives to
+// the quiz (QuizRunner re-persists them, meta-capi/tiktok-events consume).
+// gclid lands on leads.gclid so a pillar Google Ads click that later turns
+// into a visit can be uploaded back via /api/ads/offline-conversions.
+const PASSTHROUGH_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'fbclid', 'ttclid', 'gclid'] as const
 
 function track(name: string, params: Record<string, unknown> = {}) {
   if (typeof window === 'undefined') return
@@ -40,7 +46,7 @@ export default function QuizGateActions({
       const here = new URLSearchParams(window.location.search)
       const url = new URL(baseHref)
       let changed = false
-      for (const k of UTM_KEYS) {
+      for (const k of PASSTHROUGH_KEYS) {
         const v = here.get(k)
         if (v) { url.searchParams.set(k, v); changed = true }
       }

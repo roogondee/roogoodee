@@ -1,8 +1,11 @@
 'use client'
 import Link from 'next/link'
+import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
+import { track } from '@/lib/analytics/track'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
+import CertPromoBanner from '@/components/ui/CertPromoBanner'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"ตรวจสุขภาพแรงงานต่างด้าว — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/foreign",specialty:"Occupational Medicine"}
 
@@ -43,8 +46,19 @@ export default function ForeignClient() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <NavBar ctaHref="/contact?service=foreign" />
 
-      <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-amber-50 via-cream to-cream">
-        <div className="max-w-3xl">
+      {/* DEADLINE BANNER — links to the dated campaign page; remove once 11 ธ.ค. 2569 has passed */}
+      <section className="pt-20 md:pt-24 px-6 md:px-20 pb-2">
+        <Link href="/foreign/workpermit" className="block max-w-5xl mx-auto bg-red-50 border border-red-200 hover:bg-red-100 transition-colors rounded-2xl px-5 py-4 flex flex-col md:flex-row gap-2 md:items-center">
+          <span className="text-2xl">⏰</span>
+          <div className="flex-1 text-sm">
+            <span className="font-bold text-red-700">ประกาศสำคัญ — </span>
+            <span className="text-red-700/85">ต่ออายุใบอนุญาตทำงานแรงงานต่างด้าว ก่อนปิดระบบ 11 ธันวาคม 2569 ดูรายละเอียด →</span>
+          </div>
+        </Link>
+      </section>
+
+      <section className="min-h-[70vh] flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-14 pb-16 lg:pb-10 relative overflow-hidden pt-6 px-6 md:px-20 bg-gradient-to-br from-amber-50 via-cream to-cream">
+        <div className="max-w-3xl w-full lg:flex-1 relative z-10">
           <div className="inline-flex items-center gap-2 bg-amber-100 border border-amber-200 text-amber-700 px-4 py-2 rounded-full text-xs font-semibold mb-6">{f.heroTag}</div>
           <h1 className="font-display text-4xl md:text-6xl text-forest leading-tight mb-5">
             {f.heroTitle1}<br/>{f.heroTitle2}<br/><em className="text-amber-600">{f.heroTitle3}</em>
@@ -63,6 +77,7 @@ export default function ForeignClient() {
             {f.mouLinkText}
           </Link>
         </div>
+        <PillarHeroImage service="foreign" alt={String(f.heroTag)} badgeIcon="📄" badgeTitle={String(f.trustCert)} blobClass="bg-amber-300/40" />
       </section>
 
       <section className="py-16 md:py-24 px-6 md:px-20 bg-white">
@@ -79,6 +94,27 @@ export default function ForeignClient() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* Year-round program entry point. Sits right after "our services",
+          which is the moment an HR manager has just read what the statutory
+          checkup covers and asks what else there is. Amber, not red, so it
+          does not read as a second deadline alarm next to the work-permit
+          banner at the top of the page. */}
+      <section className="py-14 px-6 md:px-20 bg-cream">
+        <div className="max-w-5xl mx-auto bg-amber-50 border border-amber-100 rounded-2xl p-7 md:p-9">
+          <h2 className="font-display text-2xl md:text-3xl text-forest mb-3">{f.programLinkTitle}</h2>
+          <p className="text-muted text-sm leading-relaxed mb-5">{f.programLinkDesc}</p>
+          <Link href="/foreign/health-program"
+            onClick={() => track('healthprogram_entry_click', { service: 'foreign', position: 'foreign_hub' })}
+            className="inline-flex items-center gap-2 text-forest font-semibold text-sm underline hover:text-sage">
+            {f.programLinkCta}
+          </Link>
+        </div>
+      </section>
+
+      <section className="pb-14 px-6 md:px-20 bg-cream">
+        <CertPromoBanner position="foreign_hub" className="max-w-5xl mx-auto" />
       </section>
 
       <section className="py-16 md:py-20 px-6 md:px-20 bg-forest">

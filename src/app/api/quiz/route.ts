@@ -10,18 +10,27 @@ import { generateInsight } from '@/lib/quiz/insight'
 import { verifyRecaptcha } from '@/lib/recaptcha'
 import { encryptJson } from '@/lib/encryption'
 import { sendTikTokEvent } from '@/lib/tiktok-events'
+import { sendMetaEvents } from '@/lib/meta-capi'
 import type { QuizSubmission, Service } from '@/types'
 
 type QuizPayload = Partial<QuizSubmission> & {
   recaptcha_token?: string
   ttclid?: string
   ttp?: string
+  fbc?: string
+  fbp?: string
+  gclid?: string
 }
 
 const VALID_SERVICES: readonly Service[] = ['glp1', 'ckd', 'std', 'foreign', 'mens', 'women', 'mind', 'dna']
 
 // Spec §5.2: "จำกัด 50 สิทธิ์/service/เดือน"
 const MONTHLY_QUOTA = 50
+
+// Client-supplied tracking strings — bounded so a junk value can't bloat a row.
+function clip(v: string | null | undefined, max = 500): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
 
 function normalizePhone(p: string): string {
   let s = p.replace(/[-\s().]/g, '')
@@ -167,6 +176,12 @@ export async function POST(req: NextRequest) {
         utm_source:    body.utm_source || null,
         utm_medium:    body.utm_medium || null,
         utm_campaign:  body.utm_campaign || null,
+        // Click ids + UA kept on the lead so the visit conversion reported
+        // days later from the redeem screen can still be matched to the ad.
+        gclid:         clip(body.gclid),
+        fbc:           clip(body.fbc),
+        fbp:           clip(body.fbp),
+        user_agent:    clip(req.headers.get('user-agent')),
         status:        quotaFull ? 'waitlist' : 'new',
         recaptcha_ok:     captcha.success,
         recaptcha_reason: captcha.reason || null,
@@ -281,6 +296,34 @@ export async function POST(req: NextRequest) {
           lead_score: scoring.tier,
           vertical: body.service,
         },
+      })
+
+      // Meta Conversions API — same dedup convention (event_id = voucher
+      // code) against the client-side fbq fires in QuizRunner. Lead just got
+      // created with consent_pdpa=true, so PDPA consent is established.
+      void sendMetaEvents({
+        events: [
+          { event_name: 'CompleteRegistration', event_id: voucherCode },
+          { event_name: 'Lead', event_id: voucherCode },
+        ],
+        service: body.service,
+        user: {
+          email: inserted.email || undefined,
+          phone: inserted.phone,
+          external_id: voucherCode,
+          ip,
+          user_agent: userAgent,
+          fbc: body.fbc,
+          fbp: body.fbp,
+        },
+        custom_data: {
+          content_category: body.service,
+          content_name: `${body.service.toUpperCase()} Voucher`,
+          value: scoring.score,
+          currency: 'THB',
+          lead_tier: scoring.tier,
+        },
+        event_source_url: req.headers.get('referer') || `https://roogondee.com/quiz/${body.service}`,
       })
     }
 

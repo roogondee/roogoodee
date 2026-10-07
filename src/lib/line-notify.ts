@@ -310,3 +310,11 @@ export async function pushMindCrisisReplyToUser(lineUserId: string, params: {
   ].join('\n')
   await pushLine(lineUserId, text)
 }
+
+// Free-form message to the sales LINE group — for alerts that are not a new
+// lead (post-visit recall summary, employer renewal reminders), where
+// notifyLineGroup's "Lead ใหม่จาก…" framing would mislead.
+export async function notifySaleGroupText(text: string): Promise<boolean> {
+  if (!LINE_NOTIFY_GROUP_ID) return false
+  return pushLine(LINE_NOTIFY_GROUP_ID, text.slice(0, 5000))
+}

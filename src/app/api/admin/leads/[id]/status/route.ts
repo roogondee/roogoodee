@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionUser } from '@/lib/auth'
 import { logLeadAccess, requestIp } from '@/lib/audit'
+import { markLeadVisited } from '@/lib/growth/visit'
 
 export const runtime = 'nodejs'
 
@@ -19,6 +20,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const { error } = await supabaseAdmin.from('leads').update({ status }).eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Leads without a voucher (advice chat, work-permit form, MOU) only ever
+  // become "visited" here, so this is their one chance to count as a visit
+  // conversion. Idempotent — a lead already stamped by the redeem screen is
+  // not reported again.
+  if (status === 'visited' || status === 'customer') {
+    try {
+      await markLeadVisited(params.id)
+    } catch (err) {
+      console.error('[status] visit conversion failed:', err)
+    }
+  }
 
   // Record the move in the activity timeline.
   void supabaseAdmin.from('lead_activities').insert([{

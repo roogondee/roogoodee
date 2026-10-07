@@ -23,6 +23,15 @@ export function trackCallClick(position: string) {
   try { window.fbq?.('trackCustom', 'CallClick', { content_category: 'foreign_mou', position }) } catch {}
 }
 
+// Tapping LINE is the same contact action as tapping call — for a Burmese or
+// Khmer-speaking worker it is usually the easier one — so it counts as a
+// Google Ads conversion too (see ADS_CONVERSIONS in lib/analytics/track.ts).
+// The chat has its own mou_chat_line_click, which carries the topic asked.
+export function trackLineClick(position: string) {
+  track('mou_line_click', { service: 'foreign', position })
+  try { window.fbq?.('trackCustom', 'LineClick', { content_category: 'foreign_mou', position }) } catch {}
+}
+
 export default function MouLeadForm() {
   const { t } = useTranslation()
   const m = t.foreignMou
@@ -115,6 +124,7 @@ export default function MouLeadForm() {
           📞 081-902-3540
         </a>
         <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer"
+          onClick={() => trackLineClick('form_success')}
           className="flex items-center justify-center gap-2 bg-[#06C755] text-white px-6 py-3 rounded-full font-bold text-sm mt-2">
           💬 LINE @roogondee
         </a>

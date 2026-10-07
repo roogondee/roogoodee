@@ -1,9 +1,15 @@
 name: 📸 RuGonDee Facebook Daily Story
 
 on:
-  schedule:
-    # 02:00 UTC = 09:00 Bangkok ทุกวัน (เช้า peak time ดู Story)
-    - cron: "0 2 * * *"
+  # ⏸️ schedule ปิดชั่วคราว 2026-09-10 ตามที่เจ้าของ repo สั่ง — FB_PAGE_ACCESS_TOKEN
+  # ยังไม่ใช่ Page token ที่ใช้ได้ preflight จึงล้มทุกเช้าและยิง alert ทิ้งไว้
+  # โดยไม่มีอะไรให้แก้ในโค้ด ต้นเหตุ + วิธีเปิดคืน: docs/fb-token-runbook.md ข้อ 2C
+  # เปิดคืน = เอา `# ` ออกจากบล็อกข้างล่างทั้งบล็อก (ต้องเอาออกทั้ง `schedule:` และ
+  # บรรทัด cron — ถ้าเหลือ `schedule:` ลอย ๆ ไม่มีรายการ GitHub จะตีว่า workflow เสีย)
+  # workflow_dispatch ยังกดรันเองได้ตลอดระหว่างนี้
+  # schedule:
+  #   # 02:00 UTC = 09:00 Bangkok ทุกวัน (เช้า peak time ดู Story)
+  #   - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       service:

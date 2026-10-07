@@ -15,6 +15,13 @@ const nextConfig = {
       { source: '/booking', destination: '/booking/index.html' },
     ];
   },
+  async redirects() {
+    return [
+      // Superseded by /foreign/workpermit (2026-09-07), which has the verified
+      // มติ ครม. 14 ก.ค. 2569 citation, fee, and dates this page guessed at.
+      { source: '/foreign/deadline-2569', destination: '/foreign/workpermit', permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [
       {

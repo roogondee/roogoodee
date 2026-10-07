@@ -15,8 +15,8 @@ export default function HrefLangTags() {
   const baseUrl = 'https://roogondee.com'
 
   useEffect(() => {
-    // Update <html lang>
-    document.documentElement.lang = locale
+    // <html lang> is rendered server-side from the middleware-resolved locale
+    // (src/app/layout.tsx) and kept current by setLocale, so it is not set here.
 
     // Remove old hreflang tags
     document.querySelectorAll('link[data-hreflang]').forEach(el => el.remove())

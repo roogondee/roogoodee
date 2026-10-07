@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 import { track, persistClickId } from '@/lib/analytics/track'
 import { serviceRoute } from '@/lib/advice/routes'
+import AdviceContactCtas from '@/components/ui/AdviceContactCtas'
 
 // General-illness advice chat for the /advice Google Ads landing page.
 // Kept as its own component (not a variant of ChatWidget) because the two
@@ -261,24 +262,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
       {messages.length >= 3 && !suggested && (
         <div className="border-t border-gray-100 px-3 py-2 flex-shrink-0">
           <p className="text-[11px] text-muted text-center mb-1.5">{a.followUpText}</p>
-          <div className="flex gap-2">
-            <a
-              href="https://line.me/ti/p/@roogondee"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => track('advice_followup_line_click')}
-              className="flex-1 flex items-center justify-center gap-1 bg-[#06C755] text-white px-3 py-2 rounded-full text-xs font-bold hover:brightness-95 transition-all"
-            >
-              {a.followUpLineBtn}
-            </a>
-            <a
-              href="tel:0819023540"
-              onClick={() => track('advice_followup_call_click')}
-              className="flex-1 flex items-center justify-center gap-1 border border-forest/30 text-forest px-3 py-2 rounded-full text-xs font-bold hover:bg-mint/10 transition-all"
-            >
-              {a.followUpCallBtn}
-            </a>
-          </div>
+          <AdviceContactCtas placement="chat" className="[&_a]:px-3 [&_a]:py-2 [&_a]:text-xs [&_a]:gap-1" />
         </div>
       )}
 

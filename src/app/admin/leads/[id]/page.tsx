@@ -7,6 +7,7 @@ import { notFound, redirect } from 'next/navigation'
 import NoteEditor from '@/components/admin/NoteEditor'
 import AssigneeSelect from '@/components/admin/AssigneeSelect'
 import ActivityTimeline from '@/components/admin/ActivityTimeline'
+import LineBotPauseToggle from '@/components/admin/LineBotPauseToggle'
 
 export const revalidate = 0
 
@@ -40,6 +41,15 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
   ])
 
   if (!lead) notFound()
+
+  const linePause = lead.line_user_id
+    ? (await supabaseAdmin
+        .from('line_bot_pauses')
+        .select('paused_until')
+        .eq('line_user_id', lead.line_user_id)
+        .maybeSingle()).data
+    : null
+  const lineBotPaused = !!linePause && new Date(linePause.paused_until).getTime() > Date.now()
 
   // Spec §8.2: sales can only see leads assigned to them
   if (me.role === 'sale' && me.id && lead.assigned_to !== me.id) {
@@ -88,6 +98,11 @@ export default async function LeadDetailPage({ params }: { params: { id: string 
               )}
               {lead.line_user_id && <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">✓ LINE linked</span>}
             </div>
+            {lead.line_user_id && (
+              <div className="mt-2">
+                <LineBotPauseToggle lineUserId={lead.line_user_id} initialPaused={lineBotPaused} />
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <span className="text-xs text-gray-500">{SERVICE_LABELS[lead.service] || lead.service}</span>

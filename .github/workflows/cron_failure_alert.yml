@@ -20,6 +20,7 @@ on:
       - "📅 RuGonDee Auto-Generate Content Plan"
       - "🖼️ Generate Homepage Images"
       - "📊 RuGonDee Sync Metrics"
+      - "💸 RuGonDee Sync Ad Spend"
       - "🌱 RuGonDee Seed Plan (manual)"
     types: [completed]
 

@@ -3,9 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { generateReply } from '@/lib/chatbot/reply'
 import { detectService, extractVoucherCode } from '@/lib/chatbot/service-detect'
 import { captureBotLead } from '@/lib/chatbot/lead'
+import { getActivePause, isBurmeseText, pauseBotForUser } from '@/lib/chatbot/line-pause'
 import { resolveContact } from '@/lib/crm/contacts'
 import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
+import { handleReviewPostback, isReviewPostback } from '@/lib/growth/review'
+import { handleDmglpRefMessage } from '@/lib/dmglp/webhook'
 
 export const maxDuration = 60
 
@@ -102,15 +105,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'invalid signature' }, { status: 403 })
     }
 
+    const body = JSON.parse(rawBody)
+    let events = body.events || []
+
     // Silent when disabled or outside the active window (staff answer manually
     // during the day): ack so LINE keeps the webhook healthy, but process
     // nothing — no AI reply, no voucher link, no welcome.
+    //
+    // One exception outside active hours (never when the kill switch is off):
+    // a star tap on our own post-visit review request. It is a deterministic
+    // answer to a button we sent, not a conversation, and leaving it unanswered
+    // until 22:00 would look broken. See src/lib/growth/review.ts.
     if (!isBotActive(new Date())) {
-      return NextResponse.json({ ok: true, disabled: true })
+      events = LINE_BOT_ENABLED
+        ? events.filter((e: { type?: string; postback?: { data?: string } }) =>
+            e.type === 'postback' && isReviewPostback(e.postback?.data))
+        : []
+      if (events.length === 0) return NextResponse.json({ ok: true, disabled: true })
     }
-
-    const body = JSON.parse(rawBody)
-    const events = body.events || []
 
     // Process events in parallel: LINE batches up to ~100 events per delivery
     // and each replyToken has its own 60s TTL. Serial processing made later
@@ -144,6 +156,11 @@ export async function POST(req: NextRequest) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleEvent(event: any): Promise<void> {
+  if (event.type === 'postback' && isReviewPostback(event.postback?.data)) {
+    await handleReviewPostback(event)
+    return
+  }
+
   // Spec §5.3: follow event = user added the OA. Send welcome + ask for
   // voucher code so we can link their userId to a lead for future push.
   if (event.type === 'follow' && event.source?.type === 'user' && event.replyToken) {
@@ -211,6 +228,24 @@ async function handleEvent(event: any): Promise<void> {
 
   const userId: string = event.source?.userId || ''
 
+  // Conversation is paused (Burmese hand-off or a staff member already
+  // replied manually) — stay silent so the bot doesn't talk over a human.
+  // Voucher-code linkage below is unaffected; it's account bookkeeping, not
+  // the AI chatting.
+  const pause = userId ? await getActivePause(userId) : null
+
+  // DMGLP landing (roogondee.com/dmglp): the LINE button pre-fills a
+  // "DM-4821" ref code — link this user to that click and record the
+  // line_contact conversion. Runs regardless of the bot schedule: it is lead
+  // bookkeeping, not the AI chatting, same as voucher linkage below.
+  if (userId) {
+    const dmReply = await handleDmglpRefMessage(userId, text)
+    if (dmReply) {
+      if (replyToken) await replyToLine(replyToken, dmReply)
+      return
+    }
+  }
+
   // Voucher code linkage: if the message is a voucher code,
   // match to a lead and save line_user_id for future push.
   const code = extractVoucherCode(text)
@@ -247,8 +282,32 @@ async function handleEvent(event: any): Promise<void> {
     return
   }
 
-  // Fallback: AI chat assistant
   const service = detectService(text)
+
+  // Burmese customer — the AI prompt is Thai-tuned, so hand off to staff
+  // instead of replying in a language it doesn't handle well. Send one
+  // hand-off notice, then stay silent for the pause window (re-armed on
+  // every further Burmese message from this user).
+  if (userId && isBurmeseText(text)) {
+    await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
+    await pauseBotForUser(userId, 'burmese')
+    if (replyToken && !pause) {
+      await replyToLine(
+        replyToken,
+        'ကျေးဇူးပြု၍ခဏစောင့်ပါ — ဝန်ထမ်းတစ်ဦးက မကြာမီပြန်လည်ဆက်သွယ်ပါမည်။\n(ทีมงานจะติดต่อกลับโดยเร็วที่สุดค่ะ)'
+      )
+    }
+    return
+  }
+
+  // Conversation is paused — a human is already handling it, so record the
+  // message for the record but don't let the AI jump in.
+  if (pause) {
+    await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })
+    return
+  }
+
+  // Fallback: AI chat assistant
   const aiReply = await generateReply(text)
 
   await captureBotLead({ platform: 'line-bot', userId, service, rawText: text })

@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 
@@ -64,8 +65,8 @@ export default function STDClient() {
       </nav>
 
       {/* HERO */}
-      <section className="min-h-[70vh] flex items-center pt-16 px-6 md:px-20 bg-gradient-to-br from-rose-50 via-cream to-cream">
-        <div className="max-w-3xl">
+      <section className="min-h-[70vh] flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-14 pb-16 lg:pb-16 relative overflow-hidden pt-24 lg:pt-28 px-6 md:px-20 bg-gradient-to-br from-rose-50 via-cream to-cream">
+        <div className="max-w-3xl w-full lg:flex-1 relative z-10">
           <div className="inline-flex items-center gap-2 bg-rose-100 border border-rose-200 text-rose-700 px-4 py-2 rounded-full text-xs font-semibold mb-6">
             {t.std.heroTag}
           </div>
@@ -96,6 +97,7 @@ export default function STDClient() {
             ))}
           </div>
         </div>
+        <PillarHeroImage service="std" alt={String(t.std.heroTag)} badgeIcon="⚡" badgeTitle={String(t.std.trustResult)} blobClass="bg-rose-300/40" />
       </section>
 
       {/* SERVICES / INCLUDES */}
