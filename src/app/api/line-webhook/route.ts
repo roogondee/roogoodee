@@ -9,6 +9,21 @@ import { enrollByTrigger } from '@/lib/crm/sequences'
 import crypto from 'crypto'
 import { handleReviewPostback, isReviewPostback } from '@/lib/growth/review'
 import { handleDmglpRefMessage } from '@/lib/dmglp/webhook'
+import { parseRefCode as parseDmglpRef } from '@/lib/dmglp/attribution'
+import { handleRefLineMessage } from '@/lib/growth/ref-visits'
+import { handleEmployerLineMessage, isEmployerLineMessage } from '@/lib/growth/employer'
+import { parseRefCode } from '@/lib/refcodes'
+
+// A 1:1 text message that is only bookkeeping on a code our own pages
+// pre-filled (DM-/MC-/CL- landing ref codes, HR-alert link codes). Handled
+// with a fixed reply even outside the bot's active hours — the person just
+// tapped our button, and dropping the message would lose the ad attribution
+// for good. Never when the kill switch is off.
+function isBookkeepingMessage(e: { type?: string; source?: { type?: string }; message?: { type?: string; text?: string } }): boolean {
+  if (e.type !== 'message' || e.message?.type !== 'text' || e.source?.type !== 'user') return false
+  const text = e.message.text || ''
+  return !!parseRefCode(text) || !!parseDmglpRef(text) || isEmployerLineMessage(text)
+}
 
 export const maxDuration = 60
 
@@ -112,14 +127,15 @@ export async function POST(req: NextRequest) {
     // during the day): ack so LINE keeps the webhook healthy, but process
     // nothing — no AI reply, no voucher link, no welcome.
     //
-    // One exception outside active hours (never when the kill switch is off):
-    // a star tap on our own post-visit review request. It is a deterministic
-    // answer to a button we sent, not a conversation, and leaving it unanswered
-    // until 22:00 would look broken. See src/lib/growth/review.ts.
+    // Exceptions outside active hours (never when the kill switch is off):
+    // a star tap on our own post-visit review request, and a message that is
+    // only a code our own page pre-filled (isBookkeepingMessage). Both are
+    // deterministic answers to a button we sent, not a conversation; leaving
+    // them until 22:00 would look broken and, for codes, lose the ad click.
     if (!isBotActive(new Date())) {
       events = LINE_BOT_ENABLED
         ? events.filter((e: { type?: string; postback?: { data?: string } }) =>
-            e.type === 'postback' && isReviewPostback(e.postback?.data))
+            (e.type === 'postback' && isReviewPostback(e.postback?.data)) || isBookkeepingMessage(e))
         : []
       if (events.length === 0) return NextResponse.json({ ok: true, disabled: true })
     }
@@ -242,6 +258,20 @@ async function handleEvent(event: any): Promise<void> {
     const dmReply = await handleDmglpRefMessage(userId, text)
     if (dmReply) {
       if (replyToken) await replyToLine(replyToken, dmReply)
+      return
+    }
+    // /medical-certificate and /clinic (MC-/CL- codes) — same idea as DMGLP:
+    // create the lead carrying the ad click ids so the visit can be
+    // reported later (src/lib/growth/ref-visits.ts).
+    const refReply = await handleRefLineMessage(userId, text)
+    if (refReply) {
+      if (replyToken) await replyToLine(replyToken, refReply)
+      return
+    }
+    // HR portal "รับแจ้งเตือนทาง LINE" (HR- codes) and its opt-out.
+    const hrReply = await handleEmployerLineMessage(userId, text)
+    if (hrReply) {
+      if (replyToken) await replyToLine(replyToken, hrReply)
       return
     }
   }

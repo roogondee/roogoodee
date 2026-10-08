@@ -1,7 +1,11 @@
 // Daily post-visit runner (GET /api/cron/post-visit, 10:00 BKK):
 //   1. review requests — day after a redeemed voucher (REVIEW_SERVICES)
 //   2. recalls         — "time for your follow-up check" (RECALL_AFTER_DAYS)
-//   3. employer alerts — workers due for their annual checkup (HR portal)
+//   3. employer alerts — workers due for their annual checkup (HR portal),
+//                        to the sales group and, if linked, the HR's LINE
+//   4. ref visits      — certificates tagged with a website ref code on
+//                        cert.roogondee.com → visit conversions
+//                        (syncRefVisitsFromCerts in ./ref-visits)
 //
 // Every patient message goes 1:1 over LINE to the lead's own linked
 // line_user_id, requires consent_pdpa, and is stamped on the voucher so a
@@ -121,11 +125,12 @@ export async function sendRecalls(now = Date.now()) {
 export async function sendEmployerRenewalAlerts(now = Date.now()) {
   const { data: employers, error } = await supabaseAdmin
     .from('employer_accounts')
-    .select('id, name, match_names, contact_name, contact_phone, renewal_notified_at')
+    .select('id, name, match_names, contact_name, contact_phone, renewal_notified_at, line_user_id')
     .eq('active', true)
   if (error) throw new Error(`employer query: ${error.message}`)
 
   let alerted = 0
+  let hrPushed = 0
   for (const emp of employers ?? []) {
     // Weekly at most per employer.
     if (emp.renewal_notified_at && now - new Date(emp.renewal_notified_at).getTime() < 7 * DAY) continue
@@ -135,13 +140,27 @@ export async function sendEmployerRenewalAlerts(now = Date.now()) {
     if (due.length === 0) continue
 
     const overdue = due.filter(d => d.daysUntilDue < 0).length
+
+    // The HR contact who opted in from their portal gets the same news
+    // directly: a count only — no names, no results — and the way to book.
+    let hrOk = false
+    if (emp.line_user_id && lineAllowed()) {
+      hrOk = await pushLineMessages(emp.line_user_id as string, [textMessage([
+        `แจ้งเตือนจาก W Medical Hospital สำหรับ ${emp.name}`,
+        `พนักงาน ${due.length} คนครบรอบตรวจสุขภาพประจำปีภายใน ${EMPLOYER_ALERT_AHEAD_DAYS} วัน${overdue ? ` (เลยกำหนดแล้ว ${overdue} คน)` : ''}`,
+        'ดูรายชื่อได้ในพอร์ทัล HR ของบริษัท หรือตอบแชทนี้เพื่อนัดตรวจเป็นกลุ่ม ทีมงานจะแจ้งวันเวลาและค่าใช้จ่ายให้ค่ะ',
+      ].join('\n'))])
+      if (hrOk) hrPushed++
+    }
+
     await notifySaleGroupText([
       `🏭 ${emp.name}: แรงงาน ${due.length} คนครบรอบตรวจสุขภาพประจำปีภายใน ${EMPLOYER_ALERT_AHEAD_DAYS} วัน${overdue ? ` (เลยกำหนดแล้ว ${overdue})` : ''}`,
       emp.contact_name || emp.contact_phone ? `ติดต่อ HR: ${[emp.contact_name, emp.contact_phone].filter(Boolean).join(' ')}` : '',
-      'โทรเสนอนัดตรวจกลุ่มได้เลย — ดูรายชื่อที่ /admin/employers',
+      hrOk ? 'HR ได้รับแจ้งเตือนทาง LINE แล้ว — รอตอบกลับในแชท OA หรือโทรตามได้' : 'โทรเสนอนัดตรวจกลุ่มได้เลย — ดูรายชื่อที่ /admin/employers',
     ].filter(Boolean).join('\n'))
+
     await supabaseAdmin.from('employer_accounts').update({ renewal_notified_at: new Date(now).toISOString() }).eq('id', emp.id)
     alerted++
   }
-  return { alerted }
+  return { alerted, hrPushed }
 }

@@ -1,7 +1,8 @@
 import { cookies, headers } from 'next/headers'
 import { CERT_TYPE_LABEL, FIT_STATUS_LABEL, type CertType, type FitStatus } from '@/lib/certs/types'
-import { EMPLOYER_RECHECK_DAYS } from '@/lib/growth/config'
-import { EMPLOYER_COOKIE, employerByToken, fetchEmployerCertificates, logEmployerAccess, workersFromCerts } from '@/lib/growth/employer'
+import { EMPLOYER_ALERT_AHEAD_DAYS, EMPLOYER_RECHECK_DAYS } from '@/lib/growth/config'
+import { EMPLOYER_COOKIE, employerByToken, ensureEmployerLinkCode, fetchEmployerCertificates, logEmployerAccess, workersFromCerts } from '@/lib/growth/employer'
+import { hrLinkLineUrl } from '@/lib/refcodes'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -15,7 +16,8 @@ export const metadata = {
 // checkup. Authenticated by the cookie /hr/k/<token> sets (see
 // src/lib/growth/employer.ts); every view is logged. Deliberately shows only what an employer already holds on paper —
 // name, nationality, cert number, fit status, dates — and links to the
-// existing /verify/cert page for the full certificate.
+// certificate's own verify page (cert.roogondee.com for W Medical's, the
+// older /verify/cert for roogondee-side ones) for the full certificate.
 
 const PHONE = '081-902-3540'
 const LINE_URL = 'https://line.me/ti/p/@roogondee'
@@ -48,6 +50,7 @@ export default async function EmployerPortal() {
   await logEmployerAccess(employer.id, 'view', (h.get('x-forwarded-for') || '').split(',')[0].trim(), h.get('user-agent'))
 
   const now = Date.now()
+  const linkCode = employer.line_user_id ? null : await ensureEmployerLinkCode(employer)
   const certs = await fetchEmployerCertificates(employer.match_names)
   const workers = workersFromCerts(certs, now, EMPLOYER_RECHECK_DAYS)
   const today = new Date(now + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -79,6 +82,26 @@ export default async function EmployerPortal() {
             <a href={`tel:${PHONE.replace(/-/g, '')}`} className="border border-forest text-forest rounded-full px-4 py-2 text-sm">นัดตรวจกลุ่ม โทร {PHONE}</a>
             <a href={LINE_URL} className="border border-mint text-forest rounded-full px-4 py-2 text-sm">LINE @roogondee</a>
           </div>
+          {(employer.line_user_id || linkCode) && (
+            <div className="mt-4 rounded-xl bg-mint/10 border border-mint/20 p-4 text-sm flex flex-col sm:flex-row sm:items-center gap-3">
+              {employer.line_user_id ? (
+                <p className="text-forest">
+                  <span className="font-semibold">✓ เปิดแจ้งเตือนทาง LINE แล้ว</span>
+                  <span className="text-gray-600"> — เราจะแจ้งเมื่อมีพนักงานครบรอบตรวจภายใน {EMPLOYER_ALERT_AHEAD_DAYS} วัน (พิมพ์ &ldquo;ยกเลิกแจ้งเตือน HR&rdquo; ในแชทเพื่อหยุด)</span>
+                </p>
+              ) : linkCode && (
+                <>
+                  <p className="text-gray-700 flex-1">
+                    <span className="font-semibold text-forest">รับแจ้งเตือนครบรอบตรวจทาง LINE</span> — ไม่ต้องเข้ามาเช็กเอง
+                    เราแจ้งจำนวนพนักงานที่ใกล้ครบรอบ (ไม่เกินสัปดาห์ละครั้ง) ไม่มีรายชื่อหรือผลตรวจในข้อความ
+                  </p>
+                  <a href={hrLinkLineUrl(linkCode)} className="bg-[#06C755] text-white rounded-full px-4 py-2 text-sm font-semibold text-center whitespace-nowrap">
+                    เปิดแจ้งเตือนทาง LINE
+                  </a>
+                </>
+              )}
+            </div>
+          )}
         </header>
 
         <section className="bg-white rounded-2xl shadow overflow-x-auto">
@@ -112,8 +135,8 @@ export default async function EmployerPortal() {
                     <td className={`p-3 ${valid ? 'text-green-700' : 'text-gray-400'}`}>{thDate(c.valid_until)}</td>
                     <td className="p-3"><div>{thDate(w.nextDue)}</div><DueBadge days={w.daysUntilDue} /></td>
                     <td className="p-3">
-                      {c.public_token && (
-                        <a href={`/verify/cert/${c.public_token}`} target="_blank" rel="noreferrer" className="text-forest underline text-xs">ดูใบรับรอง</a>
+                      {c.verify_url && (
+                        <a href={c.verify_url} target="_blank" rel="noreferrer" className="text-forest underline text-xs">ดูใบรับรอง</a>
                       )}
                     </td>
                   </tr>

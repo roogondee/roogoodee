@@ -31,6 +31,7 @@ const SERVICES = [
   { value: 'mind', label: 'สุขภาพจิต' },
   { value: 'dna', label: 'DNA' },
   { value: 'medcert', label: 'ใบรับรองแพทย์' },
+  { value: 'clinic', label: '/clinic (คลินิกใกล้ฉัน)' },
   { value: 'unknown', label: 'ไม่ระบุ' },
 ]
 

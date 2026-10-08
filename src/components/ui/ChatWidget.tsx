@@ -110,6 +110,13 @@ export default function ChatWidget() {
   // route that could improvise exactly those things.
   if (pathname?.startsWith('/dmglp')) return null
 
+  // Hide on /clinic and /medical-certificate — paid-search landings whose
+  // mobile sticky bar (call / LINE, plus directions on /clinic) sits exactly
+  // where the floating button and its "ปรึกษาฟรี" pill would cover it, and
+  // whose LINE buttons carry the visitor's ref code (MC-/CL-) that the
+  // widget's plain LINE link would drop. Neither page may say "free" either.
+  if (pathname?.startsWith('/clinic') || pathname?.startsWith('/medical-certificate')) return null
+
   // Hide on the homepage while it opens with the inline work-permit chat
   // (HomeWorkPermitHero, until 11 ธ.ค. 2569) — same reasoning as /advice: one
   // chat per page, and that one routes other-service questions itself.

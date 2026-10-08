@@ -95,6 +95,16 @@ const ADS_CONVERSIONS: Record<string, string> = {
   // mapped — checking a certificate is not asking for one.
   medcert_line_click: 'ads_conversion_Contact_Us_1',
   medcert_call_click: 'ads_conversion_Contact_Us_1',
+  // /clinic ("คลินิกใกล้ฉัน" intent): call, LINE and Google Maps directions
+  // are the three ways a near-me searcher acts — directions is the one that
+  // most often ends in a walk-in, so it counts. clinic_landing_view,
+  // clinic_service_click (internal link to a pillar, which fires its own
+  // conversions) and clinic_1669_click (emergency call, not a lead) are
+  // deliberately NOT mapped. The visit itself is reported offline via the
+  // CL- ref code (src/lib/growth/ref-visits.ts).
+  clinic_call_click: 'ads_conversion_Contact_Us_1',
+  clinic_line_click: 'ads_conversion_Contact_Us_1',
+  clinic_directions_click: 'ads_conversion_Contact_Us_1',
 }
 
 // Deliberately NOT mapped above, and the omission is the point:
@@ -132,6 +142,11 @@ const META_STANDARD_EVENTS: Record<string, { event: string; value: number; conte
   healthprogram_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
   medcert_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
   medcert_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
+  clinic_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
+  clinic_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
+  // FindLocation is Meta's standard event for "looked up how to get to a
+  // physical store" — exactly a Maps directions tap.
+  clinic_directions_click: { event: 'FindLocation', value: 150, contentName: 'directions_click' },
 }
 
 // Meta's pixel is consent-gated (src/components/analytics/Pixels.tsx): window.fbq

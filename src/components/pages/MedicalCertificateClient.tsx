@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import NavBar from '@/components/ui/NavBar'
 import FooterFull from '@/components/ui/FooterFull'
 import { track } from '@/lib/analytics/track'
-import { LINE_OA_URL } from '@/lib/liff-links'
+import RefCodeNote from '@/components/ui/RefCodeNote'
+import { useRefCode } from '@/components/ui/useRefCode'
 import { CERT_VERIFY_URL } from '@/lib/certs/verify-site'
 import CertVerifyMock from '@/components/ui/CertVerifyMock'
 
@@ -106,16 +107,20 @@ const FAQS = [
 
 export default function MedicalCertificateClient() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  // MC-xxxxx: pre-filled into every LINE button and shown on the page so a
+  // caller can read it out — staff type it at the counter, which is what
+  // tells the ad platforms this click became a visit.
+  const { refCode, lineUrl } = useRefCode('medcert')
 
   useEffect(() => { track('medcert_landing_view') }, [])
 
-  const onLine = (position: string) => track('medcert_line_click', { service: 'medcert', position })
-  const onCall = (position: string) => track('medcert_call_click', { service: 'medcert', position })
+  const onLine = (position: string) => track('medcert_line_click', { service: 'medcert', position, ref_code: refCode || 'none' })
+  const onCall = (position: string) => track('medcert_call_click', { service: 'medcert', position, ref_code: refCode || 'none' })
   const onVerify = (position: string) => track('medcert_verify_click', { position })
 
   return (
     <main className="min-h-screen bg-cream text-rtext pb-20 md:pb-0">
-      <NavBar ctaHref={LINE_OA_URL} ctaLabel="ทัก LINE นัดตรวจ" />
+      <NavBar ctaHref={lineUrl} ctaLabel="ทัก LINE นัดตรวจ" />
 
       {/* HERO */}
       <section className="pt-28 md:pt-32 pb-14 md:pb-20 px-5 md:px-20 bg-gradient-to-br from-emerald-50 via-cream to-cream overflow-hidden">
@@ -140,7 +145,7 @@ export default function MedicalCertificateClient() {
               ))}
             </ul>
             <div className="flex flex-col sm:flex-row gap-3">
-              <a href={LINE_OA_URL} target="_blank" rel="noopener noreferrer" onClick={() => onLine('hero')}
+              <a href={lineUrl} target="_blank" rel="noopener noreferrer" onClick={() => onLine('hero')}
                 className="flex items-center justify-center bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold shadow-lg hover:brightness-95">
                 ทัก LINE นัดตรวจ / ถามราคา
               </a>
@@ -149,6 +154,7 @@ export default function MedicalCertificateClient() {
                 โทร {PHONE}
               </a>
             </div>
+            <RefCodeNote refCode={refCode} />
             <a href={CERT_VERIFY_URL} target="_blank" rel="noopener noreferrer" onClick={() => onVerify('hero')}
               className="inline-block mt-4 text-sm text-sage font-semibold underline underline-offset-4 hover:text-forest">
               มีใบรับรองอยู่แล้ว? ตรวจสอบที่ {VERIFY_HOST} →
@@ -312,7 +318,7 @@ export default function MedicalCertificateClient() {
             โรงพยาบาลดับเบิ้ลยู เมดิคอล สมุทรสาคร — ใบอนุญาตสถานพยาบาล (สมุทรสาคร) 001/2569
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href={LINE_OA_URL} target="_blank" rel="noopener noreferrer" onClick={() => onLine('final')}
+            <a href={lineUrl} target="_blank" rel="noopener noreferrer" onClick={() => onLine('final')}
               className="flex items-center justify-center bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold shadow-lg hover:brightness-95">
               ทัก LINE @roogondee
             </a>
@@ -325,6 +331,7 @@ export default function MedicalCertificateClient() {
               โทร {PHONE_MOBILE}
             </a>
           </div>
+          <RefCodeNote refCode={refCode} className="mt-4" />
         </div>
       </section>
 
@@ -332,7 +339,7 @@ export default function MedicalCertificateClient() {
 
       {/* MOBILE STICKY BAR */}
       <div className="fixed bottom-0 left-0 right-0 z-40 p-3 bg-white/95 backdrop-blur border-t border-mint/20 md:hidden grid grid-cols-2 gap-2">
-        <a href={LINE_OA_URL} target="_blank" rel="noopener noreferrer" onClick={() => onLine('sticky_bar')}
+        <a href={lineUrl} target="_blank" rel="noopener noreferrer" onClick={() => onLine('sticky_bar')}
           className="flex items-center justify-center bg-[#06C755] text-white py-3 rounded-full text-sm font-bold">
           ทัก LINE
         </a>
