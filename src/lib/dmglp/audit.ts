@@ -8,6 +8,7 @@ export type DmglpAuditAction =
   | 'read' | 'create' | 'update' | 'delete' | 'export'
   | 'screen' | 'enroll' | 'visit' | 'lab' | 'prescribe' | 'dispense' | 'consent'
   | 'survey' | 'alert' | 'task' | 'program' | 'refund' | 'payment' | 'stock' | 'fridge'
+  | 'lookup'   // read from another W Medical system (pharmacy HN lookup) — counts only in details
 
 export function dmglpAudit(
   user: DmglpUser | null,

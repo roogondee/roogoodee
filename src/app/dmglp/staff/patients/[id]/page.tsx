@@ -8,6 +8,7 @@ import { ELIGIBILITY_FLAG_LABELS_TH, suggestedDrugForIndications } from '@/lib/d
 import { programBalance } from '@/lib/dmglp/refund'
 import { todayBkk, ageOn } from '@/lib/dmglp/dates'
 import { cancelAppointment, createAppointment, enrollPatient, recordConsent, recordSurveyByStaff, rescheduleAppointment, stopEnrollment, updatePatient } from '../../actions'
+import { HnField } from '../../hn-field'
 import { Badge, Card, Check, Field, Flash, PageHeader, Select, Table, btn, btnSecondary, btnSmall, btnSmallSecondary, dateTh, dateTimeTh, input, label, one, td, baht } from '../../ui'
 
 export const dynamic = 'force-dynamic'
@@ -269,7 +270,7 @@ export default async function PatientPage({ params, searchParams }: { params: { 
             <Card title="แก้ไขข้อมูลผู้ป่วย">
               <form action={updatePatient} className="space-y-2">
                 <input type="hidden" name="id" value={p.id} />
-                <Field name="hn" labelText="HN" defaultValue={p.hn} />
+                <HnField labelText="HN" defaultValue={p.hn} patientId={p.id} storedPhone={p.phone} submitLabel="บันทึก" />
                 <Field name="phone" labelText="เบอร์โทร" defaultValue={p.phone} />
                 <div className="grid grid-cols-2 gap-2">
                   <Select name="sex" labelText="เพศ" defaultValue={p.sex} options={[{ value: 'M', label: 'ชาย' }, { value: 'F', label: 'หญิง' }]} />

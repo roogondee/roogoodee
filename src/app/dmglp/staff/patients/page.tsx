@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireDmglp, can } from '@/lib/dmglp/roles'
 import { createPatient } from '../actions'
+import { HnField } from '../hn-field'
 import { Badge, Card, Check, Field, Flash, PageHeader, Select, Table, btn, btnSmallSecondary, dateTh, input, one, td } from '../ui'
 
 export const dynamic = 'force-dynamic'
@@ -57,7 +58,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: { o
           <Card title="ลงทะเบียนผู้ป่วยใหม่">
             <form action={createPatient} className="space-y-3">
               {searchParams.lead && <input type="hidden" name="lead_id" value={searchParams.lead} />}
-              <Field name="hn" labelText="HN (จาก HIS)" hint="ต้องมีก่อนจ่ายยา" />
+              <HnField labelText="HN (จาก HIS)" hint="ต้องมีก่อนจ่ายยา" submitLabel="สร้างผู้ป่วย" />
               <div className="grid grid-cols-2 gap-2">
                 <Field name="first_name" labelText="ชื่อ" required defaultValue={leadFirst} />
                 <Field name="last_name" labelText="นามสกุล" required defaultValue={leadRest.join(' ')} />
