@@ -24,6 +24,9 @@ import {
   skuFor, type DrugKey, type DmglpRole,
 } from '@/lib/dmglp/config'
 import { isDmglpRole } from '@/lib/dmglp/roles'
+import {
+  hnForDmglp, lookupPharmacyPatients, pharmacyConfig, preparePhones, type HnLookupResult,
+} from '@/lib/integrations/pharmacy'
 
 const STAFF = '/dmglp/staff'
 
@@ -174,6 +177,34 @@ export async function recordConsent(fd: FormData) {
   await supabaseAdmin.from('dmglp_consents').insert({ patient_id, kind, version: str(fd, 'version', 20) || '2026-09', recorded_by: me.id })
   dmglpAudit(me, 'consent', 'dmglp_consents', patient_id, { kind })
   refresh(path)
+}
+
+// "ค้นหา HN จากระบบห้องยา" on the patient create/edit forms (hn-field.tsx).
+// Read-only and returns data instead of redirecting: the matches go back to
+// the form, staff pick one, and the HN is stored only when they submit the
+// form. Same permission as creating/editing a patient. The audit row holds
+// counts only — never the phone number or a name.
+export async function lookupPharmacyHn(input: { phone?: unknown; patientId?: unknown }): Promise<HnLookupResult> {
+  let me: DmglpUser
+  try {
+    me = await requireDmglpAction('patients.write')
+  } catch {
+    return { ok: false, reason: 'forbidden' }
+  }
+  const phones = preparePhones([input?.phone])
+  if (phones.length === 0) return { ok: false, reason: pharmacyConfig() ? 'no_phone' : 'not_configured' }
+
+  const result = await lookupPharmacyPatients(phones)
+  if (!result.ok && result.reason === 'not_configured') return result
+  const patientId = typeof input?.patientId === 'string' && /^[0-9a-f-]{36}$/i.test(input.patientId) ? input.patientId : null
+  dmglpAudit(me, 'lookup', 'dmglp_patients', patientId, {
+    system: 'pharmacy',
+    phones: phones.length,
+    matches: result.ok ? result.patients.length : 0,
+    outcome: result.ok ? 'ok' : result.reason,
+  })
+  if (!result.ok) return result
+  return { ok: true, patients: result.patients.map(p => ({ ...p, fill: hnForDmglp(p) })) }
 }
 
 // ── screening ────────────────────────────────────────────────────────────

@@ -48,6 +48,12 @@ same Next.js app, same Supabase project, same admin login.
    - `LINE_NOTIFY_GROUP_ID` — high-severity alerts + DMGLP LINE leads.
    - `ADS_OFFLINE_EXPORT_USER/PASSWORD` — Basic auth for the Ads scheduled upload.
    - `CRON_SECRET` — cron auth (already set).
+   - `PHARMACY_API_URL` + `PHARMACY_API_KEY` — HN lookup in the W Medical
+     pharmacy (see "HN" below). URL = the pharmacy backend
+     (`https://wmedical-pharmacy-production.up.railway.app`); the key is created
+     by a pharmacy admin in the pharmacy app's API-key settings with permission
+     `patients:lookup`. Without them the button says "ยังไม่ได้เชื่อมระบบห้องยา"
+     and staff type the HN by hand.
 4. Google Ads: create three "Import → Clicks" conversion actions named
    `DMGLP LINE Contact`, `DMGLP Booked`, `DMGLP Treatment Started` and point a
    scheduled HTTPS upload at `/api/dmglp/conversions-export`. Landing Final URL:
@@ -68,7 +74,8 @@ log. Every clinical read/write goes to `dmglp_audit_log`.
 ## Patient journey in the staff UI
 
 1. **Lead** arrives (LINE with `DM-xxxx`, walk-in, phone) → `/dmglp/staff/leads`.
-2. **Register** patient (HN, PDPA consent required) → `/dmglp/staff/patients`.
+2. **Register** patient (HN — typed, or picked via "ค้นหา HN จากระบบห้องยา";
+   PDPA consent required) → `/dmglp/staff/patients`.
 3. **Screen** (nurse/doctor) → eligibility `eligible | needs_review | ineligible`
    from `dmglp_eligibility_rules` (BMI ≥ 30, ≥ 27 + comorbidity, or T2DM;
    pregnancy/MTC/MEN2 block; cautions warn).
@@ -87,11 +94,28 @@ log. Every clinical read/write goes to `dmglp_audit_log`.
 8. **Programs** (finance): BASIC/PLUS/PREMIUM, upfront or 0% × 6, 8-month
    validity; refund = paid − Σ(list price × used), floored at 0.
 
+## HN — the link to HIS
+
+The program is not an EMR: `dmglp_patients.hn` is its only link to the
+hospital record. Next to the HN field on the register form and on the
+patient's edit card, **ค้นหา HN จากระบบห้องยา** sends the phone on that form
+(edit card: the stored phone when the field is empty) to the W Medical
+pharmacy — server action `lookupPharmacyHn` (permission `patients.write`:
+admin, nurse, doctor) → `src/lib/integrations/pharmacy.ts`. Up to 10 matches
+come back with the name, **HN โรงพยาบาล** (`original_hn`, the HIS HN when the
+pharmacy record was imported from HIS) and **รหัสห้องยา** (the pharmacy's own
+id). Picking one fills the input with the HIS HN, else the pharmacy id.
+Nothing is saved until staff submit the form, and only the HN is stored —
+never the name. Each lookup is a `lookup` row in `dmglp_audit_log` with counts
+only (phones sent, matches, outcome). A patient the pharmacy doesn't know
+still needs the HN typed by hand. Contract: `docs/system-integration.md`.
+
 ## Tests
 
 `npm test` runs `node --test tests/**/*.test.mts` (Node ≥ 22.18, no build):
 schedule generation, titration flags, eligibility, refund/instalments,
-Ads CSV shape, ref-code parsing, LINE text forbidden words.
+Ads CSV shape, ref-code parsing, LINE text forbidden words — plus the pharmacy
+HN lookup contract (`tests/integrations/pharmacy.test.mts`).
 
 ## Open items to confirm with the hospital
 
@@ -100,5 +124,8 @@ Ads CSV shape, ref-code parsing, LINE text forbidden words.
 - Thai package-insert indications for current lots (adjust `/dmglp/staff/settings/rules`)
 - Partner fee basis after legal review (`shared_care_fee`)
 - LINE OA message quota for reminders
-- HIS integration (manual HN entry today)
+- HIS integration: the HN is looked up by phone in the pharmacy (see "HN"
+  above). A patient the pharmacy doesn't know still needs the HN typed by hand,
+  and for a pharmacy record that was not imported from HIS the lookup fills the
+  pharmacy id (รหัสห้องยา), not an HIS HN — a direct HIS lookup is still open
 - Track & Trace CSV column list (`src/app/api/dmglp/pharmacy-export/route.ts` `HEADER`)
