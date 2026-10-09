@@ -141,6 +141,11 @@ export async function handleRefLineMessage(userId: string, text: string): Promis
   // Re-sent the same code (or tapped the button twice): one lead is enough.
   if (ref?.lead_id) return lineReply(program, parsed.code)
 
+  // A code we never minted is a typo or an ordinary phrase that happens to
+  // look like one ("MC QUEEN"). Answer it, but never open a lead or ping the
+  // sales group for it — repeats would otherwise pile up as junk.
+  if (!ref) return lineReply(program, parsed.code)
+
   const contact = await resolveContact({ line_user_id: userId }).catch(() => null)
   const utm = ref?.utm ?? {}
   const consent = ref?.cookie_consent ?? false
@@ -160,7 +165,7 @@ export async function handleRefLineMessage(userId: string, text: string): Promis
       // code's visit from its lead from now on.
       status: ref?.visited_at ? 'visited' : 'new',
       visited_at: ref?.visited_at ?? null,
-      note: `${parsed.code}${ref ? '' : ' (ไม่พบรหัสในระบบ)'}: ${text.slice(0, 400)}`,
+      note: `${parsed.code}: ${text.slice(0, 400)}`,
       line_user_id: userId,
       contact_id: contact?.id ?? null,
       gclid: ref?.gclid ?? null,
@@ -182,12 +187,28 @@ export async function handleRefLineMessage(userId: string, text: string): Promis
     .single()
   if (error) console.error('[ref] lead insert failed:', error.message)
 
-  if (ref && lead) {
+  if (lead) {
     await supabaseAdmin
       .from('site_ref_codes')
       .update({ lead_id: lead.id, line_contact_at: new Date().toISOString() })
       .eq('id', ref.id)
       .is('lead_id', null)
+
+    // The counter may have stamped the visit between the read above and this
+    // link. That visit already went out as visit-ref-<code> (and the code
+    // leaves the Google feed now that it has a lead), so carry the stamp onto
+    // the lead without reporting again — otherwise a later pipeline move to
+    // "visited" would count the same patient twice.
+    if (!ref.visited_at) {
+      const fresh = await getRef(parsed.code)
+      if (fresh?.visited_at) {
+        await supabaseAdmin
+          .from('leads')
+          .update({ status: 'visited', visited_at: fresh.visited_at })
+          .eq('id', lead.id)
+          .is('visited_at', null)
+      }
+    }
   }
 
   await notifyLineGroup({
