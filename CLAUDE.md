@@ -129,6 +129,7 @@ Webhook handlers stay platform-specific (signature, event shape, send-reply API)
 - `docs/medcert-ads.md` — Google Ads + Facebook brief for `/medical-certificate` (verifiable certificate): keywords + negatives that block no-exam intent, ad copy, red lines (no competitor, no price, never imply no exam), `MEDCERT` campaign naming for `/admin/growth`.
 - `docs/hr-portal.md` — HR portal on cert.roogondee.com data: the wmedical bridge (functions, secret, rotation), adding a company, what HR sees, the count-only LINE alert.
 - `docs/clinic-google-ads.md` — Google Ads brief for `/clinic` ("คลินิกใกล้ฉัน" intent): campaign settings, keywords + negatives (incl. moving near-me terms out of `/advice`), RSA copy, conversions incl. the offline visit, and the counter SOP for `CL-` ref codes.
+- `docs/counter-sop.md` — One-page Thai guide for the counter and phone staff: what the `MC-`/`CL-` website ref code is, the three ways it arrives, where to record a visit (cert admin field, `/admin/redeem`, or the lead pipeline), what never to do (never require a code), and common problems.
 - `docs/workpermit-google-ads.md` — Google Ads brief for `/foreign/workpermit` (the 2569 work-permit renewal campaign): keyword set + negatives, tracking template, conversion actions (`workpermit_*` → `ads_conversion_Contact_Us_1`), offline import query for `source in ('workpermit-landing','workpermit-chat')`, ad-policy notes (never imply free), sales SOP.
 
 ## FB Page Stories (daily autopost)
