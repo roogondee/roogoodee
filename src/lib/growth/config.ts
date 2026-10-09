@@ -11,8 +11,11 @@ import type { Service } from '@/types'
 // Meta CAPI + Google Ads visit conversions. mind and dna are excluded: a
 // psychologist session or a paternity consult reported to an ad platform is
 // exactly the data PDPA treats as sensitive, and neither is bid on anyway.
-export const VISIT_CONVERSION_SERVICES: readonly Service[] = [
-  'glp1', 'ckd', 'std', 'mens', 'women', 'foreign',
+// medcert / clinic are the two non-pillar landings whose visitors arrive
+// with a website ref code (src/lib/growth/ref-visits.ts); they are never in
+// NAMED_IN_AD_EVENTS, so their visits reach Meta as a generic "Clinic Visit".
+export const VISIT_CONVERSION_SERVICES: readonly (Service | 'medcert' | 'clinic')[] = [
+  'glp1', 'ckd', 'std', 'mens', 'women', 'foreign', 'medcert', 'clinic',
 ]
 
 // Services whose name may appear in ad-platform custom_data. For the rest a
@@ -53,6 +56,6 @@ export const REVIEW_MAX_AGE_DAYS = 7
 export const EMPLOYER_RECHECK_DAYS = 365
 export const EMPLOYER_ALERT_AHEAD_DAYS = 30
 
-export function isIn(list: readonly Service[], service: string | null | undefined): boolean {
+export function isIn(list: readonly string[], service: string | null | undefined): boolean {
   return !!service && (list as readonly string[]).includes(service)
 }

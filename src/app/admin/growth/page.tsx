@@ -11,11 +11,20 @@ export const dynamic = 'force-dynamic'
 // Cost per patient who actually came, per service — the number that decides
 // where the next baht of ad budget goes. Spend comes from ad_spend_daily (Meta
 // synced nightly by scripts/sync_ad_spend.py, the rest typed in below); visits
-// from leads.visited_at, stamped by the redeem screen and pipeline moves.
+// from leads.visited_at, stamped by the redeem screen and pipeline moves, plus
+// walk-ins who brought a website ref code (site_ref_codes, see below).
 
 const BUCKET_LABELS: Record<string, string> = {
   glp1: 'GLP-1', ckd: 'CKD', std: 'STD/PrEP', foreign: 'แรงงานต่างด้าว', mens: 'ชาย 40+',
-  women: 'สุขภาพหญิง', mind: 'สุขภาพจิต', dna: 'DNA', advice: '/advice (อาการทั่วไป)', unknown: 'ไม่ระบุ',
+  women: 'สุขภาพหญิง', mind: 'สุขภาพจิต', dna: 'DNA', advice: '/advice (อาการทั่วไป)',
+  medcert: 'ใบรับรองแพทย์', clinic: '/clinic (คลินิกใกล้ฉัน)', unknown: 'ไม่ระบุ',
+}
+
+interface RefWalkIn {
+  program: string
+  gclid: string | null
+  utm: Record<string, string> | null
+  visited_at: string
 }
 
 const PERIODS = [7, 30, 90]
@@ -56,7 +65,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: { day
   const sinceIso = new Date(since).toISOString()
   const sinceDate = new Date(since + 7 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
-  const [leadsCreated, leadsVisited, vouchersRes, spendRes, referralRes, recentSpendRes] = await Promise.all([
+  const [leadsCreated, leadsVisited, vouchersRes, spendRes, referralRes, recentSpendRes, walkInRes] = await Promise.all([
     supabaseAdmin.from('leads')
       .select('service, source, utm_source, utm_campaign, gclid, created_at, visited_at')
       .gte('created_at', sinceIso).limit(10000),
@@ -73,6 +82,12 @@ export default async function GrowthPage({ searchParams }: { searchParams: { day
     supabaseAdmin.from('ad_spend_daily')
       .select('id, spend_date, platform, service, campaign, spend, source')
       .order('spend_date', { ascending: false }).limit(20),
+    // /medical-certificate and /clinic visitors who phoned or walked in with
+    // their MC-/CL- code and never messaged LINE have no lead row. Codes that
+    // did become a lead are counted through leads.visited_at instead.
+    supabaseAdmin.from('site_ref_codes')
+      .select('program, gclid, utm, visited_at')
+      .is('lead_id', null).gte('visited_at', sinceIso).limit(10000),
   ])
 
   const missingSchema = [leadsCreated, vouchersRes, spendRes, referralRes].find(r => r.error)?.error
@@ -84,9 +99,20 @@ export default async function GrowthPage({ searchParams }: { searchParams: { day
   const spend = (spendRes.data as ReportSpend[] | null) ?? []
   const referrals = (referralRes.data as ReportReferral[] | null) ?? []
 
-  const rows = buildBuckets(leads, vouchers, spend, since)
+  // Each walk-in counts as a lead that came the moment it was created, so the
+  // visit rate stays a rate and cost per visit includes them.
+  const walkIns: ReportLead[] = ((walkInRes.data as RefWalkIn[] | null) ?? []).map(r => ({
+    service: r.program,
+    source: `${r.program}-landing`,
+    utm_source: r.utm?.utm_source ?? null,
+    utm_campaign: r.utm?.utm_campaign ?? null,
+    gclid: r.gclid,
+    created_at: r.visited_at,
+    visited_at: r.visited_at,
+  }))
+  const rows = buildBuckets([...leads, ...walkIns], vouchers, spend, since)
   const total = totals(rows)
-  const sources = sourceBreakdown(leads, since)
+  const sources = sourceBreakdown([...leads, ...walkIns], since)
   const reviews = reviewStats(vouchers, since)
   const refs = referralStats(referrals, leads, since)
   const recentSpend = (recentSpendRes.data as Array<ReportSpend & { id: string; campaign: string; source: string }> | null) ?? []
@@ -97,7 +123,8 @@ export default async function GrowthPage({ searchParams }: { searchParams: { day
         <div>
           <h1 className="text-2xl font-display text-forest">Growth — ต้นทุนต่อคนไข้ที่มาจริง</h1>
           <p className="text-sm text-gray-500 mt-1">
-            &ldquo;มาจริง&rdquo; = กดใช้ voucher ที่หน้า รับ Voucher หรือย้ายสถานะ lead เป็น visited/customer
+            &ldquo;มาจริง&rdquo; = กดใช้ voucher ที่หน้า รับ Voucher, ย้ายสถานะ lead เป็น visited/customer
+            หรือบันทึกรหัสอ้างอิงจากเว็บ (MC-/CL-) ที่หน้า รับ Voucher หรือในระบบออกใบรับรองแพทย์
           </p>
         </div>
         <div className="flex gap-2 text-sm">

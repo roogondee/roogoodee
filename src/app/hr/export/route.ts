@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         c.patient_snapshot?.name, c.patient_snapshot?.nationality, c.patient_snapshot?.work_permit_no,
         CERT_TYPE_LABEL[c.cert_type as CertType] || c.cert_type, c.cert_no, c.visit_date,
         c.fit_status ? FIT_STATUS_LABEL[c.fit_status as FitStatus] : '', c.valid_until, w.nextDue,
-        c.public_token ? `${site}/verify/cert/${c.public_token}` : '',
+        c.verify_url ? (c.verify_url.startsWith('/') ? `${site}${c.verify_url}` : c.verify_url) : '',
       ]
     }),
   ].map(r => r.map(cell).join(','))

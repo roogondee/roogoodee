@@ -44,6 +44,7 @@ SERVICE_PATTERNS = [
     ("foreign", r"FRN|FOREIGN|MOU|WORK-?PERMIT|WP2569|HEALTH-?PROGRAM"),
     ("advice",  r"ADVICE"),
     ("medcert", r"MED-?CERT"),
+    ("clinic",  r"CLINIC"),
 ]
 
 

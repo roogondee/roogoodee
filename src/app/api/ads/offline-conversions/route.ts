@@ -19,7 +19,9 @@ export const dynamic = 'force-dynamic'
 //     report it; gclid is carried through the gate → LIFF URL → leads.gclid.
 //   ADS_OFFLINE_VISIT_CONVERSION (default "RGD Patient Visit") — the lead
 //     actually came to W Medical (leads.visited_at, stamped by the redeem
-//     screen or a pipeline move to visited/customer). This is the one to bid on.
+//     screen or a pipeline move to visited/customer), or a website ref code
+//     from /medical-certificate or /clinic was recorded at the counter
+//     (site_ref_codes.visited_at). This is the one to bid on.
 //
 // Re-sending yesterday's rows is harmless: Google drops a row whose
 // (gclid, conversion name, time) it already has. Rows are limited to the
@@ -104,6 +106,25 @@ export async function GET(req: NextRequest) {
     if (lead.visited_at) {
       rows.push([gclid, VISIT_CONVERSION, bkk(lead.visited_at), String(VISIT_VALUE), 'THB'])
     }
+  }
+
+  // Website ref codes (/medical-certificate, /clinic) whose visitor never
+  // became a lead — they phoned or walked in with the code from the page.
+  // Codes that did become a lead are already in the lead rows above (the
+  // gclid is copied onto the lead), so they are skipped here to avoid
+  // counting one visit twice. See src/lib/growth/ref-visits.ts.
+  const { data: refs, error: refError } = await supabaseAdmin
+    .from('site_ref_codes')
+    .select('gclid, visited_at')
+    .not('gclid', 'is', null)
+    .not('visited_at', 'is', null)
+    .is('lead_id', null)
+    .gte('created_at', since)
+    .limit(5000)
+  if (refError) console.error('[offline-conversions] ref codes:', refError.message)
+  for (const r of (refs as { gclid: string; visited_at: string }[] | null) ?? []) {
+    const gclid = r.gclid.trim()
+    if (gclid) rows.push([gclid, VISIT_CONVERSION, bkk(r.visited_at), String(VISIT_VALUE), 'THB'])
   }
 
   const lines = [

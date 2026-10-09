@@ -36,6 +36,12 @@ export default function LINEFloat() {
   if (pathname === '/foreign/workpermit') return null
   if (pathname === '/' && isWorkPermitWindowOpen()) return null
 
+  // Same on /clinic and /medical-certificate, with one more reason: their LINE
+  // buttons pre-fill the visitor's ref code (MC-/CL-), which is how a visit is
+  // later tied back to the ad click. This plain add-friend link would drop it,
+  // and its "ปรึกษาฟรี" label is a claim neither page may make.
+  if (pathname === '/clinic' || pathname === '/medical-certificate') return null
+
   // This was a bare <a> with no onClick at all: the most visually prominent
   // LINE CTA on the site (it pings and pulses) sat on both paid landing pages
   // sending nothing to GA4, Meta or Google Ads. Every LINE contact it produced
