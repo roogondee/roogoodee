@@ -71,8 +71,10 @@ referral and recall counts.
 
 - Meta spend syncs nightly (`.github/workflows/sync_ad_spend.yml`). The service is read
   from the campaign name — **every campaign name must contain its code**: `GLP1`, `CKD`,
-  `STD`, `MENS`, `WOMEN`, `MIND`, `DNA`, `FRN`/`MOU`/`WORKPERMIT`, `ADVICE`. The job log
-  lists campaigns it could not map.
+  `STD`, `MENS`, `WOMEN`, `MIND`, `DNA`, `FRN`/`MOU`/`WORKPERMIT`, `ADVICE`, `MEDCERT`,
+  `CLINIC`. The job log lists campaigns it could not map.
+- `medcert` and `clinic` visits also include walk-ins who brought their website ref code
+  (MC-/CL-) without ever messaging LINE — see `docs/clinic-google-ads.md`.
 - Google/TikTok/LINE spend: type it in on the same page (daily, or one row per week).
 
 ## 3. Review request
@@ -108,6 +110,9 @@ checking whether a friend came (e.g. a discount on the patient's own next visit)
 2. Copy the link shown once (`/hr/k/<token>`) and send it to the company's HR.
 3. HR sees every worker's latest certificate: fit status, "valid for submission until",
    next annual checkup date, a link to the full certificate, and a CSV export.
+
+Certificates come from cert.roogondee.com through a read-only bridge, and HR can switch on
+a count-only LINE alert from the portal — setup and details in `docs/hr-portal.md`.
 
 The link swaps its token for an httpOnly cookie and redirects to `/hr`, so the token never
 appears in a page URL that analytics records. Every view/export is logged

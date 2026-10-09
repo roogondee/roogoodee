@@ -10,6 +10,7 @@ interface Row {
   contact_phone: string | null
   active: boolean
   last_viewed_at: string | null
+  line_linked?: boolean
   workers: number
   due: number
 }
@@ -95,7 +96,10 @@ export default function EmployerAdmin({ rows, knownNames, canManage }: { rows: R
                 <td className="p-3 text-xs text-gray-600">{r.match_names.join(', ')}</td>
                 <td className="p-3 text-right">{r.workers}</td>
                 <td className={`p-3 text-right ${r.due ? 'text-amber-700 font-semibold' : ''}`}>{r.due}</td>
-                <td className="p-3 text-xs">{thDate(r.last_viewed_at)}</td>
+                <td className="p-3 text-xs">
+                  <div>{thDate(r.last_viewed_at)}</div>
+                  {r.line_linked && <div className="text-green-700">✓ รับแจ้งเตือนทาง LINE</div>}
+                </td>
                 <td className="p-3 text-right whitespace-nowrap space-x-2">
                   {canManage && (
                     <>

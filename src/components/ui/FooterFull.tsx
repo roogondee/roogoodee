@@ -46,7 +46,7 @@ export default function FooterFull() {
             <li>LINE: @roogondee</li>
             <li>📞 081-902-3540</li>
             <li>roogondee.com</li>
-            <li>{t.common.samutsakhon}</li>
+            <li><Link href="/clinic" className="hover:text-white transition-colors">{t.common.samutsakhon}</Link></li>
           </ul>
         </div>
       </div>
