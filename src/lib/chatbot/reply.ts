@@ -1,4 +1,4 @@
-import { anthropic, CHATBOT_MODEL } from './anthropic'
+import { anthropic, CHATBOT_MODEL, CHAT_OUTPUT_CONFIG, responseText } from './anthropic'
 import { CHATBOT_SYSTEM_PROMPT } from './system-prompt'
 
 // LINE replyToken expires after 1 minute; cap AI latency well under that
@@ -19,7 +19,8 @@ export async function generateReply(userText: string): Promise<string> {
   try {
     const aiPromise = anthropic.messages.create({
       model: CHATBOT_MODEL,
-      max_tokens: 512,
+      max_tokens: 1500,
+      output_config: CHAT_OUTPUT_CONFIG,
       system: CHATBOT_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userText }],
     })
@@ -27,8 +28,7 @@ export async function generateReply(userText: string): Promise<string> {
       setTimeout(() => reject(new Error('AI timeout')), AI_TIMEOUT_MS),
     )
     const msg = await Promise.race([aiPromise, timeoutPromise])
-    const block = msg.content[0]
-    const text = block?.type === 'text' ? block.text : ''
+    const text = responseText(msg.content)
     return text || FALLBACK_REPLY
   } catch (err) {
     console.error('generateReply failed:', err)

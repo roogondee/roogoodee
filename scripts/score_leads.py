@@ -28,7 +28,7 @@ import anthropic
 ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 MAX_AGE_DAYS = 7      # ไม่ score lead เก่ากว่านี้ (น่าจะปิดดีลไปแล้ว)
 MAX_LEADS = 30        # cap ต่อรอบ — กัน prompt cost/runtime
@@ -173,7 +173,7 @@ def score_lead(lead: dict, chat_text: str) -> dict | None:
     try:
         resp = CLIENT.messages.create(
             model=MODEL,
-            max_tokens=400,
+            max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
         text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()

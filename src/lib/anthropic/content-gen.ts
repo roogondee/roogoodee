@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { responseText } from '@/lib/chatbot/anthropic'
 
 let _client: Anthropic | null = null
 export function anthropicSonnet(): Anthropic {
@@ -6,7 +7,7 @@ export function anthropicSonnet(): Anthropic {
   return _client
 }
 
-export const CONTENT_MODEL = 'claude-sonnet-4-6'
+export const CONTENT_MODEL = 'claude-sonnet-5-5'
 
 export type CaptionBundle = {
   headline: string
@@ -98,7 +99,7 @@ mode: ${opts.mode || 'post'} (จะใช้ทั้ง blog post + FB feed + 
     try {
       const msg = await client.messages.create({
         model: CONTENT_MODEL,
-        max_tokens: 900,
+        max_tokens: 4000,
         system: SYSTEM_PROMPT,
         messages: [{
           role: 'user',
@@ -108,9 +109,9 @@ mode: ${opts.mode || 'post'} (จะใช้ทั้ง blog post + FB feed + 
           ],
         }],
       })
-      const block = msg.content[0]
-      if (block.type !== 'text') throw new Error('no text response')
-      const parsed = JSON.parse(stripFence(block.text)) as Partial<CaptionBundle>
+      const text = responseText(msg.content)
+      if (!text) throw new Error('no text response')
+      const parsed = JSON.parse(stripFence(text)) as Partial<CaptionBundle>
       const bundle: CaptionBundle = {
         headline: (parsed.headline || '').trim(),
         subline: (parsed.subline || '').trim(),
@@ -169,7 +170,7 @@ Caption: ${opts.caption.caption}
   const client = anthropicSonnet()
   const msg = await client.messages.create({
     model: CONTENT_MODEL,
-    max_tokens: 2500,
+    max_tokens: 8000,
     system: ARTICLE_SYSTEM,
     messages: [{
       role: 'user',
@@ -179,9 +180,9 @@ Caption: ${opts.caption.caption}
       ],
     }],
   })
-  const block = msg.content[0]
-  if (block.type !== 'text') throw new Error('no text response from article gen')
-  const html = stripFence(block.text)
+  const text = responseText(msg.content)
+  if (!text) throw new Error('no text response from article gen')
+  const html = stripFence(text)
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/\son\w+="[^"]*"/gi, '')

@@ -278,12 +278,12 @@ def generate_caption(service: str, story_type: str) -> dict:
     for attempt in range(3):
         try:
             msg = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=900,
+                model="claude-sonnet-5-5",
+                max_tokens=3000,
                 messages=[{"role": "user", "content": user}],
                 system=system,
             )
-            text = msg.content[0].text.strip()
+            text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
             text = re.sub(r"^```(?:json)?\s*", "", text)
             text = re.sub(r"\s*```\s*$", "", text)
             data = json.loads(text)

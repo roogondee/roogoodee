@@ -32,7 +32,7 @@ SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 LINE_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "team@roogondee.com")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 WINDOW_DAYS = 7
 
@@ -185,7 +185,7 @@ def summarize(rows: list, follower_count: int) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=1200,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
     return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()

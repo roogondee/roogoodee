@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionUser } from '@/lib/auth'
-import { anthropic, CHATBOT_MODEL } from '@/lib/chatbot/anthropic'
+import { anthropic, CHATBOT_MODEL, CHAT_OUTPUT_CONFIG } from '@/lib/chatbot/anthropic'
 
 const SERVICE_LABELS: Record<string, string> = {
   std: 'STD & PrEP', glp1: 'GLP-1 ลดน้ำหนัก', ckd: 'CKD โรคไต',
@@ -92,7 +92,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   try {
     const resp = await anthropic.messages.create({
       model: CHATBOT_MODEL,
-      max_tokens: 400,
+      max_tokens: 1500,
+      output_config: CHAT_OUTPUT_CONFIG,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt }],
     })

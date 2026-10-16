@@ -30,7 +30,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "team@roogondee.com")
-MODEL = "claude-sonnet-4-6"   # creative writing — upgrade from Haiku
+MODEL = "claude-sonnet-5-5"   # creative writing — upgrade from Haiku
 
 WINDOW_DAYS = 30
 SCRIPTS_PER_RUN = 5
@@ -118,7 +118,7 @@ def run_claude(prompt: str) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=3000,
+        max_tokens=8000,
         messages=[{"role": "user", "content": prompt}],
     )
     return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()

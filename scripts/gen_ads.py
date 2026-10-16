@@ -117,11 +117,11 @@ Constraints:
 """
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=512,
+        model="claude-sonnet-5-5",
+        max_tokens=2500,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = msg.content[0].text.strip()
+    text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
     if text.startswith("```"):
         text = text.split("```")[1].lstrip("json").strip()
     return json.loads(text)
@@ -150,11 +150,11 @@ Rules:
 """
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=256,
+        model="claude-haiku-5-5",
+        max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = msg.content[0].text.strip()
+    text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
     if text.startswith("```"):
         text = text.split("```")[1].lstrip("json").strip()
     return json.loads(text)

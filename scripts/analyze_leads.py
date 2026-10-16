@@ -26,7 +26,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "team@roogondee.com")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 SERVICE_LABELS = {
     "std": "STD & PrEP HIV",
@@ -157,7 +157,7 @@ def run_claude(prompt: str) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=1200,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
     parts = []

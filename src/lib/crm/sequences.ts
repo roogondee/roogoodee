@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
-import { anthropic, CHATBOT_MODEL } from '@/lib/chatbot/anthropic'
+import { anthropic, CHATBOT_MODEL, CHAT_OUTPUT_CONFIG, responseText } from '@/lib/chatbot/anthropic'
 import { sendToContact } from '@/lib/messaging/push'
 import type { CrmContact, NurtureSequence, SequenceStep, SequenceTrigger } from './types'
 import type { Service } from '@/types'
@@ -61,15 +61,16 @@ async function renderMessage(step: SequenceStep, contact: CrmContact): Promise<s
   try {
     const msg = await anthropic.messages.create({
       model: CHATBOT_MODEL,
-      max_tokens: 300,
+      max_tokens: 1000,
+      output_config: CHAT_OUTPUT_CONFIG,
       system: SYSTEM,
       messages: [{
         role: 'user',
         content: `บริบทลูกค้า: ${contact.name || 'ลูกค้า'}\nเป้าหมายข้อความนี้: ${step.prompt}\nเขียนข้อความติดตามที่จะส่งทางแชต`,
       }],
     })
-    const block = msg.content[0]
-    if (block.type === 'text' && block.text.trim()) return block.text.trim()
+    const text = responseText(msg.content).trim()
+    if (text) return text
   } catch (e) {
     console.error('renderMessage failed, using raw prompt:', (e as Error).message)
   }
