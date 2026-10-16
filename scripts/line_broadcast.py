@@ -32,7 +32,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 LINE_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 SITE_BASE = os.environ.get("SITE_BASE_URL", "https://roogondee.com").rstrip("/")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 SERVICE_LABELS = {
     "std": "STD & PrEP HIV",
@@ -122,7 +122,7 @@ def write_caption(post: dict) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=400,
+        max_tokens=2000,
         messages=[{"role": "user", "content": prompt}],
     )
     return "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()

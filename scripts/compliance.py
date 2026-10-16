@@ -287,12 +287,12 @@ def review_thai_with_llm(text: str, anthropic_client=None) -> Tuple[bool, list[s
 
     try:
         msg = anthropic_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=300,
+            model="claude-haiku-5-5",
+            max_tokens=1500,
             messages=[{"role": "user", "content": user}],
             system=system,
         )
-        raw = msg.content[0].text.strip()
+        raw = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```\s*$", "", raw)
         data = json.loads(raw)

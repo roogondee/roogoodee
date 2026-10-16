@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
-import { anthropic, CHATBOT_MODEL } from '@/lib/chatbot/anthropic'
+import { anthropic, CHATBOT_MODEL, CHAT_OUTPUT_CONFIG } from '@/lib/chatbot/anthropic'
 import { WORKPERMIT_TOOLS, executeWorkPermitTool } from '@/lib/workpermit/tools'
 import { WORKPERMIT_SYSTEM_PROMPT } from '@/lib/workpermit/prompt'
 import { triage } from '@/lib/advice/triage'
@@ -24,7 +24,7 @@ import { workPermitReply, localizeSafetyReply } from '@/lib/workpermit/replies'
 // deterministic 1669/1323 reply, never an LLM-generated one.
 
 const MAX_TOOL_ITERATIONS = 4
-const MAX_TOKENS = 800
+const MAX_TOKENS = 2000
 const MAX_SESSION_TURNS = 40
 
 type ClientMessage = { role: 'user' | 'assistant'; content: string }
@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
         const response = await anthropic.messages.create({
           model: CHATBOT_MODEL,
           max_tokens: MAX_TOKENS,
+          output_config: CHAT_OUTPUT_CONFIG,
           system: WORKPERMIT_SYSTEM_PROMPT,
           tools: WORKPERMIT_TOOLS,
           messages,

@@ -240,8 +240,8 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
     for attempt in range(3):
         try:
             msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=3000,
+                model="claude-haiku-5-5",
+                max_tokens=8000,
                 messages=[{"role": "user", "content": prompt}]
             )
             break
@@ -252,7 +252,7 @@ def generate_plan_entry(service: str, existing_slugs: set) -> dict | None:
     if msg is None:
         print(f"  ❌ Claude call ล้มเหลวทุกครั้ง: {last_err}")
         return None
-    text = msg.content[0].text.strip()
+    text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
 
     # Parse JSON
     if text.startswith("```"):

@@ -31,7 +31,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "team@roogondee.com")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 WINDOW_DAYS = 14
 MAX_QUESTIONS = 250  # cap prompt size
@@ -254,7 +254,7 @@ def run_claude(prompt: str) -> dict:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=8192,
+        max_tokens=16000,
         messages=[{"role": "user", "content": prompt}],
     )
     raw = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()

@@ -29,7 +29,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 RESEND_KEY = os.environ.get("RESEND_API_KEY", "")
 NOTIFY_EMAIL = os.environ.get("NOTIFY_EMAIL", "team@roogondee.com")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 MIN_DAYS = 2       # don't touch leads fresher than this (team is working them)
 MAX_DAYS = 14      # after this they're too cold; archive elsewhere
@@ -209,7 +209,7 @@ def draft_for_lead(lead: dict, chat_snippet: str) -> dict | None:
     try:
         resp = CLIENT.messages.create(
             model=MODEL,
-            max_tokens=600,
+            max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
         text = ""

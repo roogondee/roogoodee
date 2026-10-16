@@ -464,8 +464,8 @@ Meta Description: {plan.get('meta_desc', '')}
         # routinely exceeds 4k output tokens and gets truncated mid-sentence
         # (which then cascades into <ul> imbalance + missing CTA at end).
         return client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=8192,
+            model="claude-sonnet-5-5",
+            max_tokens=16000,
             messages=[{"role": "user", "content": user_prompt}],
             system=system_prompt,
         )
@@ -482,7 +482,7 @@ Meta Description: {plan.get('meta_desc', '')}
         raise last_err if last_err else RuntimeError("Claude call failed")
     if getattr(msg, "stop_reason", None) == "max_tokens":
         print("  ⚠️ Claude หยุดเพราะ max_tokens — เนื้อหาอาจถูกตัดท้าย")
-    text = msg.content[0].text.strip()
+    text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
     # Strip markdown code fences if Claude wrapped output in ```html ... ```
     if text.startswith("```"):
         lines = text.split("\n")

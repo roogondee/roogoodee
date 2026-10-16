@@ -6,7 +6,7 @@ Project memory for Roogondee (รู้ก่อนดี) — Next.js telehealt
 - Next.js 14 App Router, React 18, TypeScript, Tailwind
 - Supabase (Postgres + auth + storage)
 - LINE Messaging API (`@roogondee` OA), Facebook Messenger Bot, FB Page autopost
-- Anthropic SDK (Claude Haiku 4.5 for chat bot, Claude Sonnet for content gen)
+- Anthropic SDK (Claude Haiku 5.5 `claude-haiku-5-5` for chat bots, Claude Sonnet 5.5 `claude-sonnet-5-5` for content gen) — both think by default; read replies via `responseText()` (`src/lib/chatbot/anthropic.ts`), never `content[0]`, and size `max_tokens` for thinking + Thai. Chat routes run `CHAT_OUTPUT_CONFIG` (effort `low`); `temperature`/`top_p`/`top_k`, `budget_tokens`, assistant prefill and forced `tool_choice` all 400 on these models
 - Hosted on Vercel; cron via GitHub Actions
 
 ## Services
@@ -89,7 +89,7 @@ Full guide: `docs/system-integration.md`. The hospital site (`roogondee/wmedical
 
 ## Messaging bots (FB / LINE / IG)
 All three platforms share `src/lib/chatbot/`:
-- `anthropic.ts` — singleton Anthropic client, `CHATBOT_MODEL = 'claude-haiku-4-5-20251001'`
+- `anthropic.ts` — singleton Anthropic client, `CHATBOT_MODEL = 'claude-haiku-5-5'`, `CHAT_OUTPUT_CONFIG`, `responseText()`
 - `system-prompt.ts` — Thai multilingual system prompt (auto-detects user language)
 - `service-detect.ts` — `detectService()` keywords + `extractVoucherCode()` for `RGD-(GLP1|CKD|STD|FRN)-[A-Z0-9]{6}`
 - `reply.ts` — `generateReply(userText)` calls Haiku with shared prompt
@@ -147,7 +147,7 @@ Webhook handlers stay platform-specific (signature, event shape, send-reply API)
 - `scripts/fb_story.py` + `.github/workflows/fb_story.yml` — **cron ปิดอยู่** (เดิม 02:00 UTC = 09:00 BKK) ดู "FB cron ปิดชั่วคราว" ด้านล่าง
 - Rotates `glp1 → std → ckd` by day-of-year (skip `foreign` B2B; `mens` opt-in via `STORY_INCLUDE_MENS=1`)
 - Story type cycles `fact → question → tip → voucher → myth` (5-day cycle)
-- Caption gen: Claude Haiku 4.5 → JSON `{headline, subline, caption, cta}`; mens compliance gate reuses `compliance.check_caption_compliance`
+- Caption gen: Claude → JSON `{headline, subline, caption, cta}`; mens compliance gate reuses `compliance.check_caption_compliance`
 - Image: 1080x1920 composed with Pillow + Sarabun (SIL OFL, downloaded at runtime, cached in `scripts/fonts/`); FLUX background optional, gradient fallback if `TOGETHER_API_KEY` absent
 - Posts via Graph API v19: `POST /{page-id}/photos?published=false` → `POST /{page-id}/photo_stories?photo_id=…` (uses existing `pages_manage_posts`)
 - Tracked in `fb_stories` table with unique `(posted_date, service)` index → safe to re-run cron

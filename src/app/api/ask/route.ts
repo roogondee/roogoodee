@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
+import { CHATBOT_MODEL, CHAT_OUTPUT_CONFIG, responseText } from '@/lib/chatbot/anthropic'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -40,13 +41,14 @@ export async function POST(req: Request) {
     const q = question.trim().slice(0, 500)
 
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      model: CHATBOT_MODEL,
+      max_tokens: 2500,
+      output_config: CHAT_OUTPUT_CONFIG,
       system: SYSTEM,
       messages: [{ role: 'user', content: q }],
     })
 
-    const answer = (msg.content[0] as { type: string; text: string }).text.trim()
+    const answer = responseText(msg.content).trim()
     const service = detectService(q)
 
     // Save to Supabase (best-effort — table may not exist yet)

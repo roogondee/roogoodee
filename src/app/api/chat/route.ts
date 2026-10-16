@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { CHATBOT_MODEL, CHAT_OUTPUT_CONFIG } from '@/lib/chatbot/anthropic'
 import { supabaseAdmin } from '@/lib/supabase'
 import { AGENT_TOOLS, executeTool, ToolExecutionContext } from '@/lib/agent/tools'
 import {
@@ -11,7 +12,7 @@ import {
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-const MODEL = 'claude-haiku-4-5-20251001'
+const MODEL = CHATBOT_MODEL
 const MAX_TOOL_ITERATIONS = 6
 const MAX_SESSION_TURNS = 40
 
@@ -120,7 +121,8 @@ export async function POST(req: NextRequest) {
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
       const response = await client.messages.create({
         model: MODEL,
-        max_tokens: 800,
+        max_tokens: 2000,
+        output_config: CHAT_OUTPUT_CONFIG,
         system: systemPrompt,
         tools: AGENT_TOOLS,
         messages,

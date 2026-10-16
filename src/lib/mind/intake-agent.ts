@@ -4,8 +4,7 @@ import { classifyMessage, crisisResponse, type SafetyFlag } from './safety'
 
 // Sonnet for empathy + nuance; system prompt is fixed ~1.5k tokens so
 // the prompt-caching block saves 90% of input cost on follow-up turns.
-// Model id from src/lib/anthropic/content-gen.ts — keep in sync.
-const MODEL = 'claude-sonnet-4-6'
+import { CONTENT_MODEL as MODEL } from '@/lib/anthropic/content-gen'
 
 let _client: Anthropic | null = null
 function client(): Anthropic {
@@ -186,7 +185,10 @@ export async function runTurn(
   // Hit Sonnet with prompt-cached system block
   const resp = await client().messages.create({
     model: MODEL,
-    max_tokens: 600,
+    max_tokens: 2000,
+    // Conversational turn: low effort keeps replies quick; the safety gate
+    // above runs deterministically before this call regardless.
+    output_config: { effort: 'low' },
     system: [
       { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
     ],

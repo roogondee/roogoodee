@@ -1,4 +1,5 @@
 import { anthropicSonnet, CONTENT_MODEL } from '@/lib/anthropic/content-gen'
+import { responseText } from '@/lib/chatbot/anthropic'
 import { getReferenceRange } from './reference'
 import { computeHealthScore } from './score'
 import { deriveUpsell } from './upsell'
@@ -120,7 +121,7 @@ export async function extractLabReport(opts: {
     try {
       const msg = await client.messages.create({
         model: CONTENT_MODEL,
-        max_tokens: 4096,
+        max_tokens: 12000,
         system: SYSTEM_PROMPT,
         messages: [{
           role: 'user',
@@ -130,9 +131,9 @@ export async function extractLabReport(opts: {
           ],
         }],
       })
-      const block = msg.content[0]
-      if (block.type !== 'text') throw new Error('no text response')
-      const parsed = JSON.parse(stripFence(block.text)) as LabExtractionResult
+      const text = responseText(msg.content)
+      if (!text) throw new Error('no text response')
+      const parsed = JSON.parse(stripFence(text)) as LabExtractionResult
       if (!Array.isArray(parsed.analytes)) throw new Error('analytes not an array')
       if (!parsed.interpretation) throw new Error('missing interpretation')
       return normalize(parsed, opts.patient ?? {})

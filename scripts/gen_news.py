@@ -183,12 +183,12 @@ def generate_news(news_type: dict) -> dict | None:
     for attempt in range(3):
         try:
             msg = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=4096,
+                model="claude-sonnet-5-5",
+                max_tokens=12000,
                 system=SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": user_prompt}],
             )
-            text = msg.content[0].text.strip()
+            text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
             if text.startswith("```"):
                 text = re.sub(r"^```(?:json)?\s*\n", "", text)
                 text = re.sub(r"\n```\s*$", "", text).strip()

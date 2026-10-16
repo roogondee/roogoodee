@@ -139,12 +139,12 @@ Hashtag แนะนำ: {tags}
 
     def _call_claude() -> str:
         msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=700,
+            model="claude-sonnet-5-5",
+            max_tokens=3000,
             messages=[{"role": "user", "content": user_prompt}],
             system=system_prompt,
         )
-        return msg.content[0].text.strip()
+        return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text").strip()
 
     from compliance import (
         check_caption_compliance,

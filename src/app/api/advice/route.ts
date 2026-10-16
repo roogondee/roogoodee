@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
-import { anthropic, CHATBOT_MODEL } from '@/lib/chatbot/anthropic'
+import { anthropic, CHATBOT_MODEL, CHAT_OUTPUT_CONFIG } from '@/lib/chatbot/anthropic'
 import { CONTENT_MODEL as SONNET_MODEL } from '@/lib/anthropic/content-gen'
 import { ADVICE_TOOLS, INTAKE_TOOLS, executeAdviceTool } from '@/lib/advice/tools'
 import { buildIntakePrompt, buildAssessmentPrompt, buildFollowupPrompt, type AdvicePhase } from '@/lib/advice/prompt'
@@ -25,13 +25,16 @@ import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
 // so later turns in this session skip straight to the lighter follow-up prompt.
 
 const MAX_TOOL_ITERATIONS = 8
-const HAIKU_MAX_TOKENS = 800
+// Both models think before answering now, and those tokens count against the
+// cap — the history-taking turn is short at low effort but still needs room.
+const HAIKU_MAX_TOKENS = 2000
 // Thai costs roughly one token per character, far more than English, so the
 // assessment's five sections need real headroom. At 1500 a live reply was cut
 // off mid-red-flags at 1657 Thai characters, losing the ROUTING close entirely
 // — the visitor got advice and no way to reach us, which is the one outcome
-// this funnel cannot afford. Sized so the close always fits.
-const SONNET_MAX_TOKENS = 3000
+// this funnel cannot afford. Sized so the close always fits, plus headroom
+// for Sonnet 5.5's thinking at medium effort.
+const SONNET_MAX_TOKENS = 8000
 const MAX_SESSION_TURNS = 40
 const SESSION_LIMIT_REPLY =
   'บทสนทนายาวเกินกำหนด กรุณาเริ่มใหม่ หรือแชทกับทีมงานทาง LINE @roogondee'
@@ -157,6 +160,7 @@ export async function POST(req: NextRequest) {
       // the moment submit_intake fires, without a second HTTP round-trip.
       let currentModel: string = CHATBOT_MODEL
       let currentMaxTokens = HAIKU_MAX_TOKENS
+      let currentOutputConfig: { effort: 'low' | 'medium' } = CHAT_OUTPUT_CONFIG
       let currentTools = phase === 'intake' ? INTAKE_TOOLS : ADVICE_TOOLS
       let currentSystemPrompt =
         phase === 'intake' ? buildIntakePrompt(triageLevel) : buildFollowupPrompt(triageLevel)
@@ -166,6 +170,7 @@ export async function POST(req: NextRequest) {
         const response = await anthropic.messages.create({
           model: currentModel,
           max_tokens: currentMaxTokens,
+          output_config: currentOutputConfig,
           system: currentSystemPrompt,
           tools: currentTools,
           messages,
@@ -198,6 +203,9 @@ export async function POST(req: NextRequest) {
             phase = 'assessment_done'
             currentModel = SONNET_MODEL
             currentMaxTokens = SONNET_MAX_TOKENS
+            // The one structured reply this funnel sells on — medium, not
+            // low, so the self-care plan and red flags get real reasoning.
+            currentOutputConfig = { effort: 'medium' }
             currentTools = ADVICE_TOOLS
             currentSystemPrompt = buildAssessmentPrompt(triageLevel)
           }

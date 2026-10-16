@@ -31,7 +31,7 @@ SUPABASE_URL = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 SUPABASE_KEY = os.environ["SUPABASE_SECRET"]
 LINE_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 SITE_BASE = os.environ.get("SITE_BASE_URL", "https://roogondee.com").rstrip("/")
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "claude-haiku-5-5"
 
 MIN_AGE_DAYS = 1            # อย่ารบกวน lead ที่เพิ่งเข้ามา (ทีมยังโทรอยู่)
 MAX_AGE_DAYS = 30           # หลัง 30 วันถือว่าเย็นเกิน
@@ -210,7 +210,7 @@ def write_message(lead: dict, chat_text: str) -> str | None:
     try:
         resp = CLIENT.messages.create(
             model=MODEL,
-            max_tokens=400,
+            max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
         )
         text = "\n".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
