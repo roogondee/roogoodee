@@ -5,7 +5,7 @@ import { persistClickId, readCookie } from '@/lib/analytics/track'
 import { LINE_OA_URL } from '@/lib/liff-links'
 import type { RefProgram } from '@/lib/refcodes'
 
-// Mints this visit's website ref code (MC-xxxxx / CL-xxxxx) once per tab
+// Mints this visit's website ref code (MC-/CL-/AD-xxxxx) once per tab
 // session and returns it with a LINE link that pre-fills it. Until the code
 // arrives (or if minting fails) the LINE link is the plain OA link, so every
 // button works from the first paint. See src/lib/growth/ref-visits.ts.
@@ -26,6 +26,11 @@ function readCache(key: string): CachedRef | null {
 function writeCache(key: string, c: CachedRef) {
   try { sessionStorage.setItem(key, JSON.stringify(c)) } catch {}
 }
+
+// /advice renders the LINE button in several places at once (hero, chat,
+// sticky bar), each with its own hook. Without this, a first visit would fire
+// one mint per button before any of them had written the tab cache.
+const inflight = new Map<string, Promise<{ ref_code: string; line_url: string } | null>>()
 
 export function useRefCode(program: RefProgram): { refCode: string | null; lineUrl: string } {
   const [state, setState] = useState<{ refCode: string | null; lineUrl: string }>({ refCode: null, lineUrl: LINE_OA_URL })
@@ -60,14 +65,22 @@ export function useRefCode(program: RefProgram): { refCode: string | null; lineU
     }
     for (const k of UTM_KEYS) { const v = q.get(k); if (v) body[k] = v }
 
-    fetch('/api/ref', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(r => (r.ok ? r.json() : null))
-      .then((d: { ref_code: string; line_url: string } | null) => {
-        if (!d || cancelled) return
-        setState({ refCode: d.ref_code, lineUrl: d.line_url })
-        writeCache(key, { ...d, gclid, consent: consentAtMint })
-      })
-      .catch(() => undefined)
+    let mint = inflight.get(key)
+    if (!mint) {
+      mint = fetch('/api/ref', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(r => (r.ok ? r.json() : null))
+        .then((d: { ref_code: string; line_url: string } | null) => {
+          if (d) writeCache(key, { ...d, gclid, consent: consentAtMint })
+          return d
+        })
+        .catch(() => null)
+        .finally(() => { inflight.delete(key) })
+      inflight.set(key, mint)
+    }
+    mint.then(d => {
+      if (!d || cancelled) return
+      setState({ refCode: d.ref_code, lineUrl: d.line_url })
+    })
     return () => { cancelled = true }
   }, [program])
 

@@ -42,6 +42,10 @@ export default function LINEFloat() {
   // and its "ปรึกษาฟรี" label is a claim neither page may make.
   if (pathname === '/clinic' || pathname === '/medical-certificate') return null
 
+  // /advice has its own sticky LINE + call bar, whose LINE button pre-fills
+  // the visitor's symptom and AD- ref code; this one covered its call button.
+  if (pathname === '/advice') return null
+
   // This was a bare <a> with no onClick at all: the most visually prominent
   // LINE CTA on the site (it pings and pulses) sat on both paid landing pages
   // sending nothing to GA4, Meta or Google Ads. Every LINE contact it produced

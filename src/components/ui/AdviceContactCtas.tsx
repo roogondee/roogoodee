@@ -1,7 +1,9 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '@/lib/i18n/context'
 import { track } from '@/lib/analytics/track'
-import { LINE_OA_URL } from '@/lib/liff-links'
+import { refLineUrl } from '@/lib/refcodes'
+import { useRefCode } from '@/components/ui/useRefCode'
 
 // Shared LINE + call button pair for the /advice landing page.
 //
@@ -18,6 +20,25 @@ import { LINE_OA_URL } from '@/lib/liff-links'
 // them would reset that reporting history. `hero`/`sticky`/`services` fire new
 // advice_cta_* events, tagged with placement, so the two entry points can be
 // compared in GA4 without touching the existing conversion.
+//
+// The LINE button opens a chat with a message already typed: "สวัสดีค่ะ
+// อยากปรึกษาอาการ: <their symptom> (AD-K7Q2M)". The visitor only presses
+// send — no add-friend-then-stare-at-an-empty-chat — and the AD- code turns
+// that message into a lead carrying the ad click (src/lib/growth/ref-visits.ts).
+// The symptom is the first message the visitor typed into the chat (see
+// setAdviceLineTopic); it goes into the LINE message they see before sending
+// and nowhere else (never into analytics).
+
+// The chat publishes the visitor's first message here so every LINE button on
+// the page (hero and sticky bar included, which live outside the chat)
+// pre-fills the same symptom. In memory only.
+const TOPIC_EVENT = 'advice:line-topic'
+let currentTopic = ''
+export function setAdviceLineTopic(text: string) {
+  if (currentTopic || !text.trim()) return // the first message is the complaint
+  currentTopic = text.trim()
+  window.dispatchEvent(new Event(TOPIC_EVENT))
+}
 
 export type AdviceCtaPlacement = 'hero' | 'sticky' | 'services' | 'chat'
 
@@ -32,15 +53,29 @@ export default function AdviceContactCtas({
 }) {
   const { t } = useTranslation()
   const a = t.advice
+  const { refCode, lineUrl: plainLineUrl } = useRefCode('advice')
+  const [sharedTopic, setSharedTopic] = useState(currentTopic)
+  useEffect(() => {
+    const on = () => setSharedTopic(currentTopic)
+    on()
+    window.addEventListener(TOPIC_EVENT, on)
+    return () => window.removeEventListener(TOPIC_EVENT, on)
+  }, [])
+  const topic = sharedTopic
+  const lineUrl = refCode ? refLineUrl(refCode, 'advice', undefined, topic) : plainLineUrl
 
   const lineEvent = placement === 'chat' ? 'advice_followup_line_click' : 'advice_cta_line_click'
   const callEvent = placement === 'chat' ? 'advice_followup_call_click' : 'advice_cta_call_click'
-  const eventParams = placement === 'chat' ? {} : { placement }
+  const eventParams = {
+    ...(placement === 'chat' ? {} : { placement }),
+    ref_code: refCode || 'none',
+    prefilled: topic ? 'symptom' : 'greeting',
+  }
 
   return (
     <div className={`flex gap-2 ${className}`}>
       <a
-        href={LINE_OA_URL}
+        href={lineUrl}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => track(lineEvent, eventParams)}

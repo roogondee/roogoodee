@@ -3,6 +3,8 @@
 //
 //   MC-K7Q2M  /medical-certificate   (certificate seekers)
 //   CL-K7Q2M  /clinic                (people searching "คลินิกใกล้ฉัน")
+//   AD-K7Q2M  /advice                (symptom searches; the LINE text also
+//                                     carries the symptom the visitor typed)
 //   HR-K7Q2MX link an employer (HR) account to a LINE chat for renewal alerts
 //
 // The landing mints one code per visit (src/app/api/ref/route.ts) and shows
@@ -14,11 +16,12 @@
 // No imports on purpose: pure, so tests/growth/refcodes.test.mts can run it under
 // `node --test` without a bundler (same arrangement as src/lib/dmglp/*).
 
-export type RefProgram = 'medcert' | 'clinic'
+export type RefProgram = 'medcert' | 'clinic' | 'advice'
 
 export const REF_PREFIX: Record<RefProgram, string> = {
   medcert: 'MC',
   clinic: 'CL',
+  advice: 'AD',
 }
 
 // No 0/O, 1/I/L — codes get read out over the phone and typed by hand.
@@ -47,14 +50,14 @@ const DASH = '[-\u2010\u2011\u2012\u2013\u2014\u2212]'
 // typed run-together, a digit: without that rule ordinary words parse as
 // codes ("CLASSES" is CL + ASSES, "CLUSTER" is CL + USTER).
 const VISIT_RE = new RegExp(
-  `\\b(MC|CL)(?:\\s*${DASH}\\s*|\\s+|(?=${CHARS}{0,4}\\d))(${CHARS}{${VISIT_CODE_LEN}})\\b`,
+  `\\b(MC|CL|AD)(?:\\s*${DASH}\\s*|\\s+|(?=${CHARS}{0,4}\\d))(${CHARS}{${VISIT_CODE_LEN}})\\b`,
 )
 // HR codes only ever arrive from our own pre-filled button, so the dash is
 // required ("HR number" must not parse as HR-NUMBER).
 const HR_RE = new RegExp(`\\bHR\\s*${DASH}\\s*(${CHARS}{${HR_CODE_LEN}})\\b`)
 // A field that holds nothing but the code (redeem screen, the certificate
 // admin's ref field): anchored, so the dash can be optional.
-const BARE_RE = new RegExp(`^(MC|CL)\\s*(?:${DASH}\\s*)?(${CHARS}{${VISIT_CODE_LEN}})$`)
+const BARE_RE = new RegExp(`^(MC|CL|AD)\\s*(?:${DASH}\\s*)?(${CHARS}{${VISIT_CODE_LEN}})$`)
 
 // Normalises what staff or visitors type: lower case, spaces, a missing or
 // spaced dash, full-width forms pasted from a phone keyboard.
@@ -64,7 +67,7 @@ function normalise(text: string): string {
 
 function toRef(m: RegExpMatchArray | null): { code: string; program: RefProgram } | null {
   if (!m) return null
-  const program: RefProgram = m[1] === 'MC' ? 'medcert' : 'clinic'
+  const program: RefProgram = m[1] === 'MC' ? 'medcert' : m[1] === 'AD' ? 'advice' : 'clinic'
   return { code: `${m[1]}-${m[2]}`, program }
 }
 
@@ -93,10 +96,22 @@ export function isRefCode(text: string): boolean {
 export const REF_LINE_TEXT: Record<RefProgram, string> = {
   medcert: 'สนใจตรวจรับใบรับรองแพทย์',
   clinic: 'ต้องการนัดพบแพทย์ / สอบถามบริการ',
+  advice: 'สวัสดีค่ะ อยากปรึกษาอาการ',
 }
 
-export function refLineUrl(code: string, program: RefProgram, oaId = '@roogondee'): string {
-  const text = `${REF_LINE_TEXT[program]} (${code})`
+// What the visitor said is wrong, trimmed for a pre-filled LINE message: one
+// line, short enough that the code at the end is never pushed off screen.
+export function lineTopic(text: string | null | undefined, max = 60): string {
+  // Brackets dropped: the code travels in "(…)" at the end of the message.
+  const one = (text || '').replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim()
+  return one.length > max ? `${one.slice(0, max - 1).trim()}…` : one
+}
+
+// `topic` (the /advice visitor's own symptom) lets them press send without
+// typing anything, and gives the team something to answer straight away.
+export function refLineUrl(code: string, program: RefProgram, oaId = '@roogondee', topic?: string): string {
+  const t = lineTopic(topic)
+  const text = `${REF_LINE_TEXT[program]}${t ? `: ${t}` : ''} (${code})`
   return `https://line.me/R/oaMessage/${encodeURIComponent(oaId)}/?${encodeURIComponent(text)}`
 }
 

@@ -47,8 +47,8 @@ const RECOMMEND_SERVICE_TOOL: Anthropic.Tool = {
 const ADVICE_CREATE_LEAD: Anthropic.Tool = {
   name: 'create_lead',
   description:
-    'Save the visitor as a lead once they have given BOTH a name AND a Thai phone number AND ' +
-    'agreed to be contacted. Usually this is the free symptom follow-up call: a nurse rings on ' +
+    'Save the visitor as a lead once they have given a Thai phone number AND agreed to be ' +
+    'contacted. A name is optional — never hold the lead back waiting for one. Usually this is the free symptom follow-up call: a nurse rings on ' +
     'the day-N threshold you gave them to check whether they actually improved, and arranges a ' +
     'doctor visit at the partner hospital if they did not. It can also be an immediate call back ' +
     '(within 30 minutes during opening hours) or help booking an appointment for an urgent case. ' +
@@ -57,7 +57,7 @@ const ADVICE_CREATE_LEAD: Anthropic.Tool = {
   input_schema: {
     type: 'object',
     properties: {
-      name: { type: 'string', description: 'Name as the user gave it.' },
+      name: { type: 'string', description: 'Name as the user gave it. Leave out if they gave none.' },
       phone: { type: 'string', description: 'Thai phone number, 9-10 digits, starts with 0.' },
       service: {
         type: 'string',
@@ -73,9 +73,13 @@ const ADVICE_CREATE_LEAD: Anthropic.Tool = {
           '(e.g. "ถามว่าไข้ลงหรือยัง"), and any red flag to watch for. <300 chars.',
       },
     },
-    required: ['name', 'phone', 'service'],
+    required: ['phone', 'service'],
   },
 }
+
+// What the lead row carries when the visitor left a number but no name — the
+// nurse asks it on the call. Shared with /api/advice/callback.
+export const ADVICE_NO_NAME = 'ไม่ระบุชื่อ (advice)'
 
 const SUBMIT_INTAKE_TOOL: Anthropic.Tool = {
   name: 'submit_intake',
@@ -156,6 +160,12 @@ export async function executeAdviceTool(
     // (chat_sessions.messages), which is what the assessment call reads. This
     // tool exists purely as a signal the route intercepts to switch models.
     return { output: { ok: true, note: 'Intake received, proceeding to detailed assessment.' }, intakeSubmitted: true }
+  }
+  if (name === 'create_lead') {
+    // Phone-only is enough on /advice (the shared handler insists on a name).
+    const input = (rawInput && typeof rawInput === 'object' ? rawInput : {}) as Record<string, unknown>
+    const given = typeof input.name === 'string' ? input.name.trim() : ''
+    return executeTool(name, { ...input, name: given || ADVICE_NO_NAME }, ctx)
   }
   return executeTool(name, rawInput, ctx)
 }
