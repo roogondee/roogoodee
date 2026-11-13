@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Service } from '@/types'
+import { trackPillarContact } from '@/lib/analytics/track'
+import { NAMED_IN_AD_EVENTS } from '@/lib/growth/config'
 
 // Interactive island of the LINE gate: campaign passthrough + pixel events.
 //
@@ -35,11 +37,15 @@ function readCookie(name: string): string | undefined {
   return m ? decodeURIComponent(m[1]) : undefined
 }
 
-function track(name: string, params: Record<string, unknown> = {}) {
+// Engagement only (gate view). The pillar name goes to Meta / TikTok only
+// for NAMED_IN_AD_EVENTS — "viewed the HIV-test gate" is health data. The
+// LINE / call taps are contacts and go through trackPillarContact().
+function trackView(service: Service) {
   if (typeof window === 'undefined') return
-  try { window.gtag?.('event', name, params) } catch {}
-  try { window.fbq?.('trackCustom', name, params) } catch {}
-  try { window.ttq?.track(name, params) } catch {}
+  const params = NAMED_IN_AD_EVENTS.includes(service) ? { service } : {}
+  try { window.gtag?.('event', 'quiz_gate_view', params) } catch {}
+  try { window.fbq?.('trackCustom', 'quiz_gate_view', params) } catch {}
+  try { window.ttq?.track('quiz_gate_view', params) } catch {}
 }
 
 export default function QuizGateActions({
@@ -51,7 +57,7 @@ export default function QuizGateActions({
   useEffect(() => {
     if (viewedRef.current) return
     viewedRef.current = true
-    track('quiz_gate_view', { service })
+    trackView(service)
 
     // Carry the visitor's attribution into LINE so the lead created inside
     // LIFF still reports the ad / article that brought them in.
@@ -71,11 +77,7 @@ export default function QuizGateActions({
     } catch {}
   }, [service, baseHref])
 
-  const onStart = () => {
-    track('quiz_gate_line_click', { service })
-    try { window.fbq?.('track', 'Contact', { content_category: service }) } catch {}
-    try { window.ttq?.track('Contact', { content_id: `quiz-${service}`, content_type: 'lead' }) } catch {}
-  }
+  const onStart = () => trackPillarContact(service, 'line', 'quiz_gate')
 
   return (
     <>
@@ -93,7 +95,7 @@ export default function QuizGateActions({
       </p>
       <a
         href={PHONE_TEL}
-        onClick={() => track('quiz_gate_call_click', { service })}
+        onClick={() => trackPillarContact(service, 'call', 'quiz_gate')}
         className={`block text-center py-3 rounded-full font-semibold text-sm border-2 transition-all ${dark ? 'border-mint/40 text-mint hover:bg-mint/10' : 'border-forest/30 text-forest hover:bg-mint/10'}`}
       >
         📞 ไม่สะดวกใช้ LINE? โทร {PHONE_DISPLAY}
