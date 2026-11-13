@@ -1,13 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import Image from 'next/image'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import ShareButtons from '@/components/ui/ShareButtons'
 import NavBar from '@/components/ui/NavBar'
 import MediaBlock from '@/components/ui/MediaBlock'
 import ArticleQuiz from '@/components/quiz/ArticleQuiz'
 import CertPromoBanner from '@/components/ui/CertPromoBanner'
+import { hospitalUrlFor } from '@/config/moved-to-hospital'
 import { BlogPostCTA, BlogShareLabel, BlogAskMore, BlogRelatedTitle, BlogAssessBefore, BlogBreadcrumb, BlogServiceCTA } from '@/components/ui/BlogLabels'
 
 const supabase = createClient(
@@ -75,6 +76,9 @@ const SERVICE_TOOLS: Record<string, { href: string; label: string; icon: string 
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
   const slug = decodeURIComponent(params.slug)
+  // Education posts that moved to the hospital site, doctor-reviewed (301).
+  const moved = hospitalUrlFor(slug)
+  if (moved) permanentRedirect(moved)
   const { data: post } = await supabase
     .from('posts')
     .select('*')
