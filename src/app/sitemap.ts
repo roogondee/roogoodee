@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import type { MetadataRoute } from 'next'
+import { hospitalUrlFor } from '@/config/moved-to-hospital'
 
 export const revalidate = 3600
 
@@ -38,7 +39,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: 'https://roogondee.com/privacy', priority: 0.3, changeFrequency: 'yearly' },
   ]
 
-  const postRoutes: MetadataRoute.Sitemap = (posts || []).map((p) => ({
+  // Posts moved to the hospital site redirect there; list only the ones that stay.
+  const postRoutes: MetadataRoute.Sitemap = (posts || []).filter((p) => p.service === 'news' || !hospitalUrlFor(p.slug)).map((p) => ({
     url: `https://roogondee.com/${p.service === 'news' ? 'news' : 'blog'}/${p.slug}`,
     lastModified: p.published_at ? new Date(p.published_at) : new Date(),
     priority: 0.7,
