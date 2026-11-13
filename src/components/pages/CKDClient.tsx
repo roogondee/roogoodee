@@ -4,6 +4,7 @@ import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
 import NavBar from '@/components/ui/NavBar'
 import FooterMinimal from '@/components/ui/FooterMinimal'
+import { trackPillarContact } from '@/lib/analytics/track'
 
 const jsonLd = {"@context":"https://schema.org","@type":"MedicalWebPage",name:"CKD Clinic โรคไตเรื้อรัง — รู้ก่อนดี(รู้งี้)",url:"https://roogondee.com/ckd",about:{"@type":"MedicalCondition",name:"Chronic Kidney Disease"},specialty:"Nephrology"}
 
@@ -109,7 +110,7 @@ export default function CKDClient() {
           <p className="text-muted mb-8">{ckd.ctaDesc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/quiz/ckd" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">📝 {t.common.consultFree}</Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => trackPillarContact('ckd', 'line', 'final_cta')} className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">💬 LINE @roogondee</a>
           </div>
         </div>
       </section>

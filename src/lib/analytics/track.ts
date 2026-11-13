@@ -2,6 +2,8 @@
 // Extracted from the QuizRunner pattern so non-quiz pages (e.g. the MOU ads
 // landing) can fire the same events without duplicating the globals.
 import type { ReadonlyURLSearchParams } from 'next/navigation'
+import type { Service } from '@/types'
+import { NAMED_IN_AD_EVENTS, VISIT_CONVERSION_SERVICES } from '@/lib/growth/config'
 
 declare global {
   interface Window {
@@ -105,6 +107,11 @@ const ADS_CONVERSIONS: Record<string, string> = {
   clinic_call_click: 'ads_conversion_Contact_Us_1',
   clinic_line_click: 'ads_conversion_Contact_Us_1',
   clinic_directions_click: 'ads_conversion_Contact_Us_1',
+  // The pillar pages (/glp1, /std, /ckd, /mens, /women, /foreign) and their
+  // /quiz/{service} LINE gate. Fired only through trackPillarContact() below,
+  // which never sends mind or dna to an ad platform.
+  pillar_line_click: 'ads_conversion_Contact_Us_1',
+  pillar_call_click: 'ads_conversion_Contact_Us_1',
 }
 
 // Deliberately NOT mapped above, and the omission is the point:
@@ -147,6 +154,8 @@ const META_STANDARD_EVENTS: Record<string, { event: string; value: number; conte
   // FindLocation is Meta's standard event for "looked up how to get to a
   // physical store" — exactly a Maps directions tap.
   clinic_directions_click: { event: 'FindLocation', value: 150, contentName: 'directions_click' },
+  pillar_call_click: { event: 'Contact', value: 200, contentName: 'phone_click' },
+  pillar_line_click: { event: 'Contact', value: 150, contentName: 'line_click' },
 }
 
 // Meta's pixel is consent-gated (src/components/analytics/Pixels.tsx): window.fbq
@@ -201,6 +210,29 @@ export function track(name: string, params: Record<string, unknown> = {}) {
   if (adsEvent) {
     try { window.gtag?.('event', adsEvent, params) } catch {}
   }
+}
+
+// LINE / call taps on a pillar page or its /quiz/{service} LINE gate — the
+// last moment on this domain before the visitor leaves for LINE, so the last
+// moment a client-side Ads or Meta tag can still attribute the ad click (the
+// quiz itself completes in LIFF; see docs/pillar-google-ads.md).
+//
+// Privacy, same lists as the post-visit loops (src/lib/growth/config.ts):
+// - mind and dna fire nothing: gtag events also reach the AW- destination
+//   (remarketing), so there is no GA4-only route here. Their LINE taps go
+//   unmeasured on purpose; LINE OA follower stats still show the volume.
+// - the pillar name travels only for NAMED_IN_AD_EVENTS (glp1, ckd,
+//   foreign); std / mens / women convert as a generic contact, because
+//   "this person tapped LINE on the HIV-testing page" is health data.
+// Do not pass the service through any other route to the pixels.
+export function trackPillarContact(service: Service, channel: 'line' | 'call', position: string) {
+  if (typeof window === 'undefined') return
+  const name = channel === 'line' ? 'pillar_line_click' : 'pillar_call_click'
+  if (!VISIT_CONVERSION_SERVICES.includes(service)) return
+  const params: Record<string, unknown> = { position }
+  if (NAMED_IN_AD_EVENTS.includes(service)) params.service = service
+  track(name, params)
+  try { window.ttq?.track('Contact', { content_type: 'lead' }) } catch {}
 }
 
 // Lived in WorkPermitLeadForm.tsx, which meant HomeWorkPermitHero pulled the

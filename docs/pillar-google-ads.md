@@ -39,9 +39,20 @@ and `RGD Patient Visit` (patient came) back to Google Ads daily. Before
 spending on any quiz-funnel campaign below: create those two conversion
 actions and the scheduled upload, and make `RGD Patient Visit` the primary.
 
-`/foreign` itself is still unmapped (its CTAs are plain `Link`/`tel:`
-elements with no `track()` call) and would report zero. Map it the same way
-before advertising it directly.
+**Client-side contact conversions (2026-11-13).** The LINE / call taps on
+the pillar pages (`/glp1`, `/std`, `/ckd`, `/mens`, `/women`, `/foreign`) and
+on the `/quiz/{service}` LINE gate now fire `pillar_line_click` /
+`pillar_call_click` through `trackPillarContact()` in
+`src/lib/analytics/track.ts` → `ads_conversion_Contact_Us_1` + Meta
+`Contact`. That tap is the last moment on roogondee.com before LINE, so it is
+the last point a client tag can still attribute the click; the offline feed
+above stays the primary signal. Privacy follows `src/lib/growth/config.ts`:
+`mind` and `dna` fire nothing to any ad platform, and the pillar name is
+attached only for `NAMED_IN_AD_EVENTS` (glp1, ckd, foreign) — std / mens /
+women convert as a generic contact. The gate used to send
+`content_category: <service>` with Meta `Contact` for every pillar, std and
+mind included; that is gone. `/mind`'s `tel:1323` crisis button is
+deliberately untracked.
 
 ## The offers, verbatim
 
