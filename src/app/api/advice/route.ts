@@ -7,6 +7,7 @@ import { ADVICE_TOOLS, INTAKE_TOOLS, executeAdviceTool } from '@/lib/advice/tool
 import { buildIntakePrompt, buildAssessmentPrompt, buildFollowupPrompt, type AdvicePhase } from '@/lib/advice/prompt'
 import { triage, escalate, type TriageLevel } from '@/lib/advice/triage'
 import { checkAdviceRateLimit, clientIpFrom } from '@/lib/advice/rate-limit'
+import { extractQuickReplies } from '@/lib/advice/quick-replies'
 import type { ToolExecutionContext, LeadAttribution } from '@/lib/agent/tools'
 
 // POST /api/advice — general-illness advice AI behind the /advice Google Ads
@@ -132,6 +133,7 @@ export async function POST(req: NextRequest) {
     const triageLevel = escalate(priorTriageLevel, result.level)
 
     let finalText: string
+    let quickReplies: string[] = []
     let leadCaptured = false
     let leadId: string | null = null
     let suggestedService: string | null = null
@@ -221,6 +223,11 @@ export async function POST(req: NextRequest) {
       if (!finalText) {
         finalText = 'ขออภัยค่ะ ระบบประมวลผลไม่สำเร็จ กรุณาลองพิมพ์ใหม่อีกครั้ง หรือแชททีมงานทาง LINE @roogondee'
       }
+      // The [[options: …]] line becomes tap buttons. The stored transcript
+      // keeps it, so the model sees the options it offered last turn.
+      const extracted = extractQuickReplies(finalText)
+      finalText = extracted.text || finalText
+      quickReplies = triageLevel === 'emergency' ? [] : extracted.options
     }
 
     const turnCount = messages.filter(m => m.role === 'user').length
@@ -257,6 +264,7 @@ export async function POST(req: NextRequest) {
       leadCaptured,
       triage: triageLevel,
       suggestedService,
+      quickReplies,
       // Surfaced so the client can track the intake → assessment → lead funnel.
       // Without it we can't tell whether visitors drop out during history-taking
       // (too many questions) or at the ask (offer not compelling).

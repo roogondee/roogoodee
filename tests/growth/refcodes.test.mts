@@ -64,3 +64,21 @@ test('LINE links pre-fill the code where the webhook will look for it', () => {
   assert.deepEqual(parseRefCode(text), { code: 'MC-K7Q2M', program: 'medcert' })
   assert.equal(parseHrLinkCode(decodeURIComponent(hrLinkLineUrl('HR-ABC234').split('?')[1])), 'HR-ABC234')
 })
+
+test('/advice codes (AD-) parse like the others', () => {
+  assert.equal(newRefCode('advice', () => 0), 'AD-22222')
+  assert.deepEqual(parseRefCode('สวัสดีค่ะ อยากปรึกษาอาการ: ปวดท้อง 2 วัน (AD-K7Q2M)'), { code: 'AD-K7Q2M', program: 'advice' })
+  assert.deepEqual(parseBareRefCode('ad k7q2m'), { code: 'AD-K7Q2M', program: 'advice' })
+  for (const word of ['ADDRESS', 'advanced', 'ADMIN']) assert.equal(parseRefCode(`ขอ ${word} ค่ะ`), null, word)
+})
+
+test('the /advice LINE link pre-fills the symptom ahead of the code', () => {
+  const url = refLineUrl('AD-K7Q2M', 'advice', '@roogondee', 'ปวดท้อง\n(ข้างขวา) มา 2 วัน')
+  const text = decodeURIComponent(url.split('/?')[1])
+  assert.equal(text, 'สวัสดีค่ะ อยากปรึกษาอาการ: ปวดท้อง ข้างขวา มา 2 วัน (AD-K7Q2M)')
+  assert.deepEqual(parseRefCode(text), { code: 'AD-K7Q2M', program: 'advice' })
+  const long = decodeURIComponent(refLineUrl('AD-K7Q2M', 'advice', '@roogondee', 'ก'.repeat(200)).split('/?')[1])
+  assert.ok(long.length < 100 && long.endsWith('… (AD-K7Q2M)'))
+  // No topic: the plain greeting, same shape as the other landings.
+  assert.equal(decodeURIComponent(refLineUrl('AD-K7Q2M', 'advice').split('/?')[1]), 'สวัสดีค่ะ อยากปรึกษาอาการ (AD-K7Q2M)')
+})

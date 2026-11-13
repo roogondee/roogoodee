@@ -34,12 +34,14 @@ export default function ContactPage() {
   const [success, setSuccess] = useState(false)
   const [consent, setConsent] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  // Phone is the whole required form. Name, service and a note are behind a
+  // toggle: every extra required field was a reason to leave, and the team
+  // asks the rest on the call.
+  const [showMore, setShowMore] = useState(false)
 
   const validate = () => {
     const e: Record<string, string> = {}
-    if (!form.first_name.trim()) e.first_name = t.contact.errorFirstName
     if (!/^0\d{8,9}$/.test(form.phone.replace(/[-\s]/g, ''))) e.phone = t.contact.errorPhone
-    if (!form.service) e.service = t.contact.errorService
     if (!consent) e.consent = t.contact.errorConsent
     setErrors(e)
     return Object.keys(e).length === 0
@@ -53,7 +55,14 @@ export default function ContactPage() {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, consent_pdpa: true, consent_at: new Date().toISOString() }),
+        body: JSON.stringify({
+          ...form,
+          phone: form.phone.replace(/[-\s]/g, ''),
+          first_name: form.first_name.trim() || 'ไม่ระบุชื่อ',
+          service: form.service || 'general',
+          consent_pdpa: true,
+          consent_at: new Date().toISOString(),
+        }),
       })
       const data = await res.json()
       if (data.success) setSuccess(true)
@@ -129,42 +138,48 @@ export default function ContactPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.firstName} *</label>
-                    <input type="text" placeholder={t.contact.firstNamePlaceholder} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})}
-                      className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none transition-colors ${errors.first_name ? 'border-red-400' : 'border-gray-200 focus:border-mint'}`} />
-                    {errors.first_name && <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>}
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.lastName}</label>
-                    <input type="text" placeholder={t.contact.lastNamePlaceholder} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors" />
-                  </div>
-                </div>
                 <div>
                   <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.phone} *</label>
-                  <input type="tel" placeholder={t.contact.phonePlaceholder} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                  <input type="tel" inputMode="tel" autoComplete="tel" placeholder={t.contact.phonePlaceholder} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
                     className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none transition-colors ${errors.phone ? 'border-red-400' : 'border-gray-200 focus:border-mint'}`} />
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-rtext block mb-2">{t.contact.serviceInterest} *</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {SERVICES.map(s => (
-                      <label key={s.value} className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-xs md:text-sm cursor-pointer transition-all ${form.service === s.value ? 'border-sage bg-mint/8 text-forest font-semibold' : 'border-gray-200 hover:border-mint'}`}>
-                        <input type="radio" name="service" value={s.value} className="hidden" onChange={() => setForm({...form, service: s.value})} />
-                        {s.label}
-                      </label>
-                    ))}
+                <button type="button" onClick={() => setShowMore(v => !v)} aria-expanded={showMore}
+                  className="text-xs text-sage font-semibold hover:text-forest transition-colors">
+                  {showMore ? '−' : '+'} {t.contact.moreDetails}
+                </button>
+                {showMore && (
+                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.firstName}</label>
+                      <input type="text" placeholder={t.contact.firstNamePlaceholder} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})}
+                        className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none transition-colors ${errors.first_name ? 'border-red-400' : 'border-gray-200 focus:border-mint'}`} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.lastName}</label>
+                      <input type="text" placeholder={t.contact.lastNamePlaceholder} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors" />
+                    </div>
                   </div>
-                  {errors.service && <p className="text-red-500 text-xs mt-1">{errors.service}</p>}
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.additionalNote}</label>
-                  <textarea placeholder={t.contact.notePlaceholder} value={form.note} onChange={e => setForm({...form, note: e.target.value})}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors resize-none" rows={3} />
-                </div>
+                  <div>
+                    <label className="text-xs font-semibold text-rtext block mb-2">{t.contact.serviceInterest}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {SERVICES.map(s => (
+                        <label key={s.value} className={`flex items-center gap-2 px-3 py-2.5 border rounded-xl text-xs md:text-sm cursor-pointer transition-all ${form.service === s.value ? 'border-sage bg-mint/8 text-forest font-semibold' : 'border-gray-200 hover:border-mint'}`}>
+                          <input type="radio" name="service" value={s.value} className="hidden" onChange={() => setForm({...form, service: s.value})} />
+                          {s.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-rtext block mb-1">{t.contact.additionalNote}</label>
+                    <textarea placeholder={t.contact.notePlaceholder} value={form.note} onChange={e => setForm({...form, note: e.target.value})}
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-mint transition-colors resize-none" rows={3} />
+                  </div>
+                  </div>
+                )}
                 <div className="bg-mint/5 border border-mint/20 rounded-xl p-3">
                   <label className="flex items-start gap-2 text-xs text-rtext cursor-pointer leading-relaxed">
                     <input

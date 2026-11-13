@@ -46,11 +46,13 @@ const REF_COLUMNS = 'id, ref_code, program, gclid, fbc, fbp, utm, cookie_consent
 export const REF_SOURCE: Record<RefProgram, string> = {
   medcert: 'medcert-landing',
   clinic: 'clinic-landing',
+  advice: 'advice-landing',
 }
 
 export const REF_LABEL: Record<RefProgram, string> = {
   medcert: 'ใบรับรองแพทย์',
   clinic: 'คลินิก / นัดพบแพทย์',
+  advice: 'ปรึกษาอาการ (/advice)',
 }
 
 const HOSPITAL_PHONE = '034-110-988'
@@ -117,6 +119,18 @@ function lineReply(program: RefProgram, code: string): string {
       `หรือโทร ${HOSPITAL_PHONE}`,
     ].join('\n')
   }
+  if (program === 'advice') {
+    // Sent day or night (code messages pass the bot's active-hours gate), so
+    // it promises a reply from the team, never an instant one.
+    return [
+      'ได้รับข้อความแล้วค่ะ ขอบคุณที่ทักมานะคะ',
+      'ทีมพยาบาลจะตอบกลับในแชทนี้ค่ะ ระหว่างนี้เล่าเพิ่มได้เลยว่าเป็นมากี่วัน มีอาการอื่นร่วมด้วยไหม หรือส่งรูปมาได้ค่ะ',
+      'ถ้ามีอาการรุนแรง เช่น เจ็บหน้าอก หายใจลำบาก แขนขาอ่อนแรงทันที ให้โทร 1669 ทันทีนะคะ',
+      '',
+      `ถ้าต้องไปพบแพทย์ แจ้งรหัส ${code} กับเจ้าหน้าที่ได้เลยค่ะ`,
+      `หรือโทร 081-902-3540`,
+    ].join('\n')
+  }
   return [
     'ขอบคุณที่ติดต่อโรงพยาบาลดับเบิ้ลยู เมดิคอลค่ะ',
     'เล่าอาการหรือบริการที่ต้องการไว้ในแชทนี้ได้เลย ทีมงานจะช่วยนัดพบแพทย์ให้ค่ะ',
@@ -130,7 +144,7 @@ function lineReply(program: RefProgram, code: string): string {
 // LINE webhook hook: the landing's LINE button pre-fills "… (MC-K7Q2M)".
 // Creates the lead carrying the ad click ids, links it to the code, pings
 // the sales group. Returns the reply to send, or null when the message holds
-// no MC-/CL- code (the caller then carries on as usual).
+// no MC-/CL-/AD- code (the caller then carries on as usual).
 export async function handleRefLineMessage(userId: string, text: string): Promise<string | null> {
   const parsed = parseRefCode(text)
   if (!parsed || !userId) return null

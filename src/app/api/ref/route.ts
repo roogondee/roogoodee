@@ -5,11 +5,11 @@ import { parseBareRefCode, refLineUrl, type RefProgram } from '@/lib/refcodes'
 
 export const runtime = 'nodejs'
 
-// Public: /medical-certificate and /clinic call this once per visit to mint
+// Public: /medical-certificate, /clinic and /advice call this once per visit to mint
 // the code they show on the page and pre-fill into the LINE button. Accepts
 // only click ids, utm and the banner answer — never personal data.
 
-const PROGRAMS: readonly RefProgram[] = ['medcert', 'clinic']
+const PROGRAMS: readonly RefProgram[] = ['medcert', 'clinic', 'advice']
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const
 
 function short(v: unknown, max = 200): string | null {

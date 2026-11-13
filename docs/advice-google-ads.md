@@ -503,10 +503,18 @@ All of them fire client-side through `track()` in `src/lib/analytics/track.ts`.
 | `advice_message` | Visitor sends a message | Engagement only. Never a conversion. |
 | `advice_assessment` | Intake completes and the assessment is delivered (once per session) | Secondary conversion / mid-funnel |
 | `advice_service_suggested` | AI routes to a specific pillar via `recommend_service` | Diagnostic only — fires only when symptoms match one of the eight pillars, so it under-counts general illness |
-| `advice_lead` | `create_lead` succeeds | **Primary conversion** |
+| `advice_lead` | `create_lead` succeeds, or the one-field phone box under the chat is sent (`via: callback_form`) | **Primary conversion** |
+| `advice_quick_reply` | Visitor taps one of the AI's answer buttons (carries the button `index` only, never its text) | Engagement only — compare against `advice_message` to see how much typing the buttons replaced |
 | `advice_emergency` / `advice_urgent` | Triage escalates | Safety monitoring, not marketing |
 | `advice_followup_line_click` / `advice_followup_call_click` | Visitor taps LINE/call under the chat, 3+ messages in | Contact conversion (`ads_conversion_Contact_Us_1`) |
 | `advice_cta_line_click` / `advice_cta_call_click` | Visitor taps LINE/call in the hero or sticky bar, before or without chatting — see Smart campaign variant above | Same contact conversion, tagged with `placement` |
+
+The LINE buttons on `/advice` (hero, sticky bar, under the chat) open LINE with a
+message already typed — `สวัสดีค่ะ อยากปรึกษาอาการ: <first thing they typed> (AD-K7Q2M)`
+— so the visitor only presses send. The `AD-` code makes that message a lead
+(`source = 'advice-landing'`, `service = 'advice'`) carrying the gclid, exactly like
+`/clinic`'s `CL-` codes. Apply `supabase/migrations/widen_site_ref_codes_program_for_advice.sql`
+before deploying.
 
 `advice_start` → `advice_assessment` → `advice_lead` is the funnel to watch:
 a drop between the first two means the intake is asking too much, a drop
@@ -552,7 +560,8 @@ copy:
 
 ## Sales team SOP
 
-Leads with `source = 'advice-chat'` came from a **paid click** — call these
+Leads with `source = 'advice-chat'` (and `advice-landing`, which arrive as a LINE
+message with an `AD-` code — answer those in the LINE chat) came from a **paid click** — call these
 back first, ahead of organic leads, during business hours. The tool call
 that creates them also pings the sales LINE group immediately (`notifyLine:
 true` in `src/lib/agent/tools.ts`), so treat that ping like the MOU landing's
@@ -560,6 +569,8 @@ lead form, not like the passive nightly digest.
 
 `note` on these leads is a short AI-written symptom summary — read it before
 calling; it often includes red flags the visitor already disclosed in chat.
+A lead named `ไม่ระบุชื่อ (advice)` left only a phone number (the phone box under
+the chat, or the AI took the number without a name) — ask their name on the call.
 
 ## Safety layer — do not relax
 

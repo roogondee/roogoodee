@@ -11,11 +11,11 @@ import type { Service } from '@/types'
 // Meta CAPI + Google Ads visit conversions. mind and dna are excluded: a
 // psychologist session or a paternity consult reported to an ad platform is
 // exactly the data PDPA treats as sensitive, and neither is bid on anyway.
-// medcert / clinic are the two non-pillar landings whose visitors arrive
+// medcert / clinic / advice are the non-pillar landings whose visitors arrive
 // with a website ref code (src/lib/growth/ref-visits.ts); they are never in
 // NAMED_IN_AD_EVENTS, so their visits reach Meta as a generic "Clinic Visit".
-export const VISIT_CONVERSION_SERVICES: readonly (Service | 'medcert' | 'clinic')[] = [
-  'glp1', 'ckd', 'std', 'mens', 'women', 'foreign', 'medcert', 'clinic',
+export const VISIT_CONVERSION_SERVICES: readonly (Service | 'medcert' | 'clinic' | 'advice')[] = [
+  'glp1', 'ckd', 'std', 'mens', 'women', 'foreign', 'medcert', 'clinic', 'advice',
 ]
 
 // Services whose name may appear in ad-platform custom_data. For the rest a

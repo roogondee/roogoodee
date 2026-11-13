@@ -4,7 +4,8 @@ import { useSearchParams } from 'next/navigation'
 import { useTranslation } from '@/lib/i18n/context'
 import { track, persistClickId } from '@/lib/analytics/track'
 import { serviceRoute } from '@/lib/advice/routes'
-import AdviceContactCtas from '@/components/ui/AdviceContactCtas'
+import Link from 'next/link'
+import AdviceContactCtas, { setAdviceLineTopic } from '@/components/ui/AdviceContactCtas'
 
 // General-illness advice chat for the /advice Google Ads landing page.
 // Kept as its own component (not a variant of ChatWidget) because the two
@@ -39,6 +40,12 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
   const [suggested, setSuggested] = useState<{ label: string; url: string } | null>(null)
   const [leadCaptured, setLeadCaptured] = useState(false)
   const [showChips, setShowChips] = useState(true)
+  // Tap-to-answer options for the AI's latest question (see
+  // src/lib/advice/quick-replies.ts). Cleared the moment anything is sent.
+  const [quickReplies, setQuickReplies] = useState<string[]>([])
+  const [callbackPhone, setCallbackPhone] = useState('')
+  const [callbackHoneypot, setCallbackHoneypot] = useState('')
+  const [callbackState, setCallbackState] = useState<'idle' | 'sending' | 'error' | 'done'>('idle')
   const scrollRef = useRef<HTMLDivElement>(null)
   const sessionIdRef = useRef<string | null>(null)
   const viewedRef = useRef(false)
@@ -84,10 +91,47 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, loading])
 
+  const attributionFromUrl = () => ({
+    utm_source: searchParams?.get('utm_source') || undefined,
+    utm_medium: searchParams?.get('utm_medium') || undefined,
+    utm_campaign: searchParams?.get('utm_campaign') || undefined,
+    gclid: searchParams?.get('gclid') || undefined,
+  })
+
+  // The whole form is one phone field: the nurse's briefing is built from this
+  // chat's transcript server-side (/api/advice/callback), and a name is asked
+  // on the call. Never required to get advice — it sits beside the chat.
+  const submitCallback = async () => {
+    const phone = callbackPhone.replace(/\D/g, '')
+    if (!/^0\d{8,9}$/.test(phone)) { setCallbackState('error'); return }
+    setCallbackState('sending')
+    try {
+      const res = await fetch('/api/advice/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone,
+          sessionId: sessionIdRef.current,
+          attribution: attributionFromUrl(),
+          website: callbackHoneypot,
+        }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) { setCallbackState('error'); return }
+      setLeadCaptured(true)
+      setCallbackState('done')
+      track('advice_lead', { via: 'callback_form' })
+    } catch {
+      setCallbackState('error')
+    }
+  }
+
   const send = async (text: string = input.trim()) => {
     if (!text || loading) return
     setInput('')
     setShowChips(false)
+    setQuickReplies([])
+    if (typeof window !== 'undefined') setAdviceLineTopic(text)
 
     const newMessages: Message[] = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
@@ -95,12 +139,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
     track('advice_message')
 
     try {
-      const attribution = {
-        utm_source: searchParams?.get('utm_source') || undefined,
-        utm_medium: searchParams?.get('utm_medium') || undefined,
-        utm_campaign: searchParams?.get('utm_campaign') || undefined,
-        gclid: searchParams?.get('gclid') || undefined,
-      }
+      const attribution = attributionFromUrl()
       const res = await fetch('/api/advice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,6 +152,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.text || a.errorMessage }])
+      setQuickReplies(Array.isArray(data.quickReplies) ? data.quickReplies.slice(0, 4) : [])
 
       if (data.triage === 'emergency' || data.triage === 'urgent') {
         setTriageLevel(data.triage)
@@ -195,7 +235,7 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
 
       {leadCaptured && (
         <div className="bg-mint/10 border-b border-mint/20 px-4 py-2 text-xs text-forest text-center flex-shrink-0">
-          {a.leadCaptured}
+          {callbackState === 'done' ? a.callbackDone : a.leadCaptured}
         </div>
       )}
 
@@ -223,6 +263,27 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
                   className="px-3 py-1.5 bg-white border border-mint/25 rounded-full text-xs text-forest font-medium hover:bg-mint/5 hover:border-mint/50 transition-all"
                 >
                   {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!loading && quickReplies.length > 0 && (
+          <div>
+            <p className="text-[11px] text-muted mb-1.5">{a.quickReplyHint}</p>
+            <div className="flex flex-wrap gap-2">
+              {quickReplies.map((option, i) => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    // Index only — the option text can describe a symptom.
+                    track('advice_quick_reply', { index: i })
+                    send(option)
+                  }}
+                  className="px-3.5 py-2 bg-white border border-mint/40 rounded-full text-sm text-forest font-medium hover:bg-mint/10 hover:border-mint transition-all"
+                >
+                  {option}
                 </button>
               ))}
             </div>
@@ -259,6 +320,49 @@ export default function AdviceChat({ className = '' }: { className?: string }) {
           to the partner hospital when self-care isn't enough. Shown once the
           AI has answered at least once; hidden while the service CTA card is
           up so the two green buttons don't stack. */}
+      {messages.length >= 3 && !leadCaptured && triageLevel !== 'emergency' && (
+        <div className="border-t border-gray-100 px-3 pt-2.5 pb-2 flex-shrink-0 bg-mint/5">
+          <p className="text-xs text-forest font-semibold mb-1.5">{a.callbackTitle}</p>
+          <form
+            onSubmit={e => { e.preventDefault(); submitCallback() }}
+            className="flex gap-2"
+          >
+            <input
+              type="text"
+              name="website"
+              value={callbackHoneypot}
+              onChange={e => setCallbackHoneypot(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="hidden"
+            />
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={callbackPhone}
+              onChange={e => { setCallbackPhone(e.target.value); if (callbackState === 'error') setCallbackState('idle') }}
+              placeholder={a.callbackPlaceholder}
+              aria-label={a.callbackPlaceholder}
+              className={`flex-1 min-w-0 text-sm px-3 py-2 border rounded-xl outline-none bg-white transition-colors ${callbackState === 'error' ? 'border-red-400' : 'border-gray-200 focus:border-mint'}`}
+            />
+            <button
+              type="submit"
+              disabled={callbackState === 'sending' || !callbackPhone.trim()}
+              className="bg-forest text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-sage transition-colors"
+            >
+              {callbackState === 'sending' ? a.callbackSending : a.callbackButton}
+            </button>
+          </form>
+          {callbackState === 'error' && <p className="text-red-500 text-[11px] mt-1">{a.callbackError}</p>}
+          <p className="text-[10px] text-muted mt-1">
+            {a.callbackConsent}{' '}
+            <Link href="/privacy" target="_blank" className="underline">{t.common.privacyPolicy}</Link>
+          </p>
+        </div>
+      )}
+
       {messages.length >= 3 && !suggested && (
         <div className="border-t border-gray-100 px-3 py-2 flex-shrink-0">
           <p className="text-[11px] text-muted text-center mb-1.5">{a.followUpText}</p>
