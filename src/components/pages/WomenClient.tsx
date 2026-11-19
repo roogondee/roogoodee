@@ -3,6 +3,7 @@ import Link from 'next/link'
 import PillarHeroImage from '@/components/ui/PillarHeroImage'
 import { useTranslation } from '@/lib/i18n/context'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { trackPillarContact } from '@/lib/analytics/track'
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -78,7 +79,7 @@ export default function WomenClient() {
             <Link href="/quiz/women" className="flex items-center justify-center gap-2 bg-forest text-white px-8 py-4 rounded-full text-sm font-semibold hover:bg-sage transition-all shadow-lg">
               {t.women.ctaConsult}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 border-2 border-pink-300 text-pink-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-pink-50 transition-all">
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => trackPillarContact('women', 'line', 'hero')} className="flex items-center justify-center gap-2 border-2 border-pink-300 text-pink-700 px-7 py-4 rounded-full text-sm font-semibold hover:bg-pink-50 transition-all">
               {t.women.ctaLine}
             </a>
           </div>
@@ -191,7 +192,7 @@ export default function WomenClient() {
             <Link href="/quiz/women" className="bg-forest text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-sage transition-all shadow-lg">
               {t.women.ctaConsult}
             </Link>
-            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
+            <a href="https://line.me/ti/p/@roogondee" target="_blank" rel="noopener noreferrer" onClick={() => trackPillarContact('women', 'line', 'final_cta')} className="bg-[#06C755] text-white px-8 py-4 rounded-full text-sm font-bold hover:bg-[#00B04B] transition-all">
               {t.common.lineConsultFree}
             </a>
           </div>
