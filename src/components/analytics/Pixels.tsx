@@ -6,9 +6,6 @@ import Script from 'next/script'
 import { CONSENT_EVENT, hasConsent, type ConsentValue } from '@/lib/analytics/consent'
 import { flushPendingMetaEvents } from '@/lib/analytics/track'
 
-// Google tag (gtag.js) is NOT gated here — it loads unconditionally in
-// app/layout.tsx with Consent Mode defaulting to denied, and this component
-// flips consent via gtag('consent','update') when the PDPA banner is answered.
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID
 const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID
 // Per-vertical pixel separation — mens vertical is at higher ad-policy risk
@@ -34,14 +31,6 @@ export default function Pixels() {
       const detail = (e as CustomEvent<ConsentValue>).detail
       const accepted = detail === 'accepted'
       setAllowed(accepted)
-      const mode = accepted ? 'granted' : 'denied'
-      const gtag = (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag
-      gtag?.('consent', 'update', {
-        ad_storage: mode,
-        ad_user_data: mode,
-        ad_personalization: mode,
-        analytics_storage: mode,
-      })
     }
     window.addEventListener(CONSENT_EVENT, onChange)
     return () => window.removeEventListener(CONSENT_EVENT, onChange)

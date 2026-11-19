@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { track, readUtm } from '@/lib/analytics/track'
-import { getConsent, setConsent, CONSENT_EVENT, type ConsentValue } from '@/lib/analytics/consent'
+import { getConsent, CONSENT_EVENT, type ConsentValue } from '@/lib/analytics/consent'
 import { LINE_OA_URL } from '@/lib/liff-links'
 import { HOSPITAL_NAME, HOSPITAL_PHONE, HOSPITAL_PHONE_TEL } from '@/lib/dmglp/config'
 
@@ -54,14 +54,12 @@ export default function DmglpLandingClient() {
   const searchParams = useSearchParams()
   const [lineUrl, setLineUrl] = useState<string>(LINE_OA_URL)
   const [refCode, setRefCode] = useState<string | null>(null)
-  const [consent, setConsentState] = useState<ConsentValue | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   // Mint the ref code once per visit (kept in sessionStorage so a reload
   // does not create a second attribution row for the same click).
   useEffect(() => {
-    setConsentState(getConsent())
-    const onChange = (e: Event) => setConsentState((e as CustomEvent<ConsentValue>).detail)
+    const onChange = (e: Event) => markConsent((e as CustomEvent<ConsentValue>).detail === 'accepted')
     window.addEventListener(CONSENT_EVENT, onChange)
     return () => window.removeEventListener(CONSENT_EVENT, onChange)
   }, [])
@@ -226,16 +224,6 @@ export default function DmglpLandingClient() {
       </div>
       <div className="h-16 md:hidden" />
 
-      {/* Cookie / PDPA consent — stored on the attribution row (§4.9 step 5) */}
-      {consent === null && (
-        <div className="fixed bottom-16 md:bottom-4 left-4 right-4 md:left-auto md:max-w-sm z-40 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 text-sm">
-          <p className="text-rtext mb-3">เราใช้คุกกี้เพื่อวัดผลโฆษณาและปรับปรุงหน้าเว็บ ไม่มีการเก็บข้อมูลสุขภาพจากหน้านี้</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { setConsent('accepted'); markConsent(true) }} className="flex-1 bg-forest text-white py-2 rounded-full text-xs font-semibold">ยอมรับ</button>
-            <button type="button" onClick={() => { setConsent('declined'); markConsent(false) }} className="flex-1 border border-gray-300 py-2 rounded-full text-xs font-semibold">ปฏิเสธ</button>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

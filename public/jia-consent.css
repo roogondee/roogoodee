@@ -1,0 +1,26 @@
+#jc-root .jc-banner.sm {
+  background: #c8212d;
+  color: white;
+}
+#jc-root .jc-banner.sm, #jc-root .jc-fab {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+#jc-root .jc-menu { bottom: calc(126px + env(safe-area-inset-bottom, 0px)); }
+#jc-root .jc-menu:not(.show) { visibility: hidden; }
+#jc-root .jc-banner.sm button { color: white; width: auto; margin: 0; }
+#jc-root .jc-banner.sm .pri { background: white; color: #a51924; }
+#jc-root .jc-fab { margin: 0; padding: 0; }
+@media (max-width: 360px) {
+  #jc-root .jc-banner.sm { gap: 4px; padding-inline: 8px; }
+}
+@media (max-width: 340px) {
+  #jc-root .jc-banner.sm { font-size: 12px; gap: 2px; }
+  #jc-root .jc-banner.sm button { padding-inline: 5px; }
+  #jc-root .jc-banner.sm .pri { padding-inline: 8px; }
+}
+/* The general information pages also have a floating LINE link above chat. */
+@media (max-width: 640px) {
+  body:has(a.fixed.bottom-24) #jc-root .jc-banner.sm {
+    bottom: calc(164px + env(safe-area-inset-bottom, 0px));
+  }
+}

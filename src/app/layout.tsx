@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import './globals.css'
 import MobileNav from '@/components/ui/MobileNav'
-import PDPABanner from '@/components/ui/PDPABanner'
 import LINEFloat from '@/components/ui/LINEFloat'
 import Pixels from '@/components/analytics/Pixels'
 import Recaptcha from '@/components/analytics/Recaptcha'
@@ -44,22 +43,6 @@ const orgJsonLd = {
   sameAs: ['https://line.me/ti/p/@roogondee'],
 }
 
-// Google tag (gtag.js). Rendered server-side on every page so Google's
-// installation checker finds it in the raw HTML. Google Consent Mode keeps it
-// cookieless until the visitor accepts the PDPA banner: consent defaults to
-// the stored choice (denied when unanswered) and Pixels.tsx sends
-// gtag('consent','update') when the banner is answered. 'pdpa_consent' must
-// stay in sync with CONSENT_KEY in src/lib/analytics/consent.ts.
-// G-THP6CDXR0L is the property linked to the Google Ads account and always
-// fires; a different NEXT_PUBLIC_GA_ID adds a second property alongside it
-// (Vercel prod currently sets G-TS4XWH5NJD) rather than replacing it, so
-// neither property loses data. gtag events fan out to every configured ID.
-// NEXT_PUBLIC_GOOGLE_ADS_ID ('AW-XXXXXXXXX') adds the Google Ads destination
-// so the ads_conversion_* events in src/lib/analytics/track.ts have somewhere
-// to land. Linking Google Ads to the tag can supply this destination on its
-// own, but that link is invisible from the codebase and silently drops every
-// conversion if it is ever unshared — configuring it explicitly makes the
-// dependency checkable. Unset is safe: the tag behaves exactly as before.
 const GA_ID = 'G-THP6CDXR0L'
 const GA_EXTRA_ID = process.env.NEXT_PUBLIC_GA_ID
 const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID
@@ -68,21 +51,6 @@ const GA_IDS = [
   ...(GA_EXTRA_ID && GA_EXTRA_ID !== GA_ID ? [GA_EXTRA_ID] : []),
   ...(GOOGLE_ADS_ID ? [GOOGLE_ADS_ID] : []),
 ]
-const GTAG_INIT = `
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-var pdpaOk = false;
-try { pdpaOk = localStorage.getItem('pdpa_consent') === 'accepted'; } catch (e) {}
-gtag('consent', 'default', {
-  ad_storage: pdpaOk ? 'granted' : 'denied',
-  ad_user_data: pdpaOk ? 'granted' : 'denied',
-  ad_personalization: pdpaOk ? 'granted' : 'denied',
-  analytics_storage: pdpaOk ? 'granted' : 'denied'
-});
-gtag('js', new Date());
-${GA_IDS.map((id) => `gtag('config', '${id}', { page_path: window.location.pathname });`).join('\n')}
-`
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Resolved by src/middleware.ts from ?lang= / cookie / Accept-Language, so
   // the HTML that leaves the server is already in the visitor's language
@@ -92,10 +60,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang={locale} className={fontVariables} suppressHydrationWarning>
+      <head>
+        <link rel="stylesheet" href="/jia-consent.css" />
+        <script src="/jia-consent-config.js" data-destinations={GA_IDS.join(',')} />
+        <script src="/jia-consent.js" />
+      </head>
       <body>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} />
-        <script dangerouslySetInnerHTML={{ __html: GTAG_INIT }} />
-
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
 
         <Pixels />
@@ -108,7 +78,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MobileNav />
           <LazyChatWidget />
           <LINEFloat />
-          <PDPABanner />
           <ScrollMotion />
         </I18nProvider>
         <Analytics />

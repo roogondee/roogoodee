@@ -1,3 +1,4 @@
+import { hasConsent } from './consent'
 // Shared client-side analytics helpers — fan out to GA4, Meta Pixel, TikTok.
 // Extracted from the QuizRunner pattern so non-quiz pages (e.g. the MOU ads
 // landing) can fire the same events without duplicating the globals.
@@ -181,7 +182,7 @@ export function flushPendingMetaEvents() {
 }
 
 export function track(name: string, params: Record<string, unknown> = {}) {
-  if (typeof window === 'undefined') return
+  if (!hasConsent()) return
   try { window.gtag?.('event', name, params) } catch {}
 
   if (window.fbq) {
